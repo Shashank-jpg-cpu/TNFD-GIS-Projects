@@ -1,0 +1,1802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Live Session - Host Dashboard</title>
+  <style>
+/* ==========================================================================
+   Live Session App - Unified Modern Design
+   ========================================================================== */
+
+:root {
+  --bg-primary: #0f141c;
+  --bg-surface: #18202c;
+  --bg-surface-elevated: #222c3d;
+  --border-color: #2e3b4e;
+  --text-main: #f3f5f8;
+  --text-muted: #9aa4b2;
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+  --success: #10b981;
+  --danger: #ef4444;
+  --danger-hover: #dc2626;
+  --warning: #f59e0b;
+  --warning-glow: rgba(245, 158, 11, 0.4);
+  --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--bg-primary);
+  color: var(--text-main);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ==========================================================================
+   Dashboard Page Styles
+   ========================================================================== */
+
+.dashboard-wrapper {
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 0 20px;
+  width: 100%;
+}
+
+.dashboard-header {
+  text-align: center;
+  margin-bottom: 35px;
+}
+
+.dashboard-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 8px;
+}
+
+.dashboard-logo span {
+  color: #818cf8;
+}
+
+.dashboard-subtitle {
+  color: var(--text-muted);
+  font-size: 1.05rem;
+}
+
+.card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  box-shadow: var(--shadow-lg);
+  margin-bottom: 24px;
+}
+
+.form-group {
+  margin-bottom: 22px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  width: 100% !important;
+}
+
+.form-group label,
+.form-label,
+label {
+  display: block !important;
+  font-size: 0.92rem !important;
+  font-weight: 600 !important;
+  color: #cbd5e1 !important;
+  margin-bottom: 8px !important;
+  text-align: left !important;
+  letter-spacing: 0.2px !important;
+}
+
+.form-group input,
+.form-input,
+input[type="text"],
+input[type="url"],
+input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]) {
+  width: 100% !important;
+  display: block !important;
+  box-sizing: border-box !important;
+  padding: 14px 16px !important;
+  background: #182232 !important;
+  border: 1px solid #334155 !important;
+  border-radius: 10px !important;
+  color: #f8fafc !important;
+  font-size: 1rem !important;
+  font-family: inherit !important;
+  outline: none !important;
+  transition: all 0.2s ease !important;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+}
+
+.form-group input:focus,
+.form-input:focus,
+input[type="text"]:focus,
+input[type="url"]:focus {
+  border-color: #6366f1 !important;
+  background: #1e293b !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25), inset 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+}
+
+.form-group input::placeholder,
+.form-input::placeholder,
+input::placeholder {
+  color: #64748b !important;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 22px;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: var(--primary-hover);
+  transform: translateY(-1px);
+}
+
+.btn-whatsapp {
+  background: #25d366;
+  color: white;
+  font-weight: 700;
+}
+
+.btn-whatsapp:hover {
+  background: #1ebc59;
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+}
+
+.btn-secondary:hover {
+  background: #2c384d;
+}
+
+.btn-block {
+  width: 100%;
+}
+
+/* Session Info Box */
+.session-info-box {
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  margin-top: 24px;
+  display: none;
+}
+
+.session-info-box.active {
+  display: block;
+  animation: fadeIn 0.3s ease;
+}
+
+.link-group {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+  margin-bottom: 16px;
+}
+
+.link-input {
+  flex: 1;
+  background: #111722;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: #a5b4fc;
+  padding: 10px 14px;
+  font-size: 0.9rem;
+  font-family: monospace;
+}
+
+/* Toast Message */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: #1e293b;
+  color: #fff;
+  border: 1px solid #334155;
+  padding: 12px 20px;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-lg);
+  font-size: 0.95rem;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.3s ease;
+  pointer-events: none;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ==========================================================================
+   Room & Meeting Interface
+   ========================================================================== */
+
+.room-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  background: var(--bg-primary);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Header bar */
+.room-header {
+  height: 56px;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  z-index: 10;
+}
+
+.room-title-area {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.room-code-tag {
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-color);
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: #818cf8;
+}
+
+.role-badge {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.role-badge.host {
+  background: rgba(79, 70, 229, 0.25);
+  color: #a5b4fc;
+  border: 1px solid rgba(79, 70, 229, 0.5);
+}
+
+.role-badge.participant {
+  background: rgba(16, 185, 129, 0.2);
+  color: #6ee7b7;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+/* Recording Badge */
+.rec-indicator {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  color: #fca5a5;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.rec-indicator.active {
+  display: inline-flex;
+}
+
+.rec-dot {
+  width: 9px;
+  height: 9px;
+  background-color: var(--danger);
+  border-radius: 50%;
+  animation: pulseDot 1.2s infinite;
+}
+
+@keyframes pulseDot {
+  0% { transform: scale(0.9); opacity: 0.7; }
+  50% { transform: scale(1.3); opacity: 1; }
+  100% { transform: scale(0.9); opacity: 0.7; }
+}
+
+/* Video Stage Area */
+.video-stage {
+  flex: 1;
+  position: relative;
+  display: flex;
+  padding: 16px;
+  overflow: hidden;
+  gap: 16px;
+}
+
+.video-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-auto-rows: 1fr;
+  gap: 16px;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Single or double video centering */
+.video-grid.single-video {
+  grid-template-columns: 1fr;
+  max-width: 1080px;
+  margin: 0 auto;
+}
+
+.video-tile {
+  background: #151b26;
+  border-radius: var(--radius-md);
+  border: 2px solid var(--border-color);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-height: 220px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.video-tile.presenting {
+  border-color: #818cf8;
+}
+
+.video-tile.hand-raised {
+  border-color: var(--warning);
+  box-shadow: 0 0 15px var(--warning-glow);
+}
+
+.video-tile video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+}
+
+.tile-overlay {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.tile-name {
+  background: rgba(15, 20, 28, 0.75);
+  backdrop-filter: blur(6px);
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tile-badge-hand {
+  background: var(--warning);
+  color: #000;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  display: none;
+  animation: bounce 0.6s infinite alternate;
+}
+
+@keyframes bounce {
+  from { transform: translateY(0); }
+  to { transform: translateY(-3px); }
+}
+
+.tile-badge-hand.active {
+  display: inline-flex;
+}
+
+.tile-avatar {
+  width: 80px;
+  height: 80px;
+  background: #2a374a;
+  color: #cbd5e1;
+  font-size: 2rem;
+  font-weight: 700;
+  border-radius: 50%;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  text-transform: uppercase;
+}
+
+.tile-avatar.visible {
+  display: flex;
+}
+
+/* ==========================================================================
+   Eradicate All Netlify Injected Floating Badges, Toolbars & Drawers
+   ========================================================================== */
+netlify-toolbar,
+netlify-drawer,
+#netlify-toolbar,
+#netlify-drawer,
+[id*="netlify"]:not(#btn-share-whatsapp),
+[class*="netlify"]:not(#btn-share-whatsapp),
+[data-netlify-deploy-id],
+[data-netlify],
+div[data-netlify-site-id],
+iframe[src*="netlify"],
+iframe[id*="netlify"],
+iframe[title*="Netlify"],
+div:has(> a[href*="netlify.com"]) {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  height: 0 !important;
+  width: 0 !important;
+  position: absolute !important;
+  top: -9999px !important;
+  left: -9999px !important;
+  z-index: -99999 !important;
+}
+
+/* Ensure WhatsApp button is always visible */
+#btn-share-whatsapp {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* ==========================================================================
+   Bottom Controls Bar (Floating Ergonomic Bar for Mobile & Desktop)
+   ========================================================================== */
+
+.controls-bar {
+  position: fixed;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 24px);
+  max-width: 680px;
+  min-height: 64px;
+  background: rgba(18, 24, 34, 0.96);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 8px 16px;
+  z-index: 9999999 !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+}
+
+/* Video stage padding so bottom controls never overlap video tiles */
+.video-stage {
+  flex: 1;
+  position: relative;
+  display: flex;
+  padding: 16px;
+  padding-bottom: 95px !important;
+  overflow-y: auto;
+  gap: 16px;
+}
+
+.ctrl-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.ctrl-btn:hover {
+  background: #2d3a4f;
+  transform: translateY(-2px);
+}
+
+.ctrl-btn.off,
+.ctrl-btn.danger {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: white;
+}
+
+.ctrl-btn.off:hover,
+.ctrl-btn.danger:hover {
+  background: var(--danger-hover);
+}
+
+.ctrl-btn.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+}
+
+.ctrl-btn.hand-active {
+  background: var(--warning);
+  border-color: var(--warning);
+  color: #111;
+  box-shadow: 0 0 12px var(--warning-glow);
+}
+
+.ctrl-btn.record-active {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: white;
+  animation: pulseDot 1.4s infinite;
+}
+
+.ctrl-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: var(--primary);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 700;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--bg-surface);
+}
+
+.ctrl-badge.active {
+  display: flex;
+}
+
+/* ==========================================================================
+   Side Drawers (Chat & Waiting Room & Raised Hands)
+   ========================================================================== */
+
+.drawer {
+  position: absolute;
+  top: 56px;
+  right: 0;
+  bottom: 76px;
+  width: 340px;
+  background: var(--bg-surface);
+  border-left: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 20;
+  box-shadow: -6px 0 20px rgba(0, 0, 0, 0.4);
+}
+
+.drawer.open {
+  transform: translateX(0);
+}
+
+.drawer-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.drawer-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.drawer-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.4rem;
+  cursor: pointer;
+}
+
+.drawer-close:hover {
+  color: var(--text-main);
+}
+
+/* Universal Chat Box */
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.chat-bubble {
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-color);
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  max-width: 90%;
+  word-break: break-word;
+}
+
+.chat-bubble.mine {
+  align-self: flex-end;
+  background: #312e81;
+  border-color: #4338ca;
+}
+
+.chat-sender {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #a5b4fc;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chat-sender .host-tag {
+  background: #4f46e5;
+  color: white;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.68rem;
+}
+
+.chat-time {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-left: auto;
+  font-weight: normal;
+}
+
+.chat-text {
+  font-size: 0.92rem;
+  line-height: 1.4;
+  color: var(--text-main);
+}
+
+.chat-form {
+  padding: 14px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  gap: 8px;
+}
+
+.chat-form input {
+  flex: 1;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: #fff;
+  padding: 10px 14px;
+  font-size: 0.9rem;
+  outline: none;
+}
+
+.chat-form input:focus {
+  border-color: var(--primary);
+}
+
+/* Waiting Room / Knocking List */
+.knock-list {
+  padding: 16px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.knock-item {
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.knock-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.knock-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-admit {
+  background: var(--success);
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.btn-admit:hover {
+  background: #059669;
+}
+
+.btn-deny {
+  background: var(--danger);
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.btn-deny:hover {
+  background: var(--danger-hover);
+}
+
+/* Floating Knock Alert Notification (Direct Prompt) */
+.floating-knock-alert {
+  position: absolute;
+  top: 70px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-20px);
+  background: #1e293b;
+  border: 1px solid #4f46e5;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+  padding: 14px 20px;
+  border-radius: var(--radius-md);
+  display: none;
+  align-items: center;
+  gap: 16px;
+  z-index: 100;
+  transition: all 0.3s ease;
+}
+
+.floating-knock-alert.show {
+  display: flex;
+  transform: translateX(-50%) translateY(0);
+}
+
+.floating-knock-alert .alert-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.floating-knock-alert .alert-title {
+  font-size: 0.85rem;
+  color: #a5b4fc;
+}
+
+.floating-knock-alert .alert-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+/* ==========================================================================
+   Lobby / Waiting Room Modal
+   ========================================================================== */
+
+.lobby-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 20, 28, 0.96);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  padding: 20px;
+}
+
+.lobby-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 480px;
+  padding: 32px;
+  box-shadow: var(--shadow-lg);
+  text-align: center;
+}
+
+.lobby-preview-box {
+  width: 100%;
+  height: 220px;
+  background: #000;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  position: relative;
+  margin: 18px 0;
+  border: 1px solid var(--border-color);
+}
+
+.lobby-preview-box video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.lobby-preview-controls {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 10px;
+}
+
+/* Radar pulse animation for waiting screen */
+.pulse-circle {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(79, 70, 229, 0.2);
+  border: 2px solid #818cf8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 24px auto;
+  font-size: 2rem;
+  animation: pulseWave 1.8s infinite ease-out;
+}
+
+@keyframes pulseWave {
+  0% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(129, 140, 248, 0.6); }
+  70% { transform: scale(1.1); box-shadow: 0 0 0 25px rgba(129, 140, 248, 0); }
+  100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(129, 140, 248, 0); }
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .dashboard-wrapper {
+    margin: 20px auto;
+  }
+  .drawer {
+    width: 100%;
+    top: 56px;
+    bottom: 76px;
+  }
+  .controls-bar {
+    gap: 8px;
+    padding: 8px 8px;
+    padding-bottom: max(14px, env(safe-area-inset-bottom));
+    justify-content: space-evenly;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+  .ctrl-btn {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    font-size: 1.15rem;
+  }
+  .video-stage {
+    padding: 10px;
+    padding-bottom: 95px !important;
+  }
+  .video-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .video-tile {
+    min-height: 180px;
+  }
+  .table-responsive {
+    overflow-x: auto;
+  }
+  .history-item {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 12px;
+  }
+}
+
+/* ==========================================================================
+   Session History & Recording Management Styles
+   ========================================================================== */
+
+.history-card {
+  margin-top: 32px;
+}
+
+.history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.history-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.history-badge-count {
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-color);
+  color: #a5b4fc;
+  font-size: 0.8rem;
+  padding: 2px 10px;
+  border-radius: 12px;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.history-item {
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: all 0.2s ease;
+}
+
+.history-item:hover {
+  border-color: #4f46e5;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+}
+
+.history-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.history-recordings-row {
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.history-recordings-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #a5b4fc;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.history-recordings-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.history-main-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.history-session-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.history-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.history-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.duration-pill {
+  background: rgba(79, 70, 229, 0.2);
+  color: #a5b4fc;
+  border: 1px solid rgba(79, 70, 229, 0.4);
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.history-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btn-download-rec {
+  background: #059669;
+  color: white;
+  padding: 9px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 0.88rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.btn-download-rec:hover {
+  background: #047857;
+  transform: translateY(-1px);
+}
+
+.btn-delete-session {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+}
+
+.btn-delete-session:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.empty-history-box {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-muted);
+}
+
+
+  </style>
+  <script src="../tabSync.js"></script>
+</head>
+<body>
+
+  <div class="dashboard-wrapper">
+    <header class="dashboard-header">
+      <div class="dashboard-logo">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="23 7 16 12 23 17 23 7"></polygon>
+          <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+        </svg>
+        <span>Live</span>Session
+      </div>
+      <p class="dashboard-subtitle">Host live video sessions, share links on WhatsApp, and admit participants effortlessly.</p>
+    </header>
+
+    <!-- Host Fast Rejoin Banner (Only shown if this device created the session) -->
+    <div id="active-rejoin-banner" class="card active-session-banner" style="display: none;">
+      <div class="active-banner-content">
+        <div>
+          <div class="active-badge">● ACTIVE SESSION READY</div>
+          <h3 id="active-session-name" style="margin: 4px 0 6px 0; font-size: 1.15rem; color: #fff;">Interactive Live Session</h3>
+          <span id="active-session-code" class="room-code-tag"></span>
+        </div>
+        <a id="btn-rejoin-active" href="#" class="btn btn-success" style="padding: 10px 22px; font-weight: 700; text-decoration: none;">
+          ▶ Rejoin Session as Host
+        </a>
+      </div>
+    </div>
+
+    <!-- Create Session Form -->
+    <div class="card">
+      <h2 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 20px;">Create a New Session</h2>
+      
+      <div class="form-group" style="margin-bottom: 22px;">
+        <label for="session-title" class="form-label" style="display: block; margin-bottom: 8px; color: #cbd5e1; font-weight: 600;">Session Name / Topic</label>
+        <input type="text" id="session-title" class="form-input" style="width: 100% !important; max-width: 100% !important; box-sizing: border-box !important; display: block !important; padding: 14px 18px !important; background-color: #182232 !important; border: 1.5px solid #334155 !important; border-radius: 10px !important; color: #ffffff !important; font-size: 1rem !important; outline: none !important; -webkit-appearance: none !important; appearance: none !important;" placeholder="e.g., Interactive Live Session" value="Interactive Live Session">
+      </div>
+
+      <div class="form-group" style="margin-bottom: 22px;">
+        <label for="network-base-url" class="form-label" style="display: block; margin-bottom: 8px; color: #cbd5e1; font-weight: 600;">Network Web Address (For Mobile Phones on WhatsApp) <span style="color: var(--text-muted); font-size: 0.8rem; font-weight: normal;">(Auto-detected from server)</span></label>
+        <input type="text" id="network-base-url" class="form-input" style="width: 100% !important; max-width: 100% !important; box-sizing: border-box !important; display: block !important; padding: 14px 18px !important; background-color: #182232 !important; border: 1.5px solid #334155 !important; border-radius: 10px !important; color: #ffffff !important; font-size: 1rem !important; outline: none !important; -webkit-appearance: none !important; appearance: none !important;" placeholder="Detecting address...">
+      </div>
+
+      <button id="btn-create-session" class="btn btn-primary btn-block">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="16"></line>
+          <line x1="8" y1="12" x2="16" y2="12"></line>
+        </svg>
+        Create & Generate Session Link
+      </button>
+    </div>
+
+    <!-- Active Session Details (Shown after creation) -->
+    <div class="session-info-box card" id="session-details-card" style="display: none;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+        <div>
+          <span style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Session Ready</span>
+          <h3 id="display-session-title" style="font-size: 1.25rem; color: #fff;"></h3>
+        </div>
+        <span id="display-room-code" class="room-code-tag"></span>
+      </div>
+
+      <!-- Host Action -->
+      <div style="margin-bottom: 24px; padding: 16px; background: rgba(79, 70, 229, 0.12); border: 1px solid rgba(79, 70, 229, 0.3); border-radius: var(--radius-sm);">
+        <h4 style="font-size: 0.95rem; color: #a5b4fc; margin-bottom: 6px;">Your Host Access</h4>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">Launch the session room with host privileges to admit incoming participants, record the session in MP4, and share your screen.</p>
+        <a id="btn-launch-host" href="#" class="btn btn-primary btn-block">
+          Launch Session as Host
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        </a>
+      </div>
+
+      <!-- Participant WhatsApp Invite -->
+      <div style="padding: 16px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: var(--radius-sm);">
+        <h4 style="font-size: 0.95rem; color: #6ee7b7; margin-bottom: 6px;">Participant Invite (Share via WhatsApp)</h4>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">Send this link to your group or contacts. They can open it directly in their mobile browser (Chrome/Safari) without any password.</p>
+        <div class="share-box">
+          <input type="text" id="participant-share-link" class="form-input" style="width: 100% !important; max-width: 100% !important; box-sizing: border-box !important; display: block !important; padding: 14px 18px !important; background-color: #182232 !important; border: 1.5px solid #334155 !important; border-radius: 10px !important; color: #ffffff !important; font-size: 1rem !important; outline: none !important; -webkit-appearance: none !important; appearance: none !important;" readonly>
+          <button id="btn-copy-link" class="btn btn-secondary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            Copy
+          </button>
+        </div>
+        <a id="btn-share-whatsapp" href="#" target="_blank" class="btn btn-whatsapp" style="margin-top: 10px; width: 100%;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/>
+          </svg>
+          Share Invitation via WhatsApp
+        </a>
+      </div>
+    </div>
+
+    <!-- Session History & Recorded Sessions Card -->
+    <div class="card history-card" id="history-card">
+      <div class="history-header">
+        <div class="history-title">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+          <span>Session History & Recordings (MP4)</span>
+          <span id="history-badge" class="history-badge-count">0 Sessions</span>
+        </div>
+        <button id="btn-refresh-history" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.85rem;">
+          🔄 Refresh
+        </button>
+      </div>
+      
+      <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 16px;">
+        All sessions created and hosted on this device appear below with date, start & end times, duration, and MP4 video recordings. You can download the recording immediately or anytime later, or rejoin an active session with 1 click.
+      </p>
+
+      <div id="history-container" class="history-list"></div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast">Notice</div>
+
+  <!-- IndexedDB Storage Engine (Strict MP4) -->
+  <script>
+/**
+ * db.js - IndexedDB storage for Host sessions, timestamps, duration,
+ * and multiple offline video recordings stored directly on the host's device.
+ */
+
+const DB_NAME = 'LiveSessionHostDB';
+const DB_VERSION = 2;
+const SESSIONS_STORE = 'sessions';
+const RECORDINGS_STORE = 'recordings';
+
+class SessionDB {
+  constructor() {
+    this.db = null;
+  }
+
+  async init() {
+    if (this.db) return this.db;
+
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+      request.onupgradeneeded = (e) => {
+        const db = e.target.result;
+
+        // Store for session metadata
+        if (!db.objectStoreNames.contains(SESSIONS_STORE)) {
+          const sessionStore = db.createObjectStore(SESSIONS_STORE, { keyPath: 'roomCode' });
+          sessionStore.createIndex('timestamp', 'startTimestamp', { unique: false });
+        }
+
+        // Store for actual video blobs (allows multiple recordings per session)
+        if (db.objectStoreNames.contains(RECORDINGS_STORE)) {
+          db.deleteObjectStore(RECORDINGS_STORE);
+        }
+        const recStore = db.createObjectStore(RECORDINGS_STORE, { keyPath: 'id' });
+        recStore.createIndex('roomCode', 'roomCode', { unique: false });
+      };
+
+      request.onsuccess = (e) => {
+        this.db = e.target.result;
+        resolve(this.db);
+      };
+
+      request.onerror = (e) => {
+        console.error('IndexedDB open error:', e);
+        resolve(null);
+      };
+    });
+  }
+
+  // Save or update session metadata
+  async saveSession(sessionData) {
+    const db = await this.init();
+    if (!db) return sessionData;
+
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction([SESSIONS_STORE], 'readwrite');
+      const store = tx.objectStore(SESSIONS_STORE);
+
+      const getReq = store.get(sessionData.roomCode);
+
+      getReq.onsuccess = () => {
+        const existing = getReq.result || {};
+        const updated = {
+          ...existing,
+          ...sessionData,
+          recordings: sessionData.recordings || existing.recordings || []
+        };
+
+        const putReq = store.put(updated);
+        putReq.onsuccess = () => resolve(updated);
+        putReq.onerror = () => reject(putReq.error);
+      };
+
+      getReq.onerror = () => reject(getReq.error);
+    });
+  }
+
+  async createSessionRecord(roomCode, title, role = 'host') {
+    const now = new Date();
+    return this.saveSession({
+      roomCode,
+      title,
+      role,
+      date: now.toLocaleDateString([], { day: '2-digit', month: 'short', year: 'numeric' }),
+      startTime: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      hasRecording: false
+    });
+  }
+
+  // Save recorded video Blob (Supports multiple recordings per session without overwriting)
+  async saveRecording(roomCode, blob, filename, typeLabel = 'Host Only') {
+    const db = await this.init();
+    if (!db) return;
+
+    const recId = 'rec_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
+    const mp4Filename = (filename || 'Session-' + roomCode + '.mp4').replace(/\.webm$/i, '.mp4');
+    const mp4Blob = blob.type === 'video/mp4' ? blob : new Blob([blob], { type: 'video/mp4' });
+
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction([RECORDINGS_STORE, SESSIONS_STORE], 'readwrite');
+      const recStore = tx.objectStore(RECORDINGS_STORE);
+      const sessStore = tx.objectStore(SESSIONS_STORE);
+
+      // 1. Save blob record strictly as MP4
+      recStore.put({
+        id: recId,
+        roomCode: roomCode,
+        blob: mp4Blob,
+        filename: mp4Filename,
+        size: mp4Blob.size,
+        type: typeLabel,
+        format: 'MP4',
+        savedAt: new Date().toISOString()
+      });
+
+      // 2. Append to session recordings list
+      const getReq = sessStore.get(roomCode);
+      getReq.onsuccess = () => {
+        const sess = getReq.result || { roomCode };
+        sess.recordings = sess.recordings || [];
+        sess.recordings.push({
+          id: recId,
+          filename: mp4Filename,
+          type: typeLabel,
+          format: 'MP4',
+          sizeStr: this.formatBytes(mp4Blob.size),
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        });
+        sess.hasRecording = true;
+        sessStore.put(sess);
+      };
+
+      tx.oncomplete = () => resolve(recId);
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  // Retrieve all sessions ordered by startTimestamp descending
+  async getAllSessions() {
+    const db = await this.init();
+    if (!db) return [];
+
+    return new Promise((resolve) => {
+      const tx = db.transaction([SESSIONS_STORE], 'readonly');
+      const store = tx.objectStore(SESSIONS_STORE);
+      const request = store.getAll();
+
+      request.onsuccess = () => {
+        const sessions = request.result || [];
+        sessions.sort((a, b) => (b.startTimestamp || 0) - (a.startTimestamp || 0));
+        resolve(sessions);
+      };
+
+      request.onerror = () => resolve([]);
+    });
+  }
+
+  // Download specific recording by ID (Strictly downloads in .mp4 format)
+  async downloadRecording(recId) {
+    const db = await this.init();
+    if (!db) return;
+
+    return new Promise((resolve) => {
+      const tx = db.transaction([RECORDINGS_STORE], 'readonly');
+      const store = tx.objectStore(RECORDINGS_STORE);
+      const request = store.get(recId);
+
+      request.onsuccess = () => {
+        const rec = request.result;
+        if (!rec || !rec.blob) {
+          alert('Recording file not found on this device.');
+          resolve();
+          return;
+        }
+
+        const mp4Blob = new Blob([rec.blob], { type: 'video/mp4' });
+        const url = URL.createObjectURL(mp4Blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        const dlFilename = (rec.filename || `Session-Recording-${recId}.mp4`).replace(/\.webm$/i, '.mp4');
+        a.download = dlFilename;
+        document.body.appendChild(a);
+        a.click();
+
+        setTimeout(() => {
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }, 500);
+        resolve();
+      };
+
+      request.onerror = () => resolve();
+    });
+  }
+
+  // Delete session and all its associated recordings
+  async deleteSession(roomCode) {
+    const db = await this.init();
+    if (!db) return;
+
+    return new Promise((resolve) => {
+      const tx = db.transaction([SESSIONS_STORE, RECORDINGS_STORE], 'readwrite');
+      const sessStore = tx.objectStore(SESSIONS_STORE);
+      const recStore = tx.objectStore(RECORDINGS_STORE);
+
+      sessStore.delete(roomCode);
+
+      // Delete all recordings with this roomCode
+      const index = recStore.index('roomCode');
+      const req = index.getAllKeys(roomCode);
+      req.onsuccess = () => {
+        const keys = req.result || [];
+        keys.forEach(k => recStore.delete(k));
+      };
+
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => resolve();
+    });
+  }
+
+  formatBytes(bytes, decimals = 1) {
+    if (!bytes || bytes === 0) return '0 B';
+    const k = 1024;
+    const dm = decimals < 0 ? 0 : decimals;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+  }
+}
+
+window.sessionDB = new SessionDB();
+
+  </script>
+
+  <!-- Host Dashboard Controller -->
+  <script>
+    const sessionTitleInput = document.getElementById('session-title');
+    const networkBaseUrlInput = document.getElementById('network-base-url');
+    const btnCreateSession = document.getElementById('btn-create-session');
+    const sessionDetailsCard = document.getElementById('session-details-card');
+    const displaySessionTitle = document.getElementById('display-session-title');
+    const displayRoomCode = document.getElementById('display-room-code');
+    const btnLaunchHost = document.getElementById('btn-launch-host');
+    const participantShareLink = document.getElementById('participant-share-link');
+    const btnShareWhatsapp = document.getElementById('btn-share-whatsapp');
+    const btnCopyLink = document.getElementById('btn-copy-link');
+    const toast = document.getElementById('toast');
+    const activeRejoinBanner = document.getElementById('active-rejoin-banner');
+    const activeSessionName = document.getElementById('active-session-name');
+    const activeSessionCode = document.getElementById('active-session-code');
+    const btnRejoinActive = document.getElementById('btn-rejoin-active');
+    const historyContainer = document.getElementById('history-container');
+    const historyBadge = document.getElementById('history-badge');
+    const btnRefreshHistory = document.getElementById('btn-refresh-history');
+
+    function generateRoomCode() {
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      let code = 'LIVE-';
+      for (let i = 0; i < 4; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return code;
+    }
+
+    function showToast(msg) {
+      if (!toast) return;
+      toast.textContent = msg;
+      toast.className = 'toast show';
+      setTimeout(() => {
+        toast.className = 'toast';
+      }, 3000);
+    }
+
+    async function initNetworkAddress() {
+      if (window.location.protocol === 'https:' || (window.location.protocol === 'http:' && !window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1') && !window.location.hostname.startsWith('192.168.'))) {
+        if (networkBaseUrlInput) {
+          networkBaseUrlInput.value = window.location.origin;
+          networkBaseUrlInput.placeholder = window.location.origin;
+        }
+        return;
+      }
+      try {
+        const res = await fetch('/api/info');
+        if (res.ok) {
+          const info = await res.json();
+          if (info.networkUrl && networkBaseUrlInput) {
+            networkBaseUrlInput.value = info.networkUrl;
+            networkBaseUrlInput.placeholder = info.networkUrl;
+          }
+        }
+      } catch (e) {}
+    }
+
+    function checkActiveSession() {
+      const activeRoom = localStorage.getItem('last_active_room');
+      const activeKey = localStorage.getItem('host_key_' + activeRoom);
+      const activeTitle = localStorage.getItem('last_active_title') || 'Interactive Live Session';
+      const activeUrl = localStorage.getItem('last_active_host_url');
+
+      // Only show Host rejoin banner if THIS device holds the host key for this session!
+      if (activeRoom && activeKey && activeUrl && activeRejoinBanner) {
+        if (activeSessionName) activeSessionName.textContent = activeTitle;
+        if (activeSessionCode) activeSessionCode.textContent = activeRoom;
+        if (btnRejoinActive) btnRejoinActive.href = activeUrl;
+        activeRejoinBanner.style.display = 'block';
+      } else if (activeRejoinBanner) {
+        activeRejoinBanner.style.display = 'none';
+      }
+    }
+
+    async function loadSessionHistory() {
+      if (!window.sessionDB || !historyContainer) return;
+      try {
+        const sessions = await window.sessionDB.getAllSessions();
+        if (historyBadge) historyBadge.textContent = sessions.length + ' Session' + (sessions.length === 1 ? '' : 's');
+
+        if (sessions.length === 0) {
+          historyContainer.innerHTML = `
+            <div class="empty-history-box">
+              <div style="font-size: 2.2rem; margin-bottom: 10px;">📹</div>
+              <p>No past sessions recorded on this device yet.</p>
+              <p style="font-size: 0.8rem; margin-top: 4px;">When you create a session, its details, hours, and MP4 video recordings will appear here automatically.</p>
+            </div>
+          `;
+          return;
+        }
+
+        historyContainer.innerHTML = '';
+        sessions.forEach((sess) => {
+          const item = document.createElement('div');
+          item.className = 'history-item';
+
+          const dateDisplay = sess.date || 'Today';
+          const startTimeDisplay = sess.startTime || '--:--';
+          const endTimeDisplay = sess.endTime || 'In progress';
+          const durationDisplay = sess.durationText || '--';
+
+          let recordingsSectionHtml = '';
+          if (sess.recordings && sess.recordings.length > 0) {
+            const buttonsHtml = sess.recordings.map((rec, idx) => `
+              <button class="btn-download-rec" onclick="downloadSessionVideo('${rec.id}')" title="Download ${rec.type}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Part ${idx + 1}: ${rec.type || 'Video'} (MP4 - ${rec.sizeStr})
+              </button>
+            `).join('');
+
+            recordingsSectionHtml = `
+              <div class="history-recordings-row">
+                <div class="history-recordings-title">
+                  <span>📹 Recorded Parts (${sess.recordings.length} MP4):</span>
+                </div>
+                <div class="history-recordings-buttons">
+                  ${buttonsHtml}
+                </div>
+              </div>
+            `;
+          } else if (sess.hasRecording) {
+            recordingsSectionHtml = `
+              <div class="history-recordings-row">
+                <div class="history-recordings-buttons">
+                  <button class="btn-download-rec" onclick="downloadSessionVideo('${sess.roomCode}')" title="Download MP4 video">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="7 10 12 15 17 10"></polyline>
+                      <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    Download (${sess.recordingSize || 'MP4 Video'})
+                  </button>
+                </div>
+              </div>
+            `;
+          }
+
+          const savedKey = localStorage.getItem('host_key_' + sess.roomCode) || 'h_key';
+          const hostRejoinUrl = `room.html?room=${sess.roomCode}&role=host&key=${savedKey}&title=${encodeURIComponent(sess.title || 'Live Session')}`;
+
+          item.innerHTML = `
+            <div class="history-card-top">
+              <div class="history-session-name">
+                <span>${escapeHtml(sess.title || 'Live Session')}</span>
+                <span class="room-code-tag">${sess.roomCode}</span>
+              </div>
+              <div class="history-top-actions">
+                <a href="${hostRejoinUrl}" class="btn btn-secondary" style="padding: 6px 14px; font-size: 0.85rem; color: #a5b4fc; text-decoration: none;">
+                  ▶ Rejoin
+                </a>
+                <button class="btn-delete-session" onclick="deleteSessionRecord('${sess.roomCode}')" title="Delete record">
+                  🗑️
+                </button>
+              </div>
+            </div>
+
+            <div class="history-meta-row">
+              <span class="history-meta-item">📅 <strong>${dateDisplay}</strong></span>
+              <span class="history-meta-item">⏰ <strong>${startTimeDisplay}</strong> → <strong>${endTimeDisplay}</strong></span>
+              <span class="history-meta-item">⏳ Duration: <span class="duration-pill">${durationDisplay}</span></span>
+            </div>
+
+            ${recordingsSectionHtml}
+          `;
+
+          historyContainer.appendChild(item);
+        });
+      } catch (err) {
+        console.warn('Failed to load session history:', err);
+      }
+    }
+
+    window.downloadSessionVideo = function(id) {
+      if (window.sessionDB) {
+        window.sessionDB.downloadRecording(id);
+        showToast('MP4 Download started!');
+      }
+    };
+
+    window.deleteSessionRecord = async function(roomCode) {
+      if (confirm('Delete this session record and its saved MP4 video?')) {
+        if (window.sessionDB) {
+          await window.sessionDB.deleteSession(roomCode);
+          showToast('Session record deleted.');
+          loadSessionHistory();
+        }
+      }
+    };
+
+    if (btnRefreshHistory) {
+      btnRefreshHistory.addEventListener('click', () => {
+        loadSessionHistory();
+        checkActiveSession();
+        showToast('Session list refreshed.');
+      });
+    }
+
+    if (btnCreateSession) {
+      btnCreateSession.addEventListener('click', async () => {
+        try {
+          const title = (sessionTitleInput ? sessionTitleInput.value.trim() : '') || 'Interactive Live Session';
+          const roomCode = generateRoomCode();
+          const hostKey = 'h_' + Math.random().toString(36).substring(2, 10);
+
+          localStorage.setItem('host_key_' + roomCode, hostKey);
+          localStorage.setItem('host_title_' + roomCode, title);
+
+          let networkBase = (networkBaseUrlInput ? networkBaseUrlInput.value.trim().replace(/\/$/, '') : '') || window.location.origin;
+          if (!networkBase || networkBase.startsWith('file:') || (window.location.protocol === 'https:' && networkBase.includes('192.168.'))) {
+            networkBase = window.location.origin;
+          }
+
+          // Host launches room.html
+          const hostUrl = `room.html?room=${roomCode}&role=host&key=${hostKey}&title=${encodeURIComponent(title)}`;
+          // Students open room.html directly from WhatsApp
+          const participantUrl = `${networkBase}/room.html?room=${roomCode}&title=${encodeURIComponent(title)}`;
+
+          localStorage.setItem('last_active_room', roomCode);
+          localStorage.setItem('last_active_title', title);
+          localStorage.setItem('last_active_host_url', hostUrl);
+
+          if (displaySessionTitle) displaySessionTitle.textContent = title;
+          if (displayRoomCode) displayRoomCode.textContent = roomCode;
+          if (btnLaunchHost) btnLaunchHost.href = hostUrl;
+          if (participantShareLink) participantShareLink.value = participantUrl;
+
+          const whatsappText = `Join my live session: *${title}*\nRoom: ${roomCode}\nTap link to join directly: ${participantUrl}`;
+          if (btnShareWhatsapp) {
+            btnShareWhatsapp.href = `https://api.whatsapp.com/send?text=${encodeURIComponent(whatsappText)}`;
+          }
+
+          if (sessionDetailsCard) {
+            sessionDetailsCard.style.display = 'block';
+            sessionDetailsCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+
+          showToast('Session ready! Host can launch or share link on WhatsApp.');
+
+          if (window.sessionDB) {
+            try {
+              if (typeof window.sessionDB.createSessionRecord === 'function') {
+                await window.sessionDB.createSessionRecord(roomCode, title, 'host');
+              }
+              loadSessionHistory();
+              checkActiveSession();
+            } catch (dbErr) {
+              console.warn('History save notice:', dbErr);
+            }
+          }
+        } catch (err) {
+          console.error('Create session error:', err);
+          alert('Error creating session: ' + err.message);
+        }
+      });
+    }
+
+    if (btnCopyLink && participantShareLink) {
+      btnCopyLink.addEventListener('click', () => {
+        participantShareLink.select();
+        navigator.clipboard.writeText(participantShareLink.value).then(() => {
+          showToast('Participant link copied to clipboard!');
+        }).catch(() => {
+          document.execCommand('copy');
+          showToast('Participant link copied!');
+        });
+      });
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/[&<>'"]/g, tag => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        "'": '&#39;',
+        '"': '&quot;'
+      }[tag] || tag));
+    }
+
+    initNetworkAddress();
+    checkActiveSession();
+    loadSessionHistory();
+  </script>
+</body>
+</html>

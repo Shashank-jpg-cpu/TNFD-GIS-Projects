@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Urgent Issues Monitoring Portal - Head Office</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="../tabSync.js"></script>
+</head>
+<body>
+
+  <!-- Top Navigation Header (Head Office Only) -->
+  <header class="top-nav">
+    <div class="brand-container">
+      <img src="logo.jpg" alt="Forest Department Logo" class="brand-logo-img">
+      <div class="brand-title">
+        <h1>Urgent Issues Monitoring Portal</h1>
+        <p>Tamil Nadu Forest Department - Head Office Portal</p>
+      </div>
+    </div>
+    <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+      <button class="btn btn-secondary btn-sm" onclick="openSyncSettingsModal()">⚙️ Sync Settings</button>
+      <button class="btn btn-secondary btn-sm" onclick="manualCloudSync()">🔄 Sync Now</button>
+      <div class="cloud-status-badge">
+        🟢 Cloud Synced
+      </div>
+    </div>
+  </header>
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Main Workspace Container -->
+  <main class="main-container">
+
+    <!-- KPI Summary Cards at Top -->
+    <div class="cards-grid">
+      <div class="stat-card total">
+        <div class="stat-icon">📋</div>
+        <div class="stat-details">
+          <h3>Total Issues Issued</h3>
+          <div class="stat-number" id="statTotalIssues">0</div>
+        </div>
+      </div>
+
+      <div class="stat-card sent">
+        <div class="stat-icon">⏳</div>
+        <div class="stat-details">
+          <h3>Pending (Action Needed)</h3>
+          <div class="stat-number" id="statSentIssues">0</div>
+        </div>
+      </div>
+
+      <div class="stat-card viewed">
+        <div class="stat-icon">👁️</div>
+        <div class="stat-details">
+          <h3>Viewed by Staff</h3>
+          <div class="stat-number" id="statViewedIssues">0</div>
+        </div>
+      </div>
+
+      <div class="stat-card solved">
+        <div class="stat-icon">✅</div>
+        <div class="stat-details">
+          <h3>Total Solved</h3>
+          <div class="stat-number" id="statSolvedIssues">0</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Issue Generation Form Section -->
+    <section class="section-card">
+      <div class="section-header">
+        <h2>📝 Raise urgent issue</h2>
+        <span class="text-muted" style="font-size: 0.85rem;">Select issuing wing and target GIS lab staff</span>
+      </div>
+      <div class="section-body">
+        <form id="createIssueForm">
+          <div class="form-grid">
+            
+            <div class="form-group">
+              <label for="issuingWing">Issuing Wing *</label>
+              <select id="issuingWing" class="form-control" required>
+                <!-- Dynamically populated from JS (IT Wing) -->
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="ticketId">Issue ID (Updates dynamically with Wing)</label>
+              <input type="text" id="ticketId" class="form-control" placeholder="e.g. TNFD-IT-2026-001" required>
+            </div>
+
+            <div class="form-group">
+              <label for="issueDate">Issue Date *</label>
+              <input type="date" id="issueDate" class="form-control" required>
+            </div>
+
+            <!-- Target Staff Selection Box (Default: Unticked) -->
+            <div class="form-group full-width">
+              <label>Select Target Staff Members *</label>
+              <div class="staff-select-container">
+                <div class="staff-header">
+                  <label class="select-all-checkbox">
+                    <input type="checkbox" id="selectAllStaffCb">
+                    <span>Select All Staff</span>
+                  </label>
+                  <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <span class="text-muted" style="font-size: 0.8rem;">Check specific staff or select all</span>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="openStaffManageModal()" style="padding: 0.25rem 0.65rem; font-size: 0.8rem;">⚙️ Manage Staff (Add / Edit / Delete)</button>
+                  </div>
+                </div>
+                <div class="staff-grid" id="staffCheckboxGrid">
+                  <!-- Dynamically populated from JS (Staff Members, Unticked by default) -->
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group full-width">
+              <label for="issueSubject">Issue Title / Subject *</label>
+              <input type="text" id="issueSubject" class="form-control" placeholder="Enter clear title of the urgent issue or directive..." required>
+            </div>
+
+            <div class="form-group full-width">
+              <label for="issueDescription">Issue Description & Action Required *</label>
+              <textarea id="issueDescription" class="form-control" rows="4" placeholder="Provide full details, instructions, required compliance documents, or reference numbers..." required></textarea>
+            </div>
+
+          </div>
+
+          <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end;">
+            <button type="submit" class="btn btn-primary">
+              🚀 Raise
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- Sent Issues & Tracking Dashboard Section -->
+    <section class="section-card">
+      <div class="section-header">
+        <h2>📊 Sent Issues & Response Tracker</h2>
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          <button class="btn btn-secondary btn-sm" onclick="exportDataJSON()">📥 Export JSON</button>
+          <button class="btn btn-secondary btn-sm" onclick="document.getElementById('importJsonFile').click()">📤 Import JSON</button>
+          <input type="file" id="importJsonFile" accept=".json" style="display: none;" onchange="importDataJSON(this)">
+          <button class="btn btn-secondary btn-sm" onclick="resetPortalData()">🗑️ Clear All</button>
+        </div>
+      </div>
+      <div class="section-body" style="padding: 0;">
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Issue ID</th>
+                <th>Issue Date</th>
+                <th>Issuing Wing</th>
+                <th>Target Staff</th>
+                <th>Subject</th>
+                <th>Progress & Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="hoTicketsTableBody">
+              <!-- Dynamically populated by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Sync Settings Modal -->
+  <div class="modal-backdrop" id="syncSettingsModal">
+    <div class="modal-content" style="max-width: 620px;">
+      <div class="modal-header">
+        <h3>⚙️ Multi-PC Synchronization & Cloud Settings</h3>
+        <button class="modal-close" onclick="closeSyncSettingsModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="sync-info-box">
+          <p style="margin-bottom: 0.4rem;"><strong>Current Connection Status:</strong> <span id="syncStatusSummary">Checking...</span></p>
+          <p id="syncHostInfo" style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.5rem;"></p>
+          <div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px dashed #cbd5e1;">
+            <strong>🖥️ Office Network Multi-PC Server (GIS Lab):</strong><br>
+            <p style="color: #475569; font-size: 0.85rem; margin-top: 0.25rem;">
+              Double-click <code>start-server.bat</code> on GIS-11. All computers in the lab / office can open:
+            </p>
+            <div style="margin-top: 0.35rem; display: flex; flex-direction: column; gap: 0.25rem;">
+              <div>Head Office: <code id="localNetworkUrl">http://192.168.0.7:3000/index.html</code></div>
+              <div>Staff Portal: <code id="localNetworkStaffUrl">http://192.168.0.7:3000/staff.html</code></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top: 1rem;">
+          <label for="customCloudEndpointInput">Optional Cloud Sync Endpoint (Firebase Realtime DB / Google Apps Script / REST):</label>
+          <input type="text" id="customCloudEndpointInput" class="form-control" placeholder="e.g. https://<project-id>-default-rtdb.firebaseio.com/issues.json">
+          <small class="text-muted" style="margin-top: 0.35rem; font-size: 0.8rem; display: block; line-height: 1.4;">
+            If using across remote systems via Internet, paste your free Firebase Realtime Database URL or Google Apps Script Web App URL here. Leave empty to prioritize local network server mode.
+          </small>
+        </div>
+
+        <div style="display: flex; gap: 0.5rem; margin-top: 1.25rem; flex-wrap: wrap;">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="testSyncConnection()">🔌 Test Connection</button>
+          <button type="button" class="btn btn-primary btn-sm" onclick="saveSyncSettingsFromModal()">💾 Save Settings</button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeSyncSettingsModal()">Close Window</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Head Office Detail Modal -->
+  <div class="modal-backdrop" id="hoDetailModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>🔍 Staff Response & Status Breakdown</h3>
+        <button class="modal-close" onclick="closeHoModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="hoModalBody">
+        <!-- Content inserted dynamically -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeHoModal()">Close Window</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Manage Staff Modal (Add / Edit / Delete Staff) -->
+  <div class="modal-backdrop" id="manageStaffModal">
+    <div class="modal-content" style="max-width: 620px;">
+      <div class="modal-header">
+        <h3>👥 Manage GIS Lab Staff Members</h3>
+        <button class="modal-close" onclick="closeStaffManageModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.4;">
+          Add, edit, or delete staff members. Changes are automatically saved to the cloud and instantly reflected across all laptops and the staff portal!
+        </p>
+        
+        <!-- Add New Staff Form -->
+        <div style="display: flex; gap: 0.5rem; margin-bottom: 1.25rem;">
+          <input type="text" id="newStaffNameInput" class="form-control" placeholder="Enter new staff name (e.g. Kumar-Forester)" style="flex: 1;" onkeydown="if(event.key==='Enter'){event.preventDefault();addNewStaffMember();}">
+          <button type="button" class="btn btn-primary" onclick="addNewStaffMember()" style="white-space: nowrap;">➕ Add Staff</button>
+        </div>
+
+        <!-- Staff List Table -->
+        <div class="table-responsive" style="max-height: 320px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px;">
+          <table class="data-table" style="margin-bottom: 0;">
+            <thead>
+              <tr>
+                <th style="width: 50px;">#</th>
+                <th>Staff Member Name</th>
+                <th style="width: 150px; text-align: right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="manageStaffTableBody">
+              <!-- Dynamically populated from JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeStaffManageModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", initHeadOfficePage);
+  </script>
+</body>
+</html>

@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Boundary Alignment Studio | Shared Edge Conformance Engine</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    
+    <!-- Leaflet CSS & JS (Local) -->
+    <link rel="stylesheet" href="libs/leaflet.css" />
+    <script src="libs/leaflet.js"></script>
+    
+    <!-- Turf.js (Local) -->
+    <script src="libs/turf.min.js"></script>
+    
+    <!-- JSZip (Local) -->
+    <script src="libs/jszip.min.js"></script>
+    
+    <!-- shp.js (Local) -->
+    <script src="libs/shp.js"></script>
+    
+    <!-- shpwrite.js (Local) -->
+    <script src="libs/shpwrite.js"></script>
+    
+    <!-- Tab Synchronization -->
+    <script src="../tabSync.js"></script>
+
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #0b0f19;
+            color: #f1f5f9;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            background-color: #0b1120;
+        }
+
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.94);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .glass-card {
+            background: rgba(30, 41, 59, 0.75);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        /* Custom Modern ON / OFF Toggle Switch (NO TICK MARKS) */
+        .toggle-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 3px 8px;
+            border-radius: 999px;
+            border: 1px solid #334155;
+            background: #0f172a;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+        .toggle-btn:hover {
+            filter: brightness(1.15);
+        }
+        .toggle-pill {
+            width: 28px;
+            height: 16px;
+            background: #334155;
+            border-radius: 999px;
+            position: relative;
+            display: inline-block;
+            transition: background 0.2s ease;
+        }
+        .toggle-dot {
+            width: 12px;
+            height: 12px;
+            background: #ffffff;
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+        }
+        .toggle-label {
+            font-size: 11px;
+            font-weight: 800;
+            min-width: 24px;
+            text-align: center;
+            letter-spacing: 0.02em;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.5);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(71, 85, 105, 0.7);
+            border-radius: 999px;
+        }
+
+        .custom-pin {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.15s;
+            background: transparent !important;
+            border: none !important;
+        }
+
+        .leaflet-div-icon {
+            background: transparent !important;
+            border: none !important;
+        }
+
+        /* Precision Crosshair Marker (No bulky badge, razor-thin hairline, zero ghost boxes) */
+        .precision-crosshair-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            background: transparent !important;
+            border: none !important;
+        }
+
+        /* Glowing Intersection Markers */
+        .intersection-node {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        .intersection-node:hover {
+            transform: scale(1.35);
+        }
+
+        /* Top-Right Precision Loupe Mini-Map HUD */
+        #precision-loupe-hud {
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+        #precision-loupe-hud.active {
+            opacity: 1 !important;
+            transform: translateY(0) !important;
+            pointer-events: auto !important;
+        }
+    </style>
+</head>
+<body class="flex flex-col h-screen w-screen overflow-hidden select-none">
+
+    <!-- TOP BAR -->
+    <header class="h-14 bg-slate-950 border-b border-slate-800 flex items-center justify-between px-4 z-20 shrink-0 shadow-lg">
+        <div class="flex items-center gap-3">
+            <a href="../../index.html" class="w-9 h-9 rounded-lg bg-slate-900 border border-slate-700 hover:border-emerald-500 flex items-center justify-center text-slate-300 hover:text-white transition" title="Back to Central Portal">
+                <i class="fa-solid fa-arrow-left text-sm"></i>
+            </a>
+            <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-lg bg-emerald-600 flex items-center justify-center text-white shadow-md">
+                    <i class="fa-solid fa-code-merge text-base"></i>
+                </div>
+                <div>
+                    <h1 class="text-sm font-bold text-slate-100 flex items-center gap-2">
+                        <span>Boundary Alignment Studio</span>
+                        <span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Auto-Saved</span>
+                    </h1>
+                    <p class="text-[11px] text-slate-400">Cut-&-Stitch Boundary Snapping (100% Mathematical Overlap)</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <!-- Basemap Selector -->
+            <select id="select-basemap" class="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-lg px-2.5 py-1.5 font-semibold focus:outline-none focus:border-emerald-500 cursor-pointer">
+                <option value="googleHybrid">Google Satellite Hybrid (Default)</option>
+                <option value="googleSatellite">Google Satellite (Pure)</option>
+                <option value="googleRoadmap">Google Street / Roadmap</option>
+                <option value="googleTerrain">Google Terrain & Topo</option>
+                <option value="esriSatellite">Esri World Imagery</option>
+                <option value="esriTopo">Esri Topographic</option>
+                <option value="esriStreet">Esri Street Map</option>
+                <option value="osmStandard">OpenStreetMap Standard</option>
+            </select>
+
+            <!-- Prominent Top Interchange Button -->
+            <button type="button" onclick="App.swapRoles()" class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-950 via-slate-900 to-rose-950 hover:from-emerald-900 hover:to-rose-900 border border-amber-500/50 hover:border-amber-400 text-slate-100 font-bold text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition" title="Swap Reference and Target layers">
+                <i class="fa-solid fa-arrows-rotate text-amber-400"></i>
+                <span>⇄ Interchange Roles</span>
+            </button>
+
+            <!-- Start Fresh / Clear Session -->
+            <button type="button" onclick="App.clearAllData()" class="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-rose-950/80 border border-slate-700 hover:border-rose-600 text-slate-300 hover:text-rose-300 font-semibold text-xs transition" title="Clear all and start fresh">
+                <i class="fa-solid fa-trash-can mr-1"></i> Start Fresh
+            </button>
+
+            <!-- Export Button -->
+            <button type="button" onclick="App.openExportModal()" class="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition">
+                <i class="fa-solid fa-download"></i>
+                <span>Export Aligned</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- WORKSPACE -->
+    <div class="relative flex-1 flex overflow-hidden">
+
+        <!-- SIDEBAR -->
+        <aside class="absolute top-3 left-3 bottom-3 w-[290px] max-w-[calc(100vw-24px)] z-10 glass-panel rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+            
+            <!-- Sidebar Header -->
+            <div class="px-3 py-2 border-b border-slate-800 flex items-center justify-between shrink-0 bg-slate-950/80">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-200 flex items-center gap-1.5">
+                    <i class="fa-solid fa-sliders text-emerald-400"></i> Snapping Workflow
+                </span>
+                <button type="button" onclick="App.setReferenceData(window.SAMPLE_REFERENCE_DATA, 'Desktop Reference (Green)'); App.setTargetData(window.SAMPLE_TARGET_DATA, 'Desktop Target (Red)');" class="px-2 py-0.5 rounded bg-emerald-950 hover:bg-emerald-900 text-emerald-300 border border-emerald-700 text-[10px] font-bold transition flex items-center gap-1" title="Load sample from Desktop">
+                    <i class="fa-solid fa-desktop"></i> Desktop Sample
+                </button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-2.5 space-y-2.5 text-xs">
+
+                <!-- STEP 1: LOAD & INTERCHANGE 2 LAYERS -->
+                <div class="space-y-1.5">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                            <span class="w-4 h-4 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-[10px] font-bold">1</span>
+                            Boundary Layers
+                        </span>
+                    </div>
+
+                    <!-- Reference Layer Card (Green) -->
+                    <div class="glass-card p-2 rounded-xl border border-emerald-800/60 space-y-1">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-slate-100 flex items-center gap-1.5 text-[11px]">
+                                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block shadow-sm"></span>
+                                Reference (Master Line)
+                            </span>
+                            <div class="flex items-center gap-1">
+                                <label for="input-file-ref" class="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] cursor-pointer shadow transition">
+                                    <i class="fa-solid fa-upload mr-1"></i> Upload
+                                </label>
+                                <input type="file" id="input-file-ref" accept=".kml,.kmz,.zip,.geojson,.json" class="hidden">
+                            </div>
+                        </div>
+                        <span id="badge-ref-info" class="text-[10px] text-emerald-400 font-mono block truncate">No file loaded yet</span>
+                    </div>
+
+                    <!-- PROMINENT INTERCHANGE BUTTON (BETWEEN REFERENCE & TARGET) -->
+                    <div class="flex items-center justify-center py-0.5">
+                        <button type="button" onclick="App.swapRoles()" class="w-full py-1.5 px-2.5 rounded-xl bg-gradient-to-r from-emerald-950 via-slate-900 to-rose-950 hover:from-emerald-900 hover:via-slate-800 hover:to-rose-900 border-2 border-amber-500/60 hover:border-amber-400 text-amber-300 hover:text-white font-bold text-[11px] flex items-center justify-center gap-1.5 shadow-lg transition active:scale-95 group">
+                            <i class="fa-solid fa-arrows-up-down text-amber-400 text-xs group-hover:rotate-180 transition-transform duration-300"></i>
+                            <span>⇄ Interchange Roles</span>
+                        </button>
+                    </div>
+
+                    <!-- Target Layer Card (Red) -->
+                    <div class="glass-card p-2 rounded-xl border border-rose-800/60 space-y-1">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-slate-100 flex items-center gap-1.5 text-[11px]">
+                                <span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block shadow-sm"></span>
+                                Target (To Adjust)
+                            </span>
+                            <div class="flex items-center gap-1">
+                                <label for="input-file-target" class="px-2 py-0.5 rounded bg-rose-600 hover:bg-rose-500 text-white font-bold text-[10px] cursor-pointer shadow transition">
+                                    <i class="fa-solid fa-upload mr-1"></i> Upload
+                                </label>
+                                <input type="file" id="input-file-target" accept=".kml,.kmz,.zip,.geojson,.json" class="hidden">
+                            </div>
+                        </div>
+                        <span id="badge-target-info" class="text-[10px] text-rose-400 font-mono block truncate">No file loaded yet</span>
+                    </div>
+                </div>
+
+                <!-- STEP 2: FROM WHERE TO WHERE CUT & STITCH -->
+                <div class="space-y-2 pt-2 border-t border-slate-800">
+                    <div class="flex items-center justify-between">
+                        <div class="text-[11px] font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                            <span class="w-4 h-4 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-[10px] font-bold">2</span>
+                            Cut &amp; Stitch Range
+                        </div>
+                        <span class="text-[9.5px] text-cyan-300/90 font-semibold">Snap: Intersection / Lines</span>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-1.5">
+                        <!-- Point A Card -->
+                        <div id="card-point-a" class="glass-card p-1.5 rounded-lg border border-slate-700 text-center transition">
+                            <div class="flex items-center gap-1">
+                                <button type="button" id="btn-pick-a" onclick="App.setTool('pickA')" class="flex-1 py-1 rounded bg-emerald-950 hover:bg-emerald-900 text-emerald-300 font-bold text-[10px] border border-emerald-700 transition">
+                                    <i class="fa-solid fa-location-dot mr-1"></i> Pick A
+                                </button>
+                                <button type="button" onclick="App.clearPointA()" class="px-1.5 py-1 rounded bg-slate-900 hover:bg-rose-950 text-slate-400 hover:text-rose-400 border border-slate-700 text-[10px] transition" title="Clear Point A">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                            </div>
+                            <span id="text-point-a" class="text-[9px] font-mono text-slate-300 block truncate mt-1">Point A: Not Set</span>
+                        </div>
+
+                        <!-- Point B Card -->
+                        <div id="card-point-b" class="glass-card p-1.5 rounded-lg border border-slate-700 text-center transition">
+                            <div class="flex items-center gap-1">
+                                <button type="button" id="btn-pick-b" onclick="App.setTool('pickB')" class="flex-1 py-1 rounded bg-rose-950 hover:bg-rose-900 text-rose-300 font-bold text-[10px] border border-rose-700 transition">
+                                    <i class="fa-solid fa-location-dot mr-1"></i> Pick B
+                                </button>
+                                <button type="button" onclick="App.clearPointB()" class="px-1.5 py-1 rounded bg-slate-900 hover:bg-rose-950 text-slate-400 hover:text-rose-400 border border-slate-700 text-[10px] transition" title="Clear Point B">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                            </div>
+                            <span id="text-point-b" class="text-[9px] font-mono text-slate-300 block truncate mt-1">Point B: Not Set</span>
+                        </div>
+                    </div>
+
+                    <!-- 1-Click Align Button & Remove Both Points Button -->
+                    <div class="flex gap-1.5 pt-0.5">
+                        <button type="button" id="btn-apply-align" onclick="App.applyPointToPointAlign()" disabled class="flex-1 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-sky-600 hover:from-emerald-500 hover:to-sky-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow opacity-50 cursor-not-allowed transition active:scale-95">
+                            <i class="fa-solid fa-bolt text-amber-300"></i>
+                            <span>Make Red Follow Green 100%</span>
+                        </button>
+                        <button type="button" onclick="App.clearPoints()" class="px-2.5 py-2 rounded-xl bg-slate-800 hover:bg-rose-950 text-slate-300 hover:text-rose-300 font-semibold text-xs border border-slate-700 transition" title="Remove Both Points">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- STEP 3: THE LAYERS VIEW (ON / OFF SWITCHES, NO TICK BOXES) -->
+                <div class="space-y-2 pt-2 border-t border-slate-800">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                            <span class="w-4 h-4 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-[10px] font-bold">3</span>
+                            The Layers (ON / OFF Controls)
+                        </span>
+                        <span class="text-[10px] text-slate-400">Toggle to inspect</span>
+                    </div>
+
+                    <!-- Container for ON/OFF switches (Reference, Target, and multiple Adjusted layers) -->
+                    <div id="step3-layers-container" class="space-y-2">
+                        <!-- Populated dynamically by App.updateStep3UI() -->
+                    </div>
+                </div>
+
+            </div>
+        </aside>
+
+        <!-- MAP -->
+        <main class="flex-1 h-full w-full relative">
+            <div id="map"></div>
+
+            <!-- TOP-RIGHT PRECISION ZOOM & 50m CIRCLE LOUPE HUD -->
+            <div id="precision-loupe-hud" class="absolute top-3 right-14 z-20 opacity-0 translate-y-[-10px] pointer-events-none">
+                <div class="glass-panel rounded-2xl shadow-2xl border border-emerald-500/40 p-3 w-[290px] flex flex-col gap-2.5 backdrop-blur-md bg-slate-950/95 pointer-events-auto">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                            <i class="fa-solid fa-crosshairs text-emerald-400"></i> Target Snap Zoom
+                        </span>
+                        <span id="loupe-snap-status" class="text-[9.5px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                            Ready
+                        </span>
+                    </div>
+
+                    <!-- Mini Loupe Viewport (Bigger box for high precision) -->
+                    <div class="relative w-full h-48 rounded-xl overflow-hidden border border-slate-700 bg-slate-900 shadow-inner">
+                        <div id="loupe-map" class="w-full h-full"></div>
+
+                        <!-- Live Center Hairline Reticle & Cursor Overlay (Guaranteed above map tiles with z-index: 1000) -->
+                        <div class="absolute inset-0 pointer-events-none flex items-center justify-center" style="z-index: 1000;">
+                            <!-- Full-Width Horizontal Hairline -->
+                            <div class="w-full h-[1.5px] bg-white/90 shadow-[0_0_3px_black]"></div>
+                            <!-- Full-Height Vertical Hairline -->
+                            <div class="h-full w-[1.5px] bg-white/90 shadow-[0_0_3px_black] absolute"></div>
+                            
+                            <!-- 50m Scale Snapping Ring -->
+                            <div class="w-20 h-20 rounded-full border-2 border-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.6)] absolute flex items-center justify-center">
+                                <span class="text-[8.5px] font-bold text-amber-300 bg-black/80 px-1 py-0.2 rounded -top-3.5 absolute border border-amber-400/40">50m snap</span>
+                            </div>
+
+                            <!-- High-Visibility Center Cursor Point -->
+                            <div class="w-4 h-4 rounded-full border-2 border-white bg-red-500/80 shadow-[0_0_8px_rgba(239,68,68,0.9)] absolute flex items-center justify-center">
+                                <div class="w-1.5 h-1.5 rounded-full bg-white"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Live Readout: Coordinates & Distance -->
+                    <div class="flex items-center justify-between text-[10px] font-mono text-slate-300 px-0.5">
+                        <span id="loupe-coords" class="truncate">--</span>
+                        <span id="loupe-distance" class="text-amber-400 font-bold shrink-0">--</span>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- EXPORT MODAL -->
+    <div id="modal-export" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
+        <div class="glass-panel w-full max-w-sm rounded-2xl shadow-2xl border border-slate-700 p-5 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                <h3 class="text-sm font-bold text-slate-100 flex items-center gap-2">
+                    <i class="fa-solid fa-download text-emerald-400"></i> Export Aligned Boundary
+                </h3>
+                <button type="button" onclick="App.closeExportModal()" class="text-slate-400 hover:text-white transition">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            </div>
+
+            <div class="space-y-3 text-xs">
+                <!-- Select Layer to Export -->
+                <div>
+                    <label class="text-[11px] font-semibold text-slate-300 block mb-1">Select Layer to Export:</label>
+                    <select id="select-export-layer" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-emerald-500 font-semibold cursor-pointer">
+                        <!-- Populated dynamically -->
+                    </select>
+                </div>
+
+                <!-- Filename -->
+                <div>
+                    <label class="text-[11px] font-semibold text-slate-300 block mb-1">File Name:</label>
+                    <input type="text" id="input-export-filename" value="Aligned_Boundary" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-emerald-500 font-mono">
+                </div>
+
+                <!-- Format -->
+                <div>
+                    <label class="text-[11px] font-semibold text-slate-300 block mb-1.5">Choose Format:</label>
+                    <div class="grid grid-cols-4 gap-1.5">
+                        <label class="flex flex-col items-center justify-center p-2 rounded-xl border border-slate-700 bg-slate-900 hover:bg-slate-800 cursor-pointer text-center">
+                            <input type="radio" name="export-format" value="kml" checked class="sr-only peer">
+                            <i class="fa-solid fa-earth-americas text-base text-emerald-400 mb-1"></i>
+                            <span class="font-bold text-slate-200 text-xs">KML</span>
+                            <span class="text-[9px] text-slate-400">.kml</span>
+                        </label>
+                        <label class="flex flex-col items-center justify-center p-2 rounded-xl border border-slate-700 bg-slate-900 hover:bg-slate-800 cursor-pointer text-center">
+                            <input type="radio" name="export-format" value="kmz" class="sr-only peer">
+                            <i class="fa-solid fa-file-archive text-base text-teal-400 mb-1"></i>
+                            <span class="font-bold text-slate-200 text-xs">KMZ</span>
+                            <span class="text-[9px] text-slate-400">.kmz</span>
+                        </label>
+                        <label class="flex flex-col items-center justify-center p-2 rounded-xl border border-slate-700 bg-slate-900 hover:bg-slate-800 cursor-pointer text-center">
+                            <input type="radio" name="export-format" value="shp" class="sr-only peer">
+                            <i class="fa-solid fa-file-zipper text-base text-amber-400 mb-1"></i>
+                            <span class="font-bold text-slate-200 text-xs">Shapefile</span>
+                            <span class="text-[9px] text-slate-400">.zip</span>
+                        </label>
+                        <label class="flex flex-col items-center justify-center p-2 rounded-xl border border-slate-700 bg-slate-900 hover:bg-slate-800 cursor-pointer text-center">
+                            <input type="radio" name="export-format" value="geojson" class="sr-only peer">
+                            <i class="fa-solid fa-code text-base text-cyan-400 mb-1"></i>
+                            <span class="font-bold text-slate-200 text-xs">GeoJSON</span>
+                            <span class="text-[9px] text-slate-400">.geojson</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex gap-2 pt-2 border-t border-slate-800">
+                <button type="button" onclick="App.closeExportModal()" class="flex-1 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs border border-slate-700 transition">
+                    Cancel
+                </button>
+                <button type="button" onclick="App.executeExport()" class="flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg transition">
+                    <i class="fa-solid fa-download"></i>
+                    <span>Download</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST -->
+    <div id="toast" class="fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-2xl border text-xs font-bold transition-all duration-300 opacity-0 translate-y-4 pointer-events-none">
+        <span id="toast-text">Notification</span>
+    </div>
+
+    <!-- SCRIPTS -->
+    <script src="js/sampleData.js"></script>
+    <script src="js/geometryAligner.js"></script>
+    <script src="js/fileHandler.js"></script>
+    <script src="js/app.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,15 @@
+# Ignore heavy raw GIS binary dumps (>50MB) that exceed GitHub's 100MB limit
+projects/division clip/lulc_sisdp.shp
+projects/division clip/TN_Thorn_Scrub_4Categories_FSI_2023.tif
+projects/division clip/admin.zip
+projects/division clip/Division_Shape_File.zip
+
+# Ignore large binary distribution packages
+portal_update.zip
+TNFD_GIS_Portal.apk
+
+# Environment and deployment artifacts
+.vercel
+node_modules
+*.vhdx
+*.tmp

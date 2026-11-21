@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script>if (window.location.pathname.endsWith('/Meeting_Dashboard')) { window.location.replace(window.location.pathname + '/' + window.location.search + window.location.hash); }</script>
+  <title>Meeting Schedule Dashboard | One-View Slot Management</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📅</text></svg>">
+  <script src="../tabSync.js"></script>
+</head>
+<body>
+  <div class="container">
+    
+    <!-- Header Card -->
+    <header class="header-card">
+      <div class="brand-section">
+        <div class="brand-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+        </div>
+        <div>
+          <h1 class="brand-title">Conference Hall & Meeting Slot Dashboard</h1>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <div class="sync-badge" id="syncBadge" title="Live Google Sheet Status">
+          <span class="sync-dot"></span>
+          <span id="syncStatusText">Connecting...</span>
+        </div>
+
+        <button class="btn" id="refreshBtn" title="Sync live updates from Google Sheet">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+          Refresh Live
+        </button>
+
+        <a class="btn" href="https://docs.google.com/spreadsheets/d/1DUEXt9cevmjP4uA-IRtM5m_6BpRjxtuOsn3UCWvmes4/edit?gid=1457623712#gid=1457623712" target="_blank" rel="noopener noreferrer" title="Open source Google Sheet in new tab">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+            <polyline points="15 3 21 3 21 9"></polyline>
+            <line x1="10" y1="14" x2="21" y2="3"></line>
+          </svg>
+          Google Sheet
+        </a>
+
+        <button class="btn btn-icon" id="themeToggleBtn" title="Toggle Dark/Light Mode">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Month End Alert Banner (Appears at month end) -->
+    <aside class="month-end-banner" id="monthEndBanner" style="display: none;">
+      <span id="monthEndText">⚠️ Approaching Month-End: Switch to view upcoming month or past records.</span>
+      <button class="btn btn-primary" id="monthEndBtn" style="padding: 5px 12px; font-size: 0.8rem;">
+        Switch Month View →
+      </button>
+    </aside>
+
+    <!-- Day Shifter & Rolling Window Controller -->
+    <section class="shifter-card">
+      <div class="shifter-left">
+        <div class="shift-controls">
+          <button class="shift-btn" id="prevDayBtn" title="Shift window back by 1 day (Previous Day)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
+            Prev Day
+          </button>
+          <button class="shift-btn today-btn" id="todayBtn" title="Reset window to Today">
+            Today
+          </button>
+          <button class="shift-btn" id="nextDayBtn" title="Shift window forward by 1 day (Next Day)">
+            Next Day
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </button>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 12px;">
+        <!-- Date Picker to test/jump to any specific day -->
+        <div style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; color: var(--text-muted);">
+          <span>Jump to Date:</span>
+          <input type="date" id="datePickerInput" class="text-input" style="padding: 4px 8px; font-size: 0.82rem;">
+        </div>
+
+        <!-- Window Range View Toggle -->
+        <div class="range-view-toggle" id="rangeToggleGroup">
+          <button class="toggle-btn active" data-range="4">4 Days</button>
+          <button class="toggle-btn" data-range="month-table">Full Month Table</button>
+        </div>
+
+        <!-- Month Dropdown Selector beside Full Month Table -->
+        <div class="month-select-wrapper">
+          <select id="monthSelectDropdown" class="month-select-dropdown" aria-label="Select Month" title="Select Month to View">
+            <option value="oct2026">📅 October 2026 (Active)</option>
+            <option value="sep2026">📁 September 2026</option>
+            <option value="aug2026">📁 August 2026</option>
+            <option value="apr_jul2026">📁 April - July 2026</option>
+            <option value="mar2026">📁 March 2026</option>
+            <option value="__AUTO_DETECT__">🔄 Auto-Detect New Months from Sheet...</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <!-- Filter & Live Search Toolbar -->
+    <section class="filter-card">
+      <div class="filter-left">
+        <div class="filter-pills" id="statusFilterGroup">
+          <button class="pill-btn active" data-filter="all">All Slots</button>
+          <button class="pill-btn green" data-filter="available">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            🟢 Available Only
+          </button>
+          <button class="pill-btn red" data-filter="filled">
+            🔴 Booked Only
+          </button>
+        </div>
+
+        <select id="wingSelectFilter" class="select-input">
+          <option value="all">All Wings / Departments</option>
+        </select>
+      </div>
+    </section>
+
+    <!-- Main Rolling Board Container (Columns of Today + Coming Days) -->
+    <main id="rollingBoard" class="rolling-board-container">
+      <!-- Generated dynamically by app.js -->
+    </main>
+
+    <!-- Full Month Table View (Hidden by default, shown when toggled) -->
+    <section id="tableContainer" class="table-container" style="display: none;">
+      <table class="schedule-table">
+        <thead>
+          <tr>
+            <th style="width: 130px;">Date & Day</th>
+            <th style="width: 120px;">Time Slot</th>
+            <th style="width: 100px;">Status</th>
+            <th style="width: 150px;">Wing / Dept</th>
+            <th>Meeting Subject / Agenda</th>
+            <th style="width: 200px;">Venue / Mode</th>
+            <th style="width: 160px;">Reference</th>
+          </tr>
+        </thead>
+        <tbody id="scheduleTableBody">
+          <!-- Populated by app.js -->
+        </tbody>
+      </table>
+    </section>
+
+  </div>
+
+  <!-- Detail Modal Popup -->
+  <div class="modal-overlay" id="slotModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">Meeting Slot Information</h3>
+        <button class="modal-close" id="modalCloseBtn">&times;</button>
+      </div>
+      <div class="modal-body" id="modalBody">
+        <!-- Injected dynamically -->
+      </div>
+      <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
+        <button class="btn" id="copySlotBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+          Copy Slot Details
+        </button>
+        <button class="btn btn-primary" onclick="document.getElementById('slotModal').classList.remove('active')">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toastNotification" class="toast-notification"></div>
+
+  <!-- Scripts -->
+  <script src="preloaded_data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

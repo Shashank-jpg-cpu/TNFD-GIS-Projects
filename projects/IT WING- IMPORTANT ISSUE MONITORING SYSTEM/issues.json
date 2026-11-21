@@ -1,0 +1,431 @@
+[
+  {
+    "id": 1,
+    "section": "GIS",
+    "subject": "ABR - DGPS Survey",
+    "fileNo": "7310",
+    "createdDate": "2026-10-06",
+    "lastActionDate": "2026-10-05",
+    "updatedBy": "CCF",
+    "actionRemarks": "Reminder to SMTR and KMTR Sent.",
+    "actionHistory": [
+      {
+        "actionDate": "2026-10-05",
+        "updatedBy": "CCF",
+        "remarks": "Reminder to SMTR and KMTR Sent."
+      },
+      {
+        "actionDate": "2026-10-06",
+        "updatedBy": "System",
+        "remarks": "Issue created"
+      }
+    ],
+    "remarks": "Reminder to SMTR and KMTR Sent."
+  },
+  {
+    "id": 2,
+    "section": "MIS",
+    "subject": "e-Waste - Committee",
+    "fileNo": "5399",
+    "createdDate": "2026-10-06",
+    "lastActionDate": "2026-10-06",
+    "updatedBy": "CCF",
+    "actionRemarks": "Committee Inspection Done, Today.",
+    "actionHistory": [
+      {
+        "actionDate": "2026-10-06",
+        "updatedBy": "CCF",
+        "remarks": "Committee Inspection Done, Today."
+      },
+      {
+        "actionDate": "2026-10-06",
+        "updatedBy": "System",
+        "remarks": "Issue created"
+      }
+    ],
+    "remarks": "Committee Inspection Done, Today."
+  },
+  {
+    "id": 3,
+    "section": "GIS",
+    "subject": "TNFOIS - RFP",
+    "fileNo": "",
+    "createdDate": "2026-10-06",
+    "lastActionDate": "2026-09-01",
+    "updatedBy": "CCF",
+    "actionRemarks": "Internal Discussion",
+    "actionHistory": [
+      {
+        "actionDate": "2026-09-01",
+        "updatedBy": "CCF",
+        "remarks": "Internal Discussion"
+      },
+      {
+        "actionDate": "2026-10-06",
+        "updatedBy": "System",
+        "remarks": "Issue created"
+      }
+    ],
+    "remarks": "Internal Discussion"
+  },
+  {
+    "id": 4,
+    "section": "GIS",
+    "subject": "MFB - Thorough Verification",
+    "fileNo": "",
+    "createdDate": "2026-10-06",
+    "lastActionDate": "2026-10-05",
+    "updatedBy": "CCF",
+    "actionRemarks": "Reminder sent to TNeGA for correcting Data Mismatch.",
+    "actionHistory": [
+      {
+        "actionDate": "2026-10-05",
+        "updatedBy": "CCF",
+        "remarks": "Reminder sent to TNeGA for correcting Data Mismatch."
+      },
+      {
+        "actionDate": "2026-10-06",
+        "updatedBy": "System",
+        "remarks": "Issue created"
+      }
+    ],
+    "remarks": "Reminder sent to TNeGA for correcting Data Mismatch."
+  },
+  {
+    "id": 5,
+    "section": "MIS",
+    "subject": "Project Proposals - Finalisation",
+    "fileNo": "",
+    "createdDate": "2026-10-06",
+    "lastActionDate": "2026-09-01",
+    "updatedBy": "CCF",
+    "actionRemarks": "Received and Compiled",
+    "actionHistory": [
+      {
+        "actionDate": "2026-09-01",
+        "updatedBy": "CCF",
+        "remarks": "Received and Compiled"
+      },
+      {
+        "actionDate": "2026-10-06",
+        "updatedBy": "System",
+        "remarks": "Issue created"
+      }
+    ],
+    "remarks": "Received and Compiled"
+  },
+  {
+    "id": 6,
+    "section": "MIS",
+    "subject": "CUG Scheme - GO",
+    "fileNo": "MIS/25398",
+    "createdDate": "2026-10-06",
+    "lastActionDate": "2026-10-06",
+    "updatedBy": "CCF",
+    "actionRemarks": "Reminder to WLW Sent.",
+    "actionHistory": [
+      {
+        "actionDate": "2026-10-06",
+        "updatedBy": "CCF",
+        "remarks": "Reminder to WLW Sent."
+      },
+      {
+        "actionDate": "2026-10-06",
+        "updatedBy": "System",
+        "remarks": "Issue created"
+      }
+    ],
+    "remarks": "Reminder to WLW Sent."
+  },
+  {
+    "id": 7,
+    "section": "MIS",
+    "subject": "ACR for Group A & B Officers",
+    "fileNo": "MIS/10492",
+    "createdDate": "2026-10-06",
+    "lastActionDate": "2026-09-28",
+    "updatedBy": "CCF",
+    "actionRemarks": "PAT Sent to TNeGA",
+    "actionHistory": [
+      {
+        "actionDate": "2026-09-28",
+        "updatedBy": "CCF",
+        "remarks": "PAT Sent to TNeGA"
+      },
+      {
+        "actionDate": "2026-10-06",
+        "updatedBy": "System",
+        "remarks": "Issue created"
+      }
+    ],
+    "remarks": "PAT Sent to TNeGA"
+  },
+  {
+    "id": 8,
+    "section": "MIS",
+    "subject": "MIS - Strengthening of GIS/MIS Capabilities.",
+    "fileNo": "GIS/367",
+    "createdDate": "2026-10-06",
+    "lastActionDate": "2026-09-24",
+    "updatedBy": "CCF",
+    "actionRemarks": "Committee Meeting Held.",
+    "actionHistory": [
+      {
+        "actionDate": "2026-09-24",
+        "updatedBy": "CCF",
+        "remarks": "Committee Meeting Held."
+      },
+      {
+        "actionDate": "2026-10-06",
+        "updatedBy": "System",
+        "remarks": "Issue created"
+      }
+    ],
+    "remarks": "Committee Meeting Held."
+  },
+  {
+    "id": 9,
+    "section": "MIS",
+    "subject": "Hon'ble CM's Dashboard",
+    "fileNo": "GIS1 / 11",
+    "createdDate": "2026-10-06",
+    "lastActionDate": "2026-09-23",
+    "updatedBy": "CCF",
+    "actionRemarks": "Reminder from Government",
+    "actionHistory": [
+      {
+        "actionDate": "2026-09-23",
+        "updatedBy": "CCF",
+        "remarks": "Reminder from Government"
+      },
+      {
+        "actionDate": "2026-10-06",
+        "updatedBy": "System",
+        "remarks": "Issue created"
+      }
+    ],
+    "remarks": "Reminder from Government"
+  },
+  {
+    "id": 10,
+    "section": "GIS",
+    "subject": "ABR - Report to FSI",
+    "fileNo": "GIS1 / 7310",
+    "createdDate": "2026-10-06",
+    "lastActionDate": "2026-09-30",
+    "updatedBy": "CCF",
+    "actionRemarks": "Reminder to KMTR & SMTR Sent",
+    "actionHistory": [
+      {
+        "actionDate": "2026-09-30",
+        "updatedBy": "CCF",
+        "remarks": "Reminder to KMTR & SMTR Sent"
+      },
+      {
+        "actionDate": "2026-10-06",
+        "updatedBy": "System",
+        "remarks": "Issue created"
+      }
+    ],
+    "remarks": "Reminder to KMTR & SMTR Sent"
+  },
+  {
+    "id": 11,
+    "section": "GIS",
+    "subject": "TN-FITT",
+    "fileNo": "TBGPCCR",
+    "createdDate": "2026-10-06",
+    "lastActionDate": "2026-09-01",
+    "updatedBy": "CCF",
+    "actionRemarks": "Internal Discussion",
+    "actionHistory": [
+      {
+        "actionDate": "2026-09-01",
+        "updatedBy": "CCF",
+        "remarks": "Internal Discussion"
+      },
+      {
+        "actionDate": "2026-10-06",
+        "updatedBy": "System",
+        "remarks": "Issue created"
+      }
+    ],
+    "remarks": "Internal Discussion"
+  },
+  {
+    "id": 12,
+    "section": "GIS",
+    "subject": "1 RF - 1 KML",
+    "fileNo": "",
+    "createdDate": "2026-10-06",
+    "lastActionDate": "",
+    "updatedBy": "",
+    "actionRemarks": "",
+    "actionHistory": [
+      {
+        "actionDate": "2026-10-06",
+        "updatedBy": "System",
+        "remarks": "Issue created"
+      }
+    ]
+  },
+  {
+    "id": 13,
+    "section": "MIS",
+    "subject": "GIS / Software / Hardware Technician",
+    "fileNo": "",
+    "createdDate": "2026-10-06",
+    "lastActionDate": "",
+    "updatedBy": "",
+    "actionRemarks": "",
+    "actionHistory": [
+      {
+        "actionDate": "2026-10-06",
+        "updatedBy": "System",
+        "remarks": "Issue created"
+      }
+    ]
+  },
+  {
+    "id": 14,
+    "section": "MIS",
+    "subject": "Hosting on ELCOT - State Data Centre",
+    "fileNo": "MIS / 3431",
+    "createdDate": "2026-10-06",
+    "lastActionDate": "2026-10-06",
+    "updatedBy": "CCF",
+    "actionRemarks": "Reminder Sent to ELCOT",
+    "actionHistory": [
+      {
+        "actionDate": "2026-10-06",
+        "updatedBy": "CCF",
+        "remarks": "Reminder Sent to ELCOT"
+      },
+      {
+        "actionDate": "2026-10-06",
+        "updatedBy": "System",
+        "remarks": "Issue created"
+      }
+    ],
+    "remarks": "Reminder Sent to ELCOT"
+  },
+  {
+    "id": 15,
+    "section": "GIS",
+    "subject": "Display Boards in IT Wing",
+    "fileNo": "",
+    "createdDate": "2026-10-06",
+    "lastActionDate": "",
+    "updatedBy": "",
+    "actionRemarks": "",
+    "actionHistory": [
+      {
+        "actionDate": "2026-10-06",
+        "updatedBy": "System",
+        "remarks": "Issue created"
+      }
+    ]
+  },
+  {
+    "id": 16,
+    "section": "GIS",
+    "subject": "Satellite Imagery from NRSC",
+    "fileNo": "",
+    "createdDate": "2026-10-06",
+    "lastActionDate": "2026-09-28",
+    "updatedBy": "CCF",
+    "actionRemarks": "Permission to visit Hyderabad",
+    "actionHistory": [
+      {
+        "actionDate": "2026-09-28",
+        "updatedBy": "CCF",
+        "remarks": "Permission to visit Hyderabad"
+      },
+      {
+        "actionDate": "2026-10-06",
+        "updatedBy": "System",
+        "remarks": "Issue created"
+      }
+    ],
+    "remarks": "Permission to visit Hyderabad"
+  },
+  {
+    "id": 17,
+    "section": "GIS",
+    "subject": "PM Gati Shakti",
+    "fileNo": "GIS 1 / 8010",
+    "createdDate": "2026-10-06",
+    "lastActionDate": "2026-09-23",
+    "updatedBy": "CCF",
+    "actionRemarks": "FR attended the Meeting",
+    "actionHistory": [
+      {
+        "actionDate": "2026-09-23",
+        "updatedBy": "CCF",
+        "remarks": "FR attended the Meeting"
+      },
+      {
+        "actionDate": "2026-10-06",
+        "updatedBy": "System",
+        "remarks": "Issue created"
+      }
+    ],
+    "remarks": "FR attended the Meeting"
+  },
+  {
+    "id": 18,
+    "section": "MIS",
+    "subject": "Web / Mobile Applications (Naagam, TNFD Yaanai, etc.)",
+    "fileNo": "MIS / 1770",
+    "createdDate": "2026-10-06",
+    "lastActionDate": "2026-09-21",
+    "updatedBy": "CCF",
+    "actionRemarks": "",
+    "actionHistory": [
+      {
+        "actionDate": "2026-09-21",
+        "updatedBy": "CCF",
+        "remarks": "Action recorded"
+      },
+      {
+        "actionDate": "2026-10-06",
+        "updatedBy": "System",
+        "remarks": "Issue created"
+      }
+    ]
+  },
+  {
+    "id": 19,
+    "section": "GIS",
+    "subject": "MFB - DGPS Survey - Bangalore Visit",
+    "fileNo": "",
+    "createdDate": "2026-10-06",
+    "lastActionDate": "",
+    "updatedBy": "",
+    "actionRemarks": "",
+    "actionHistory": [
+      {
+        "actionDate": "2026-10-06",
+        "updatedBy": "System",
+        "remarks": "Issue created"
+      }
+    ]
+  },
+  {
+    "id": 20,
+    "section": "MIS",
+    "subject": "IT Equipments in Headquarters - Maintenance Schedule",
+    "fileNo": "",
+    "createdDate": "2026-10-06",
+    "lastActionDate": "",
+    "updatedBy": "",
+    "actionRemarks": "",
+    "actionHistory": [
+      {
+        "actionDate": "2026-10-06",
+        "updatedBy": "System",
+        "remarks": "Issue created"
+      }
+    ]
+  }
+]

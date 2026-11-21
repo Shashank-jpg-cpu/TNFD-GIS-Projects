@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Urgent Issues Monitoring Portal - Staff Portal</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Top Navigation Header (Staff Only) -->
+  <header class="top-nav">
+    <div class="brand-container">
+      <img src="logo.jpg" alt="Forest Department Logo" class="brand-logo-img">
+      <div class="brand-title">
+        <h1>Urgent Issues Monitoring Portal</h1>
+        <p>Staff Response & Resolution Management System</p>
+      </div>
+    </div>
+    <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+      <button class="btn btn-secondary btn-sm" onclick="openSyncSettingsModal()">⚙️ Sync Settings</button>
+      <button class="btn btn-secondary btn-sm" onclick="manualCloudSync()">🔄 Sync Now</button>
+      <div class="cloud-status-badge">
+        🟢 Cloud Synced
+      </div>
+    </div>
+  </header>
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Main Workspace Container -->
+  <main class="main-container">
+
+    <!-- Staff Member Switcher Banner -->
+    <div class="staff-select-banner">
+      <label for="activeStaffSelect">Select Staff Member:</label>
+      <select id="activeStaffSelect" class="form-control">
+        <!-- Dynamically populated from JS (Staff Members) -->
+      </select>
+    </div>
+
+    <!-- Staff KPI Summary Cards -->
+    <div class="cards-grid">
+      <div class="stat-card total">
+        <div class="stat-icon">📨</div>
+        <div class="stat-details">
+          <h3>Assigned Issues</h3>
+          <div class="stat-number" id="staffTotalIssues">0</div>
+        </div>
+      </div>
+
+      <div class="stat-card sent">
+        <div class="stat-icon">🔔</div>
+        <div class="stat-details">
+          <h3>New / Pending Action</h3>
+          <div class="stat-number" id="staffPendingIssues">0</div>
+        </div>
+      </div>
+
+      <div class="stat-card viewed">
+        <div class="stat-icon">👁️</div>
+        <div class="stat-details">
+          <h3>Viewed Issues</h3>
+          <div class="stat-number" id="staffViewedIssues">0</div>
+        </div>
+      </div>
+
+      <div class="stat-card solved">
+        <div class="stat-icon">✅</div>
+        <div class="stat-details">
+          <h3>Submitted & Solved</h3>
+          <div class="stat-number" id="staffSolvedIssues">0</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Staff Inbox & Issues Table Section -->
+    <section class="section-card">
+      <div class="section-header">
+        <h2>📥 Incoming Urgent Issues & Directives</h2>
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          <button class="btn btn-secondary btn-sm" onclick="exportDataJSON()">📥 Export JSON</button>
+          <button class="btn btn-secondary btn-sm" onclick="document.getElementById('importStaffJsonFile').click()">📤 Import JSON</button>
+          <input type="file" id="importStaffJsonFile" accept=".json" style="display: none;" onchange="importDataJSON(this)">
+        </div>
+      </div>
+      <div class="section-body" style="padding: 0;">
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Issue ID</th>
+                <th>Issue Date</th>
+                <th>Issuing Wing</th>
+                <th>Subject</th>
+                <th>Current Status</th>
+                <th>Solved Date</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="staffTicketsTableBody">
+              <!-- Dynamically populated by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Sync Settings Modal -->
+  <div class="modal-backdrop" id="syncSettingsModal">
+    <div class="modal-content" style="max-width: 620px;">
+      <div class="modal-header">
+        <h3>⚙️ Multi-PC Synchronization & Cloud Settings</h3>
+        <button class="modal-close" onclick="closeSyncSettingsModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="sync-info-box">
+          <p style="margin-bottom: 0.4rem;"><strong>Current Connection Status:</strong> <span id="syncStatusSummary">Checking...</span></p>
+          <p id="syncHostInfo" style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.5rem;"></p>
+          <div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px dashed #cbd5e1;">
+            <strong>🖥️ Office Network Multi-PC Server (GIS Lab):</strong><br>
+            <p style="color: #475569; font-size: 0.85rem; margin-top: 0.25rem;">
+              Double-click <code>start-server.bat</code> on GIS-11. All computers in the lab / office can open:
+            </p>
+            <div style="margin-top: 0.35rem; display: flex; flex-direction: column; gap: 0.25rem;">
+              <div>Head Office: <code id="localNetworkUrl">http://192.168.0.7:3000/index.html</code></div>
+              <div>Staff Portal: <code id="localNetworkStaffUrl">http://192.168.0.7:3000/staff.html</code></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top: 1rem;">
+          <label for="customCloudEndpointInput">Optional Cloud Sync Endpoint (Firebase Realtime DB / Google Apps Script / REST):</label>
+          <input type="text" id="customCloudEndpointInput" class="form-control" placeholder="e.g. https://<project-id>-default-rtdb.firebaseio.com/issues.json">
+          <small class="text-muted" style="margin-top: 0.35rem; font-size: 0.8rem; display: block; line-height: 1.4;">
+            If using across remote systems via Internet, paste your free Firebase Realtime Database URL or Google Apps Script Web App URL here. Leave empty to prioritize local network server mode.
+          </small>
+        </div>
+
+        <div style="display: flex; gap: 0.5rem; margin-top: 1.25rem; flex-wrap: wrap;">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="testSyncConnection()">🔌 Test Connection</button>
+          <button type="button" class="btn btn-primary btn-sm" onclick="saveSyncSettingsFromModal()">💾 Save Settings</button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeSyncSettingsModal()">Close Window</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Staff Detail & Reply Modal -->
+  <div class="modal-backdrop" id="staffDetailModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>📩 Issue Details & Resolution Reply Form</h3>
+        <button class="modal-close" onclick="closeStaffModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="staffModalBody">
+        <!-- Content inserted dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", initStaffPage);
+  </script>
+</body>
+</html>

@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IT WING- IMPORTANT ISSUES MONITORING SYSTEM</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="../tabSync.js"></script>
+</head>
+<body>
+
+  <!-- Top Navigation Header (No Icon as requested) -->
+  <header class="top-nav">
+    <div class="header-brand">
+      <h1 class="header-title">IT WING- IMPORTANT ISSUES MONITORING SYSTEM</h1>
+      <p class="header-subtitle">Tamil Nadu Forest Department</p>
+    </div>
+    <div class="header-actions">
+      <div id="cloudStatusBadge" class="cloud-status-badge">
+        <span class="status-dot"></span>
+        <span id="cloudStatusText">Cloud Synced</span>
+      </div>
+      <button type="button" class="btn btn-primary" onclick="openNewIssueModal()">
+        + New Important Issue
+      </button>
+      <button type="button" class="btn btn-secondary" onclick="manualSync()" title="Refresh and sync data from cloud">
+        Refresh
+      </button>
+      <div id="adminAuthContainer"></div>
+    </div>
+  </header>
+
+  <!-- Notification Toast Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Main Workspace Container -->
+  <main class="main-container">
+
+    <!-- Search & Filter Controls Toolbar -->
+    <section class="toolbar-card">
+      <div class="toolbar-grid">
+        <div class="search-box">
+          <input type="text" id="searchInput" class="form-control" placeholder="Search by ID, Subject, or File No..." oninput="handleSearchFilter()">
+        </div>
+
+        <div class="filter-group">
+          <label for="filterSection" class="filter-label">Section:</label>
+          <select id="filterSection" class="form-control" onchange="handleSearchFilter()">
+            <option value="ALL">All Sections</option>
+            <option value="MIS">MIS</option>
+            <option value="GIS">GIS</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label for="filterOfficer" class="filter-label">Updated By:</label>
+          <select id="filterOfficer" class="form-control" onchange="handleSearchFilter()">
+            <option value="ALL">All Officers</option>
+            <option value="CCF">CCF</option>
+            <option value="DCF">DCF</option>
+            <option value="SSM">SSM</option>
+            <option value="Mr.Thirunirai Selvan">Mr.Thirunirai Selvan</option>
+            <option value="Mr.Chelladurai">Mr.Chelladurai</option>
+            <option value="Mr.Rajagopalan">Mr.Rajagopalan</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label for="filterAlert" class="filter-label">Action Status:</label>
+          <select id="filterAlert" class="form-control" onchange="handleSearchFilter()">
+            <option value="ALL">All Statuses</option>
+            <option value="NORMAL">Active (&lt; 7 Days)</option>
+            <option value="RED35">7 - 14 Days Ago (35% Fill)</option>
+            <option value="RED70">15 - 29 Days Ago (70% Fill)</option>
+            <option value="RED100">1 Month+ Inactive (Full Red)</option>
+          </select>
+        </div>
+
+        <div class="filter-actions">
+          <button type="button" class="btn btn-light btn-sm" onclick="resetFilters()">Reset Filters</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Issues Table Section -->
+    <section class="table-card">
+      <div class="table-header">
+        <h2 class="table-title">Important Issues List</h2>
+        <span id="issueCountBadge" class="table-badge">0 Issues</span>
+      </div>
+
+      <div class="table-responsive">
+        <table class="issues-table" id="issuesTable">
+          <thead>
+            <tr>
+              <th style="width: 55px; text-align: center;">ID</th>
+              <th style="min-width: 280px;">Subject</th>
+              <th style="width: 140px;">File No</th>
+              <th style="width: 85px; text-align: center;">Section</th>
+              <th style="width: 155px;">Date</th>
+              <th style="width: 175px;">Updated By</th>
+              <th style="min-width: 220px;">Remarks</th>
+              <th style="width: 125px; text-align: center;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="issuesTableBody">
+            <!-- Dynamically populated rows -->
+          </tbody>
+        </table>
+      </div>
+
+      <div id="emptyState" class="empty-state" style="display: none;">
+        <p class="empty-title">No Important Issues Found</p>
+        <p class="empty-subtitle">Click "+ New Important Issue" to create your first issue.</p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ========================================================
+       MODAL 1: NEW IMPORTANT ISSUE POPUP FORM
+       ======================================================== -->
+  <div id="newIssueModal" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">New Important Issue</h3>
+        <button type="button" class="modal-close" onclick="closeNewIssueModal()">&times;</button>
+      </div>
+      <form id="newIssueForm" onsubmit="handleCreateIssueSubmit(event)">
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-col" style="flex: 0 0 100px;">
+              <label for="newIssueIdPreview">ID</label>
+              <input type="text" id="newIssueIdPreview" class="form-control font-bold" readonly>
+            </div>
+            <div class="form-col">
+              <label for="newIssueSection">Section <span class="required">*</span></label>
+              <select id="newIssueSection" class="form-control" required>
+                <option value="" disabled selected>Select Section</option>
+                <option value="MIS">MIS</option>
+                <option value="GIS">GIS</option>
+              </select>
+            </div>
+            <div class="form-col">
+              <label for="newIssueFileNo">File No / Reference No <span class="text-muted">(Optional)</span></label>
+              <input type="text" id="newIssueFileNo" class="form-control" placeholder="e.g. Ref/2026/IT-102">
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-top: 1rem;">
+            <label for="newIssueSubject">Subject <span class="required">*</span> <span class="text-muted">(Unlimited text)</span></label>
+            <textarea id="newIssueSubject" class="form-control textarea-large" rows="5" placeholder="Enter complete subject details here..." required></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeNewIssueModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btnSubmitNewIssue">Save & Sync to Cloud</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       MODAL 2: UPDATE ACTION TAKEN POPUP FORM
+       ======================================================== -->
+  <div id="updateActionModal" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">Update Last Action Taken</h3>
+        <button type="button" class="modal-close" onclick="closeUpdateActionModal()">&times;</button>
+      </div>
+      <form id="updateActionForm" onsubmit="handleUpdateActionSubmit(event)">
+        <input type="hidden" id="updateActionIssueId">
+        <div class="modal-body">
+          <div class="issue-summary-box">
+            <div class="summary-line">
+              <span class="summary-label">Issue ID:</span>
+              <span id="summaryIssueId" class="summary-value font-bold"></span>
+              <span class="summary-label" style="margin-left: 1rem;">Section:</span>
+              <span id="summarySection" class="badge"></span>
+            </div>
+            <div class="summary-line" style="margin-top: 0.35rem;">
+              <span class="summary-label">Subject:</span>
+              <span id="summarySubject" class="summary-value"></span>
+            </div>
+          </div>
+
+          <div class="form-row" style="margin-top: 1rem;">
+            <div class="form-col">
+              <label for="actionTakenDate">Last Action Taken Date <span class="required">*</span></label>
+              <input type="date" id="actionTakenDate" class="form-control" required>
+            </div>
+            <div class="form-col">
+              <label for="actionUpdatedBy">Updated By <span class="required">*</span></label>
+              <select id="actionUpdatedBy" class="form-control" required>
+                <option value="" disabled selected>Select Officer</option>
+                <option value="CCF">CCF</option>
+                <option value="DCF">DCF</option>
+                <option value="SSM">SSM</option>
+                <option value="Mr.Thirunirai Selvan">Mr.Thirunirai Selvan</option>
+                <option value="Mr.Chelladurai">Mr.Chelladurai</option>
+                <option value="Mr.Rajagopalan">Mr.Rajagopalan</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-top: 1rem;">
+            <label for="actionRemarks">Remarks <span class="text-muted">(Optional)</span></label>
+            <textarea id="actionRemarks" class="form-control" rows="3" placeholder="Enter remarks..."></textarea>
+          </div>
+
+          <p class="help-note">
+            * Updating this action date immediately resets the inactivity counter and clears any red highlight back to clean.
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeUpdateActionModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btnSubmitUpdateAction">Update & Sync to Cloud</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       MODAL 3: EDIT ISSUE BASIC DETAILS
+       ======================================================== -->
+  <div id="editIssueModal" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">Edit Issue Details</h3>
+        <button type="button" class="modal-close" onclick="closeEditIssueModal()">&times;</button>
+      </div>
+      <form id="editIssueForm" onsubmit="handleEditIssueSubmit(event)">
+        <input type="hidden" id="editIssueId">
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-col">
+              <label for="editIssueSection">Section <span class="required">*</span></label>
+              <select id="editIssueSection" class="form-control" required>
+                <option value="MIS">MIS</option>
+                <option value="GIS">GIS</option>
+              </select>
+            </div>
+            <div class="form-col">
+              <label for="editIssueFileNo">File No / Reference No <span class="text-muted">(Optional)</span></label>
+              <input type="text" id="editIssueFileNo" class="form-control">
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-top: 1rem;">
+            <label for="editIssueSubject">Subject <span class="required">*</span></label>
+            <textarea id="editIssueSubject" class="form-control textarea-large" rows="5" required></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeEditIssueModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       MODAL 4: ACTION HISTORY TIMELINE
+       ======================================================== -->
+  <div id="historyModal" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">Action History Timeline</h3>
+        <button type="button" class="modal-close" onclick="closeHistoryModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="historySubjectHeader" class="issue-summary-box" style="margin-bottom: 1rem;"></div>
+        <div id="historyTimeline" class="timeline-container">
+          <!-- Timeline entries -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeHistoryModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       MODAL 5: ADMIN LOGIN POPUP FORM
+       ======================================================== -->
+  <div id="adminLoginModal" class="modal-backdrop">
+    <div class="modal-dialog" style="max-width: 400px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Admin Login</h3>
+        <button type="button" class="modal-close" onclick="closeAdminLoginModal()">&times;</button>
+      </div>
+      <form id="adminLoginForm" onsubmit="handleAdminLoginSubmit(event)">
+        <div class="modal-body">
+          <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 1.1rem; line-height: 1.45;">
+            Enter administrator credentials to access Edit, History, and Delete capabilities.
+          </p>
+          <div class="form-group" style="margin-bottom: 1rem;">
+            <label for="adminUsername" style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.35rem;">User ID <span class="required">*</span></label>
+            <input type="text" id="adminUsername" class="form-control" placeholder="Enter User ID" required autocomplete="username">
+          </div>
+          <div class="form-group" style="margin-bottom: 0.5rem;">
+            <label for="adminPassword" style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.35rem;">Password <span class="required">*</span></label>
+            <input type="password" id="adminPassword" class="form-control" placeholder="Enter Password" required autocomplete="current-password">
+          </div>
+          <div id="adminLoginError" style="display: none; color: #ef4444; font-size: 0.8rem; font-weight: 600; margin-top: 0.6rem;"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeAdminLoginModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btnAdminLoginSubmit">Login</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

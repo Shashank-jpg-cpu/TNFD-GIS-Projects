@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>Reference_Boundary_Green</name>
+    <Style id="refStyle">
+      <LineStyle>
+        <color>ff00ff00</color>
+        <width>4</width>
+      </LineStyle>
+      <PolyStyle>
+        <color>1a00ff00</color>
+      </PolyStyle>
+    </Style>
+    <Placemark>
+      <name>Reference Division Boundary (Master)</name>
+      <styleUrl>#refStyle</styleUrl>
+      <Polygon>
+        <outerBoundaryIs>
+          <LinearRing>
+            <coordinates>
+              77.40,10.00,0 77.42,10.03,0 77.45,10.06,0 77.48,10.08,0 77.52,10.10,0 77.55,10.12,0 77.58,10.15,0 77.62,10.17,0 77.65,10.19,0 77.68,10.20,0 77.72,10.17,0 77.75,10.12,0 77.74,10.05,0 77.70,9.98,0 77.65,9.92,0 77.58,9.88,0 77.50,9.90,0 77.43,9.95,0 77.40,10.00,0
+            </coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+    </Placemark>
+  </Document>
+</kml>

@@ -1,0 +1,1999 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administrative Boundary Studio - Tamil Nadu Forest Department</title>
+    
+    <!-- Core Styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #0b1120;
+            color: #f1f5f9;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #334155;
+            transition: .3s;
+            border-radius: 24px;
+        }
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+        input:checked + .toggle-slider {
+            background-color: #10b981;
+        }
+        input:checked + .toggle-slider:before {
+            transform: translateX(20px);
+        }
+        input:disabled + .toggle-slider {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .a4-viewport {
+            background: radial-gradient(circle at 50% 50%, #1e293b 0%, #0f172a 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: auto;
+        }
+
+        .a4-sheet {
+            background-color: #ffffff;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.1);
+            transition: width 0.3s ease, height 0.3s ease;
+        }
+
+        /* Mode Tabs */
+        .mode-tab {
+            transition: all 0.2s ease;
+        }
+        .mode-tab.active {
+            background-color: #059669;
+            color: #ffffff;
+            box-shadow: 0 4px 12px -2px rgba(5, 150, 105, 0.5);
+        }
+        .mode-tab:not(.active) {
+            background-color: #1e293b;
+            color: #94a3b8;
+        }
+        .mode-tab:not(.active):hover {
+            background-color: #334155;
+            color: #f8fafc;
+        }
+
+        #a4-canvas {
+            touch-action: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        /* Responsive Drawer Backdrop */
+        #sidebar-backdrop.active {
+            display: block;
+            opacity: 1;
+        }
+    </style>
+  <script src="../tabSync.js"></script>
+</head>
+<body class="h-screen flex flex-col overflow-hidden select-none bg-slate-950">
+
+    <!-- TOP NAV BAR (Responsive Mobile & Desktop) -->
+    <header class="h-14 bg-slate-900 border-b border-slate-800 px-3 sm:px-5 flex items-center justify-between shrink-0 z-30">
+        <div class="flex items-center gap-2 sm:gap-3">
+            <a href="../../index.html" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-300 transition shrink-0" title="Back to Portal">
+                <i class="fa-solid fa-arrow-left text-sm"></i>
+            </a>
+
+            <!-- Mobile Drawer Toggle Button -->
+            <button id="btn-toggle-sidebar" class="lg:hidden px-2.5 py-1.5 rounded-lg bg-emerald-600/25 hover:bg-emerald-600/40 text-emerald-300 border border-emerald-500/40 text-xs font-bold flex items-center gap-1.5 shadow transition active:scale-95">
+                <i class="fa-solid fa-sliders"></i>
+                <span class="hidden sm:inline">Options</span>
+            </button>
+
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg bg-emerald-600/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0">
+                    <i class="fa-solid fa-map-location-dot text-sm"></i>
+                </div>
+                <div>
+                    <h1 class="text-xs sm:text-xs font-bold text-slate-100 uppercase tracking-wider flex items-center gap-1 sm:gap-2">
+                        <span>Admin Studio</span>
+                        <span id="header-mode-badge" class="hidden sm:inline-block text-[9px] px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800/80 font-semibold lowercase">division</span>
+                    </h1>
+                    <p class="text-[9px] sm:text-[10px] text-slate-400 truncate max-w-[140px] sm:max-w-none">Circle, Division & Range Layouts</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT TOP ACTIONS -->
+        <div class="flex items-center gap-1.5 sm:gap-3">
+            <!-- Orientation Pill -->
+            <div class="flex items-center bg-slate-800 p-0.5 sm:p-1 rounded-lg border border-slate-700 text-xs font-semibold">
+                <button id="btn-orient-land" class="px-2 sm:px-2.5 py-1 rounded bg-emerald-600 text-white transition text-[11px] sm:text-xs">Land</button>
+                <button id="btn-orient-port" class="px-2 sm:px-2.5 py-1 rounded text-slate-400 hover:text-white transition text-[11px] sm:text-xs">Port</button>
+            </div>
+
+            <div class="hidden sm:block h-5 w-px bg-slate-700"></div>
+
+            <button id="btn-download-pdf" class="px-2.5 sm:px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs rounded-lg shadow-lg shadow-emerald-900/40 flex items-center gap-1.5 transition disabled:opacity-50 disabled:cursor-not-allowed active:scale-95" title="Download PDF (A4)">
+                <i class="fa-solid fa-file-pdf"></i>
+                <span class="hidden md:inline">PDF</span>
+            </button>
+            <button id="btn-download-png" class="px-2.5 sm:px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs rounded-lg shadow-lg shadow-indigo-900/40 flex items-center gap-1.5 transition disabled:opacity-50 disabled:cursor-not-allowed active:scale-95" title="Download PNG">
+                <i class="fa-solid fa-image"></i>
+                <span class="hidden md:inline">PNG</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- MOBILE DRAWER BACKDROP -->
+    <div id="sidebar-backdrop" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 hidden lg:hidden transition-opacity duration-300"></div>
+
+    <!-- MAIN BODY -->
+    <div class="flex-1 flex overflow-hidden relative">
+
+        <!-- SIDEBAR: CONTROLS (Slide-over drawer on mobile, static on desktop) -->
+        <aside id="sidebar-panel" class="fixed lg:static inset-y-0 left-0 w-[85vw] max-w-sm sm:w-96 bg-slate-900 border-r border-slate-800 flex flex-col shrink-0 z-50 overflow-y-auto p-4 space-y-4 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out shadow-2xl lg:shadow-none">
+            
+            <!-- Mobile Drawer Top Close Bar -->
+            <div class="lg:hidden flex items-center justify-between pb-3 border-b border-slate-800 shrink-0">
+                <div class="flex items-center gap-2">
+                    <span class="w-6 h-6 rounded bg-emerald-600/30 text-emerald-400 flex items-center justify-center text-xs font-bold"><i class="fa-solid fa-sliders"></i></span>
+                    <span class="text-xs font-bold text-slate-100">Layers & Settings</span>
+                </div>
+                <button id="btn-close-sidebar" class="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-bold flex items-center gap-1.5 shadow transition active:scale-95">
+                    <i class="fa-solid fa-xmark"></i>
+                    <span>View Map</span>
+                </button>
+            </div>
+            
+            <!-- MAP MODE SWITCHER: Circle Map, Division Map, Range Map -->
+            <div class="p-1.5 rounded-xl bg-slate-950/90 border border-slate-800 space-y-1.5">
+                <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1 flex items-center justify-between">
+                    <span>Select Map Mode</span>
+                    <span id="active-mode-badge" class="text-emerald-400 font-semibold">Division Map</span>
+                </div>
+                <div class="grid grid-cols-3 gap-1.5">
+                    <button id="btn-mode-circle" class="mode-tab py-2 px-1 rounded-lg text-xs font-bold flex flex-col items-center gap-1">
+                        <i class="fa-solid fa-layer-group text-sm"></i>
+                        <span>Circle Map</span>
+                    </button>
+                    <button id="btn-mode-division" class="mode-tab active py-2 px-1 rounded-lg text-xs font-bold flex flex-col items-center gap-1">
+                        <i class="fa-solid fa-draw-polygon text-sm"></i>
+                        <span>Division Map</span>
+                    </button>
+                    <button id="btn-mode-range" class="mode-tab py-2 px-1 rounded-lg text-xs font-bold flex flex-col items-center gap-1">
+                        <i class="fa-solid fa-tree text-sm"></i>
+                        <span>Range Map</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- MODE 1: CIRCLE MAP SELECTION -->
+            <div id="panel-circle-mode" class="hidden p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-2">
+                        <span class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-[11px] font-bold">1</span>
+                        Choose Circle
+                    </span>
+                    <span id="badge-circle-status" class="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400">Select</span>
+                </div>
+
+                <div>
+                    <label class="text-[11px] text-slate-400 block mb-1">Forest Circle (12 Circles)</label>
+                    <select id="select-circle" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs font-semibold text-slate-200 focus:outline-none focus:border-emerald-500 transition">
+                        <option value="">-- Choose a Forest Circle --</option>
+                    </select>
+                </div>
+
+                <div id="circle-stats-box" class="hidden text-[11px] bg-slate-900/80 p-2.5 rounded-lg border border-slate-800 space-y-1 text-slate-300">
+                    <div class="flex justify-between"><span>Constituent Divisions:</span><strong id="stat-circle-divs" class="text-emerald-400">0</strong></div>
+                    <div class="flex justify-between"><span>Total Ranges:</span><strong id="stat-circle-ranges">0</strong></div>
+                    <div class="flex justify-between"><span>Total Beats:</span><strong id="stat-circle-beats">0</strong></div>
+                    <div class="flex justify-between"><span>Reserved Forests (RF):</span><strong id="stat-circle-rf" class="text-emerald-400">0</strong></div>
+                    <div class="flex justify-between"><span>Reserved Lands (RL):</span><strong id="stat-circle-rl" class="text-orange-400">0</strong></div>
+                </div>
+            </div>
+
+            <!-- MODE 2: DIVISION MAP SELECTION -->
+            <div id="panel-division-mode" class="p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-2">
+                        <span class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-[11px] font-bold">1</span>
+                        Choose Division
+                    </span>
+                    <span id="badge-division-status" class="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400">Select</span>
+                </div>
+                <div>
+                    <label class="text-[11px] text-slate-400 block mb-1">Forest Division (46 Divisions)</label>
+                    <select id="select-division" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs font-semibold text-slate-200 focus:outline-none focus:border-emerald-500 transition">
+                        <option value="">-- Choose a Forest Division --</option>
+                    </select>
+                </div>
+                <div id="div-stats-box" class="hidden text-[11px] bg-slate-900/80 p-2.5 rounded-lg border border-slate-800 space-y-1 text-slate-300">
+                    <div class="flex justify-between"><span>Page Orientation:</span><strong id="stat-orientation" class="text-emerald-400 uppercase">Landscape</strong></div>
+                    <div class="flex justify-between"><span>Total Ranges:</span><strong id="stat-ranges">0</strong></div>
+                    <div class="flex justify-between"><span>Total Beats:</span><strong id="stat-beats">0</strong></div>
+                    <div class="flex justify-between"><span>Reserved Forests (RF):</span><strong id="stat-rf" class="text-emerald-400">0</strong></div>
+                    <div class="flex justify-between"><span>Reserved Lands (RL):</span><strong id="stat-rl" class="text-orange-400">0</strong></div>
+                </div>
+            </div>
+
+            <!-- MODE 3: RANGE MAP CASCADED SELECTION -->
+            <div id="panel-range-mode" class="hidden p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-2">
+                        <span class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-[11px] font-bold">1</span>
+                        Filter Down to Range
+                    </span>
+                    <span id="badge-range-status" class="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400">Filter</span>
+                </div>
+                <p class="text-[10px] text-slate-400">
+                    Select Circle and Division to filter ranges. The resulting map sheet will render <strong>only the selected Range</strong>.
+                </p>
+
+                <!-- Step 1: Circle -->
+                <div>
+                    <label class="text-[11px] text-slate-400 block mb-1">Step A: Filter by Circle</label>
+                    <select id="select-range-circle" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs font-semibold text-slate-200 focus:outline-none focus:border-emerald-500 transition">
+                        <option value="">-- Choose Circle --</option>
+                    </select>
+                </div>
+
+                <!-- Step 2: Division -->
+                <div>
+                    <label class="text-[11px] text-slate-400 block mb-1">Step B: Filter by Division</label>
+                    <select id="select-range-division" disabled class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs font-semibold text-slate-200 focus:outline-none focus:border-emerald-500 transition disabled:opacity-50">
+                        <option value="">-- Choose Division First --</option>
+                    </select>
+                </div>
+
+                <!-- Step 3: Range -->
+                <div>
+                    <label class="text-[11px] text-slate-400 block mb-1">Step C: Choose Range Boundary</label>
+                    <select id="select-range-item" disabled class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs font-semibold text-slate-200 focus:outline-none focus:border-emerald-500 transition disabled:opacity-50">
+                        <option value="">-- Choose Range to Map --</option>
+                    </select>
+                </div>
+
+                <div id="range-stats-box" class="hidden text-[11px] bg-slate-900/80 p-2.5 rounded-lg border border-slate-800 space-y-1 text-slate-300">
+                    <div class="flex justify-between"><span>Selected Range:</span><strong id="stat-range-name" class="text-emerald-400">NONE</strong></div>
+                    <div class="flex justify-between"><span>Beats in this Range:</span><strong id="stat-range-beats">0</strong></div>
+                    <div class="flex justify-between"><span>RF in this Range:</span><strong id="stat-range-rf" class="text-emerald-400">0</strong></div>
+                    <div class="flex justify-between"><span>RL in this Range:</span><strong id="stat-range-rl" class="text-orange-400">0</strong></div>
+                </div>
+            </div>
+
+            <!-- OPTIONAL LAYERS: RANGE, BEAT, RF, RL -->
+            <div class="p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold uppercase tracking-wider text-blue-400 flex items-center gap-2">
+                        <span class="w-5 h-5 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-[11px] font-bold">2</span>
+                        Optional Map Layers
+                    </span>
+                    <span class="text-[10px] text-slate-500">Toggle on/off</span>
+                </div>
+
+                <!-- Range Toggle (Only for Circle & Division modes) -->
+                <div id="group-toggle-range" class="flex items-center justify-between p-2 rounded-lg bg-slate-900 border border-slate-800">
+                    <div>
+                        <div class="text-xs font-semibold text-slate-200">Range Boundaries</div>
+                        <div class="text-[10px] text-slate-400">Display distinct range outlines</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="toggle-range" disabled>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <!-- Beat Toggle -->
+                <div class="flex items-center justify-between p-2 rounded-lg bg-slate-900 border border-slate-800">
+                    <div>
+                        <div class="text-xs font-semibold text-slate-200">Beat Boundaries</div>
+                        <div class="text-[10px] text-slate-400">Overlay dotted beat demarcation</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="toggle-beat" disabled>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <!-- RF Toggle -->
+                <div class="flex items-center justify-between p-2 rounded-lg bg-slate-900 border border-slate-800">
+                    <div class="flex items-center gap-2">
+                        <span class="w-3.5 h-3.5 rounded bg-emerald-600 border border-emerald-400"></span>
+                        <div>
+                            <div class="text-xs font-semibold text-slate-200">Reserved Forest (RF)</div>
+                            <div class="text-[10px] text-slate-400">Green forest patches</div>
+                        </div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="toggle-rf" disabled>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <!-- RF Names on Map Toggle -->
+                <div id="subgroup-rf-names" class="ml-3 pl-2.5 border-l-2 border-emerald-500/40 flex items-center justify-between p-1.5 px-2 rounded-lg bg-slate-900/60 border border-slate-800/70">
+                    <div>
+                        <div class="text-[11px] font-semibold text-emerald-400">Show RF Names on Map</div>
+                        <div class="text-[9px] text-slate-400">Display labels on RF polygons</div>
+                    </div>
+                    <label class="toggle-switch scale-90">
+                        <input type="checkbox" id="toggle-rf-names" disabled>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <!-- RL Toggle -->
+                <div class="flex items-center justify-between p-2 rounded-lg bg-slate-900 border border-slate-800">
+                    <div class="flex items-center gap-2">
+                        <span class="w-3.5 h-3.5 rounded bg-orange-600 border border-orange-400"></span>
+                        <div>
+                            <div class="text-xs font-semibold text-slate-200">Reserved Land (RL)</div>
+                            <div class="text-[10px] text-slate-400">Orange land patches</div>
+                        </div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="toggle-rl" disabled>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <!-- RL Names on Map Toggle -->
+                <div id="subgroup-rl-names" class="ml-3 pl-2.5 border-l-2 border-orange-500/40 flex items-center justify-between p-1.5 px-2 rounded-lg bg-slate-900/60 border border-slate-800/70">
+                    <div>
+                        <div class="text-[11px] font-semibold text-orange-400">Show RL Names on Map</div>
+                        <div class="text-[9px] text-slate-400">Display labels on RL polygons</div>
+                    </div>
+                    <label class="toggle-switch scale-90">
+                        <input type="checkbox" id="toggle-rl-names" disabled>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- STEP 3: LEGEND & COLOR DISPLAY OPTIONS (NAMES ACCORDING TO COLORS) -->
+            <div class="p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-2">
+                        <span class="w-5 h-5 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-[11px] font-bold">3</span>
+                        Legend & Color Options
+                    </span>
+                    <span class="text-[10px] text-slate-500">Names by color</span>
+                </div>
+
+                <!-- CIRCLE MODE LEGEND OPTIONS -->
+                <div id="opts-circle-legend" class="space-y-2 hidden">
+                    <div class="flex items-center justify-between p-2 rounded-lg bg-slate-900 border border-slate-800">
+                        <div>
+                            <div class="text-xs font-semibold text-slate-200">Division Names in Legend</div>
+                            <div class="text-[10px] text-slate-400">List each constituent division with color</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="toggle-circle-legend-divs" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div id="group-circle-legend-ranges" class="flex items-center justify-between p-2 rounded-lg bg-slate-900 border border-slate-800">
+                        <div>
+                            <div class="text-xs font-semibold text-slate-200">Range Names in Legend</div>
+                            <div class="text-[10px] text-slate-400">List range names by color (when ranges ON)</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="toggle-circle-legend-ranges" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="flex items-center justify-between p-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-emerald-500/50 transition">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-3.5 h-3.5 rounded bg-emerald-600 border border-emerald-400 flex-shrink-0 shadow-sm"></span>
+                            <div>
+                                <div class="text-xs font-bold text-emerald-300">Reserved Forest (RF) Names in Legend</div>
+                                <div class="text-[10px] text-slate-400">Add RF names according to color</div>
+                            </div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="toggle-circle-legend-rf-names">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="flex items-center justify-between p-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-orange-500/50 transition">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-3.5 h-3.5 rounded bg-orange-600 border border-orange-400 flex-shrink-0 shadow-sm"></span>
+                            <div>
+                                <div class="text-xs font-bold text-orange-300">Reserved Land (RL) Names in Legend</div>
+                                <div class="text-[10px] text-slate-400">Add RL names according to color</div>
+                            </div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="toggle-circle-legend-rl-names">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="p-2 rounded-lg bg-slate-900/50 border border-slate-800/80 text-[10px] text-slate-400 flex items-center gap-2">
+                        <i class="fa-solid fa-circle-info text-amber-400"></i>
+                        <span>Beats are excluded from Circle Map legend ("no beats").</span>
+                    </div>
+                </div>
+
+                <!-- DIVISION MODE LEGEND OPTIONS -->
+                <div id="opts-division-legend" class="space-y-2">
+                    <div class="flex items-center justify-between p-2 rounded-lg bg-slate-900 border border-slate-800">
+                        <div>
+                            <div class="text-xs font-semibold text-slate-200">Range Names in Legend</div>
+                            <div class="text-[10px] text-slate-400">List each range with matching color</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="toggle-div-legend-ranges" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="flex items-center justify-between p-2 rounded-lg bg-slate-900 border border-slate-800">
+                        <div>
+                            <div class="text-xs font-semibold text-slate-200">Color Ranges Distinctly</div>
+                            <div class="text-[10px] text-slate-400">Individual color fill & border per range</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="toggle-div-distinct-ranges" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="flex items-center justify-between p-2 rounded-lg bg-slate-900 border border-slate-800">
+                        <div>
+                            <div class="text-xs font-semibold text-slate-200">Beat Names in Legend</div>
+                            <div class="text-[10px] text-slate-400">List each beat with its individual color</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="toggle-div-legend-beats">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="flex items-center justify-between p-2 rounded-lg bg-slate-900 border border-slate-800">
+                        <div>
+                            <div class="text-xs font-semibold text-slate-200">Color Beats Distinctly</div>
+                            <div class="text-[10px] text-slate-400">Different color for each beat demarcation</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="toggle-div-distinct-beats" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="flex items-center justify-between p-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-emerald-500/50 transition">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-3.5 h-3.5 rounded bg-emerald-600 border border-emerald-400 flex-shrink-0 shadow-sm"></span>
+                            <div>
+                                <div class="text-xs font-bold text-emerald-300">Reserved Forest (RF) Names in Legend</div>
+                                <div class="text-[10px] text-slate-400">Add each RF by name & color to legend</div>
+                            </div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="toggle-div-legend-rf-names">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="flex items-center justify-between p-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-orange-500/50 transition">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-3.5 h-3.5 rounded bg-orange-600 border border-orange-400 flex-shrink-0 shadow-sm"></span>
+                            <div>
+                                <div class="text-xs font-bold text-orange-300">Reserved Land (RL) Names in Legend</div>
+                                <div class="text-[10px] text-slate-400">Add each RL by name & color to legend</div>
+                            </div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="toggle-div-legend-rl-names">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- RANGE MODE LEGEND OPTIONS -->
+                <div id="opts-range-legend" class="space-y-2 hidden">
+                    <div class="flex items-center justify-between p-2 rounded-lg bg-slate-900 border border-slate-800">
+                        <div>
+                            <div class="text-xs font-semibold text-slate-200">Color Beats Distinctly</div>
+                            <div class="text-[10px] text-slate-400">Different color fill & border for each beat</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="toggle-range-distinct-beats" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="flex items-center justify-between p-2 rounded-lg bg-slate-900 border border-slate-800">
+                        <div>
+                            <div class="text-xs font-semibold text-slate-200">Beat Names in Legend</div>
+                            <div class="text-[10px] text-slate-400">Show beat names according to colors</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="toggle-range-legend-beats" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="flex items-center justify-between p-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-emerald-500/50 transition">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-3.5 h-3.5 rounded bg-emerald-600 border border-emerald-400 flex-shrink-0 shadow-sm"></span>
+                            <div>
+                                <div class="text-xs font-bold text-emerald-300">Reserved Forest (RF) Names in Legend</div>
+                                <div class="text-[10px] text-slate-400">Add RF names in this range to legend</div>
+                            </div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="toggle-range-legend-rf-names">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="flex items-center justify-between p-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-orange-500/50 transition">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-3.5 h-3.5 rounded bg-orange-600 border border-orange-400 flex-shrink-0 shadow-sm"></span>
+                            <div>
+                                <div class="text-xs font-bold text-orange-300">Reserved Land (RL) Names in Legend</div>
+                                <div class="text-[10px] text-slate-400">Add RL names in this range to legend</div>
+                            </div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="toggle-range-legend-rl-names">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- GENERAL LEGEND TOGGLES (FOR ALL MODES) -->
+                <div class="pt-2 border-t border-slate-800/80 space-y-1.5">
+                    <div class="text-[10px] uppercase font-bold text-slate-400 px-1">Other Legend Swatches:</div>
+
+                    <div class="flex items-center justify-between p-1.5 px-2 rounded-lg bg-slate-900 border border-slate-800">
+                        <span class="text-[11px] text-slate-300">Admin Boundary Swatch</span>
+                        <label class="toggle-switch scale-90">
+                            <input type="checkbox" id="toggle-legend-boundary" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="flex items-center justify-between p-1.5 px-2 rounded-lg bg-slate-900 border border-slate-800">
+                        <span class="text-[11px] text-slate-300">Reserved Forest [RF] Swatch</span>
+                        <label class="toggle-switch scale-90">
+                            <input type="checkbox" id="toggle-legend-rf" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="ml-3 pl-2 border-l border-emerald-500/30 flex items-center justify-between p-1 px-2 rounded-lg bg-slate-900/60 border border-slate-800/60">
+                        <div>
+                            <div class="text-[10px] font-semibold text-emerald-400">List Individual RF Names</div>
+                            <div class="text-[8px] text-slate-400">Each forest patch in legend</div>
+                        </div>
+                        <label class="toggle-switch scale-75">
+                            <input type="checkbox" id="toggle-legend-rf-names">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="flex items-center justify-between p-1.5 px-2 rounded-lg bg-slate-900 border border-slate-800">
+                        <span class="text-[11px] text-slate-300">Reserved Land [RL] Swatch</span>
+                        <label class="toggle-switch scale-90">
+                            <input type="checkbox" id="toggle-legend-rl" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="ml-3 pl-2 border-l border-orange-500/30 flex items-center justify-between p-1 px-2 rounded-lg bg-slate-900/60 border border-slate-800/60">
+                        <div>
+                            <div class="text-[10px] font-semibold text-orange-400">List Individual RL Names</div>
+                            <div class="text-[8px] text-slate-400">Each land patch in legend</div>
+                        </div>
+                        <label class="toggle-switch scale-75">
+                            <input type="checkbox" id="toggle-legend-rl-names">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STEP 4: INTERACTIVE CUSTOMIZATION & SEPARATE RESIZE SLIDERS -->
+            <div class="p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-3 text-[11px] text-slate-300">
+                <div class="font-bold uppercase tracking-wider text-emerald-400 flex items-center justify-between">
+                    <span class="flex items-center gap-1.5">
+                        <span class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-[11px] font-bold">4</span>
+                        Move & Resize Elements
+                    </span>
+                    <span class="text-[10px] text-slate-500 font-normal">Separate Sizing</span>
+                </div>
+
+                <!-- Independent Sliders (min 0.3, max 3.5 - 4.0) with dynamic selection highlight -->
+                <div class="space-y-2 pt-2 border-t border-slate-800">
+                    <!-- Map Zoom -->
+                    <div id="ctrl-row-map" class="slider-ctrl-row flex items-center justify-between p-1.5 rounded-lg border border-transparent transition-all duration-200">
+                        <span class="text-slate-400 font-semibold text-emerald-400 flex items-center"><i class="fa-solid fa-magnifying-glass-plus mr-1"></i>Map Zoom / Size:</span>
+                        <div class="flex items-center gap-1">
+                            <input type="range" id="slider-map-zoom" min="0.3" max="4.0" step="0.05" value="1.0" class="w-24 accent-emerald-500 cursor-pointer">
+                            <span id="badge-map-zoom" class="text-[10px] w-8 text-right font-mono text-emerald-400">1.0x</span>
+                        </div>
+                    </div>
+
+                    <!-- Line 1: Dept Header Size (Bigger, Brown) -->
+                    <div id="ctrl-row-title-dept" class="slider-ctrl-row flex items-center justify-between p-1.5 rounded-lg border border-transparent transition-all duration-200">
+                        <span class="text-amber-500 font-semibold flex items-center">Dept Header (Line 1):</span>
+                        <div class="flex items-center gap-1">
+                            <input type="range" id="slider-title-dept-size" min="0.3" max="3.5" step="0.05" value="1.0" class="w-24 accent-amber-600 cursor-pointer">
+                            <span id="badge-title-dept-size" class="text-[10px] w-8 text-right font-mono text-amber-500">1.0x</span>
+                        </div>
+                    </div>
+
+                    <!-- Line 2: Map Subtitle Size (Smaller, Centered) -->
+                    <div id="ctrl-row-title-sub" class="slider-ctrl-row flex items-center justify-between p-1.5 rounded-lg border border-transparent transition-all duration-200">
+                        <span class="text-slate-300 font-semibold flex items-center">Map Title (Line 2):</span>
+                        <div class="flex items-center gap-1">
+                            <input type="range" id="slider-title-sub-size" min="0.3" max="3.5" step="0.05" value="1.0" class="w-24 accent-emerald-500 cursor-pointer">
+                            <span id="badge-title-sub-size" class="text-[10px] w-8 text-right font-mono text-slate-300">1.0x</span>
+                        </div>
+                    </div>
+
+                    <!-- Legend Size -->
+                    <div id="ctrl-row-legend" class="slider-ctrl-row flex items-center justify-between p-1.5 rounded-lg border border-transparent transition-all duration-200">
+                        <span class="text-slate-400 font-semibold flex items-center">Dynamic Legend:</span>
+                        <div class="flex items-center gap-1">
+                            <input type="range" id="slider-legend-size" min="0.3" max="3.5" step="0.05" value="1.0" class="w-24 accent-emerald-500 cursor-pointer">
+                            <span id="badge-legend-size" class="text-[10px] w-8 text-right font-mono text-slate-400">1.0x</span>
+                        </div>
+                    </div>
+
+                    <!-- North Arrow Size -->
+                    <div id="ctrl-row-na" class="slider-ctrl-row flex items-center justify-between p-1.5 rounded-lg border border-transparent transition-all duration-200">
+                        <span class="text-slate-400 font-semibold flex items-center">North Arrow:</span>
+                        <div class="flex items-center gap-1">
+                            <input type="range" id="slider-na-size" min="0.3" max="3.5" step="0.05" value="1.0" class="w-24 accent-emerald-500 cursor-pointer">
+                            <span id="badge-na-size" class="text-[10px] w-8 text-right font-mono text-slate-400">1.0x</span>
+                        </div>
+                    </div>
+
+                    <!-- Scale Bar Size -->
+                    <div id="ctrl-row-scale" class="slider-ctrl-row flex items-center justify-between p-1.5 rounded-lg border border-transparent transition-all duration-200">
+                        <span class="text-slate-400 font-semibold flex items-center">Scale Bar:</span>
+                        <div class="flex items-center gap-1">
+                            <input type="range" id="slider-scale-size" min="0.3" max="3.5" step="0.05" value="1.0" class="w-24 accent-emerald-500 cursor-pointer">
+                            <span id="badge-scale-size" class="text-[10px] w-8 text-right font-mono text-slate-400">1.0x</span>
+                        </div>
+                    </div>
+
+                    <!-- Seal & Text Size -->
+                    <div id="ctrl-row-seal" class="slider-ctrl-row flex items-center justify-between p-1.5 rounded-lg border border-transparent transition-all duration-200">
+                        <span class="text-slate-400 font-semibold flex items-center">Seal & GIS Text:</span>
+                        <div class="flex items-center gap-1">
+                            <input type="range" id="slider-seal-size" min="0.3" max="3.5" step="0.05" value="1.0" class="w-24 accent-emerald-500 cursor-pointer">
+                            <span id="badge-seal-size" class="text-[10px] w-8 text-right font-mono text-slate-400">1.0x</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-2 pt-1">
+                    <button id="btn-reset-map" class="flex-1 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs border border-slate-700 transition">
+                        <i class="fa-solid fa-crosshairs mr-1"></i> Center Map
+                    </button>
+                    <button id="btn-reset-positions" class="flex-1 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs border border-slate-700 transition">
+                        <i class="fa-solid fa-arrow-rotate-left mr-1"></i> Reset All
+                    </button>
+                </div>
+            </div>
+
+            <!-- Mobile Drawer Bottom Close Button -->
+            <button id="btn-close-sidebar-bottom" class="lg:hidden w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/60 transition active:scale-95 shrink-0">
+                <i class="fa-solid fa-check"></i>
+                <span>Done & View Map Sheet</span>
+            </button>
+
+        </aside>
+
+        <!-- RIGHT AREA: PURE WHITE A4 INTERACTIVE SHEET -->
+        <main class="flex-1 a4-viewport p-2 sm:p-6 relative">
+            <div class="a4-sheet rounded overflow-hidden">
+                <canvas id="a4-canvas"></canvas>
+            </div>
+
+            <!-- Mobile Floating Quick-Tools Bar -->
+            <div class="fixed lg:hidden bottom-4 right-4 z-20 flex flex-col items-end gap-2 pointer-events-auto">
+                <button id="floating-btn-settings" class="px-4 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-2xl shadow-black/80 flex items-center gap-2 border border-emerald-400/40 active:scale-95 transition">
+                    <i class="fa-solid fa-sliders"></i>
+                    <span>Layers & Settings</span>
+                </button>
+                <div class="flex items-center bg-slate-900/95 backdrop-blur border border-slate-700 rounded-full p-1 shadow-2xl">
+                    <button id="mobile-btn-zoom-in" class="w-9 h-9 rounded-full hover:bg-slate-800 text-slate-200 flex items-center justify-center text-sm font-bold active:scale-95 transition" title="Zoom In">
+                        <i class="fa-solid fa-plus"></i>
+                    </button>
+                    <button id="mobile-btn-zoom-out" class="w-9 h-9 rounded-full hover:bg-slate-800 text-slate-200 flex items-center justify-center text-sm font-bold active:scale-95 transition" title="Zoom Out">
+                        <i class="fa-solid fa-minus"></i>
+                    </button>
+                    <button id="mobile-btn-recenter" class="w-9 h-9 rounded-full hover:bg-slate-800 text-slate-200 flex items-center justify-center text-sm font-bold active:scale-95 transition" title="Center Map">
+                        <i class="fa-solid fa-crosshairs"></i>
+                    </button>
+                </div>
+            </div>
+        </main>
+
+    </div>
+
+    <!-- SCRIPTS -->
+    <script src="libs/jspdf.umd.min.js"></script>
+    <script src="logo_base64.js"></script>
+    <script src="divisions_data.js"></script>
+    <script src="cartoStudio.js"></script>
+
+    <script>
+        // Boundary Studio State
+        const state = {
+            mapMode: 'division', // 'circle' | 'division' | 'range'
+            circlesIndex: window.CIRCLES_INDEX || [],
+            divisionsIndex: window.DIVISIONS_INDEX || [],
+            
+            // Circle Mode state
+            selectedCircleId: null,
+            circleName: '',
+            circleData: null,
+            circleDivisionId: '__all__',
+
+            // Division Mode state
+            selectedDivisionId: null,
+            divisionName: '',
+            divisionData: null,
+
+            // Range Mode state
+            rangeCircleId: null,
+            rangeDivisionId: null,
+            selectedRangeName: null,
+            rangeFeature: null,
+            rangeBounds: null,
+
+            orientation: 'landscape',
+            showRange: false,
+            showBeat: false,
+            showRF: false,
+            showRL: false,
+            showRFNames: false,
+            showRLNames: false,
+            distinctRangeColors: true,
+            distinctBeatColors: true,
+            legendShowDivNames: true,
+            legendShowRangeNames: true,
+            legendShowBeatNames: true,
+            legendShowBoundary: true,
+            legendShowRF: true,
+            legendShowRL: true,
+            legendShowRFNames: false,
+            legendShowRLNames: false,
+            beatColors: {},
+            rangeColors: {}
+        };
+
+        const RANGE_PALETTE = [
+            'rgba(37, 99, 235, 0.18)',
+            'rgba(16, 185, 129, 0.18)',
+            'rgba(245, 158, 11, 0.18)',
+            'rgba(139, 92, 246, 0.18)',
+            'rgba(236, 72, 153, 0.18)',
+            'rgba(20, 184, 166, 0.18)',
+            'rgba(249, 115, 22, 0.18)',
+            'rgba(99, 102, 241, 0.18)',
+            'rgba(168, 85, 247, 0.18)',
+            'rgba(234, 179, 8, 0.18)'
+        ];
+
+        let canvas = null;
+
+        function initApp() {
+            canvas = document.getElementById('a4-canvas');
+            setupCanvasDimensions();
+            populateAllDropdowns();
+            setupModeSwitching();
+            setupMobileDrawer();
+            setupEventListeners();
+            setupDragAndDrop();
+            redrawCanvas();
+        }
+
+        function setupCanvasDimensions() {
+            const isPortrait = state.orientation === 'portrait';
+            canvas.width = isPortrait ? 1200 : 1697;
+            canvas.height = isPortrait ? 1697 : 1200;
+
+            const isMobile = window.innerWidth < 1024;
+            const maxW = isMobile ? (window.innerWidth - 20) : (window.innerWidth - 420);
+            const maxH = window.innerHeight - (isMobile ? 120 : 90);
+
+            let displayW, displayH;
+            if (canvas.width / canvas.height > maxW / maxH) {
+                displayW = maxW;
+                displayH = maxW * (canvas.height / canvas.width);
+            } else {
+                displayH = maxH;
+                displayW = maxH * (canvas.width / canvas.height);
+            }
+
+            displayW = Math.max(260, Math.round(displayW));
+            displayH = Math.max(200, Math.round(displayH));
+
+            canvas.style.width = `${displayW}px`;
+            canvas.style.height = `${displayH}px`;
+        }
+
+        function populateAllDropdowns() {
+            // 1. Division Dropdown for Division Mode
+            const selectDiv = document.getElementById('select-division');
+            selectDiv.innerHTML = '<option value="">-- Choose a Forest Division --</option>';
+            state.divisionsIndex.forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item.id;
+                opt.textContent = `${item.name} (${item.counts.ranges} Ranges, ${item.counts.beats} Beats, ${item.counts.rf} RF)`;
+                selectDiv.appendChild(opt);
+            });
+
+            // 2. Circle Dropdown for Circle Mode
+            const selectCircle = document.getElementById('select-circle');
+            selectCircle.innerHTML = '<option value="">-- Choose a Forest Circle --</option>';
+            state.circlesIndex.forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item.id;
+                opt.textContent = `${item.displayName} (${item.counts.divisions} Divisions, ${item.counts.ranges} Ranges)`;
+                selectCircle.appendChild(opt);
+            });
+
+            // 3. Circle Dropdown for Range Mode Filter
+            const selectRangeCircle = document.getElementById('select-range-circle');
+            selectRangeCircle.innerHTML = '<option value="">-- Choose Circle --</option>';
+            state.circlesIndex.forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item.id;
+                opt.textContent = `${item.displayName} (${item.counts.divisions} Divs)`;
+                selectRangeCircle.appendChild(opt);
+            });
+        }
+
+        function setupModeSwitching() {
+            const btnCircle = document.getElementById('btn-mode-circle');
+            const btnDivision = document.getElementById('btn-mode-division');
+            const btnRange = document.getElementById('btn-mode-range');
+
+            const panelCircle = document.getElementById('panel-circle-mode');
+            const panelDivision = document.getElementById('panel-division-mode');
+            const panelRange = document.getElementById('panel-range-mode');
+            const groupToggleRange = document.getElementById('group-toggle-range');
+            const activeModeBadge = document.getElementById('active-mode-badge');
+
+            function setMode(mode) {
+                state.mapMode = mode;
+                
+                btnCircle.classList.toggle('active', mode === 'circle');
+                btnDivision.classList.toggle('active', mode === 'division');
+                btnRange.classList.toggle('active', mode === 'range');
+
+                panelCircle.classList.toggle('hidden', mode !== 'circle');
+                panelDivision.classList.toggle('hidden', mode !== 'division');
+                panelRange.classList.toggle('hidden', mode !== 'range');
+
+                groupToggleRange.classList.toggle('hidden', mode === 'range');
+
+                const optsCircleLegend = document.getElementById('opts-circle-legend');
+                const optsDivLegend = document.getElementById('opts-division-legend');
+                const optsRangeLegend = document.getElementById('opts-range-legend');
+
+                if (optsCircleLegend) optsCircleLegend.classList.toggle('hidden', mode !== 'circle');
+                if (optsDivLegend) optsDivLegend.classList.toggle('hidden', mode !== 'division');
+                if (optsRangeLegend) optsRangeLegend.classList.toggle('hidden', mode !== 'range');
+
+                if (mode === 'circle') activeModeBadge.textContent = "Circle Map";
+                else if (mode === 'division') activeModeBadge.textContent = "Division Map";
+                else activeModeBadge.textContent = "Range Map";
+
+                const rfVal = !!state.legendShowRFNames;
+                const rlVal = !!state.legendShowRLNames;
+                ['toggle-circle-legend-rf-names', 'toggle-div-legend-rf-names', 'toggle-range-legend-rf-names', 'toggle-legend-rf-names'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.checked = rfVal;
+                });
+                ['toggle-circle-legend-rl-names', 'toggle-div-legend-rl-names', 'toggle-range-legend-rl-names', 'toggle-legend-rl-names'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.checked = rlVal;
+                });
+
+                const headerModeBadge = document.getElementById('header-mode-badge');
+                if (headerModeBadge) headerModeBadge.textContent = mode;
+
+                CartoStudio.elements.map.offsetX = 0.0;
+                CartoStudio.elements.map.offsetY = 0.0;
+                CartoStudio.elements.map.scale = 1.0;
+                document.getElementById('slider-map-zoom').value = 1.0;
+                document.getElementById('badge-map-zoom').textContent = "1.0x";
+
+                updateDownloadButtonsState();
+                setupCanvasDimensions();
+                redrawCanvas();
+            }
+
+            btnCircle.addEventListener('click', () => setMode('circle'));
+            btnDivision.addEventListener('click', () => setMode('division'));
+            btnRange.addEventListener('click', () => setMode('range'));
+        }
+
+        function setupMobileDrawer() {
+            const sidebar = document.getElementById('sidebar-panel');
+            const backdrop = document.getElementById('sidebar-backdrop');
+            const btnToggle = document.getElementById('btn-toggle-sidebar');
+            const btnClose = document.getElementById('btn-close-sidebar');
+            const btnCloseBottom = document.getElementById('btn-close-sidebar-bottom');
+            const floatingBtnSettings = document.getElementById('floating-btn-settings');
+
+            function openSidebar() {
+                if (!sidebar) return;
+                sidebar.classList.remove('-translate-x-full');
+                if (backdrop) {
+                    backdrop.classList.remove('hidden');
+                    backdrop.classList.add('active');
+                }
+            }
+
+            function closeSidebar() {
+                if (!sidebar) return;
+                sidebar.classList.add('-translate-x-full');
+                if (backdrop) {
+                    backdrop.classList.add('hidden');
+                    backdrop.classList.remove('active');
+                }
+                setupCanvasDimensions();
+                redrawCanvas();
+            }
+
+            if (btnToggle) btnToggle.addEventListener('click', openSidebar);
+            if (floatingBtnSettings) floatingBtnSettings.addEventListener('click', openSidebar);
+            if (btnClose) btnClose.addEventListener('click', closeSidebar);
+            if (btnCloseBottom) btnCloseBottom.addEventListener('click', closeSidebar);
+            if (backdrop) backdrop.addEventListener('click', closeSidebar);
+
+            // Floating mobile zoom & recenter buttons
+            const mobileZoomIn = document.getElementById('mobile-btn-zoom-in');
+            const mobileZoomOut = document.getElementById('mobile-btn-zoom-out');
+            const mobileRecenter = document.getElementById('mobile-btn-recenter');
+
+            if (mobileZoomIn) {
+                mobileZoomIn.addEventListener('click', () => {
+                    const newScale = Math.min(4.0, (CartoStudio.elements.map.scale || 1.0) + 0.15);
+                    CartoStudio.elements.map.scale = Math.round(newScale * 100) / 100;
+                    const slider = document.getElementById('slider-map-zoom');
+                    if (slider) slider.value = CartoStudio.elements.map.scale;
+                    const badge = document.getElementById('badge-map-zoom');
+                    if (badge) badge.textContent = `${CartoStudio.elements.map.scale.toFixed(1)}x`;
+                    redrawCanvas();
+                });
+            }
+            if (mobileZoomOut) {
+                mobileZoomOut.addEventListener('click', () => {
+                    const newScale = Math.max(0.3, (CartoStudio.elements.map.scale || 1.0) - 0.15);
+                    CartoStudio.elements.map.scale = Math.round(newScale * 100) / 100;
+                    const slider = document.getElementById('slider-map-zoom');
+                    if (slider) slider.value = CartoStudio.elements.map.scale;
+                    const badge = document.getElementById('badge-map-zoom');
+                    if (badge) badge.textContent = `${CartoStudio.elements.map.scale.toFixed(1)}x`;
+                    redrawCanvas();
+                });
+            }
+            if (mobileRecenter) {
+                mobileRecenter.addEventListener('click', () => {
+                    CartoStudio.elements.map.offsetX = 0.0;
+                    CartoStudio.elements.map.offsetY = 0.0;
+                    CartoStudio.elements.map.scale = 1.0;
+                    const slider = document.getElementById('slider-map-zoom');
+                    if (slider) slider.value = 1.0;
+                    const badge = document.getElementById('badge-map-zoom');
+                    if (badge) badge.textContent = "1.0x";
+                    redrawCanvas();
+                });
+            }
+
+            window.addEventListener('resize', () => {
+                setupCanvasDimensions();
+                redrawCanvas();
+            });
+        }
+
+        // CIRCLE MODE LOGIC
+        function selectCircle(circleId) {
+            if (!circleId) {
+                state.selectedCircleId = null;
+                state.circleName = '';
+                state.circleData = null;
+                state.circleDivisionId = '__all__';
+                document.getElementById('circle-stats-box').classList.add('hidden');
+                document.getElementById('badge-circle-status').textContent = 'Select';
+                document.getElementById('badge-circle-status').className = 'text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400';
+                disableLayerToggles();
+                updateDownloadButtonsState();
+                redrawCanvas();
+                return;
+            }
+
+            const cInfo = state.circlesIndex.find(c => c.id === circleId);
+            if (!cInfo) return;
+
+            state.selectedCircleId = circleId;
+            state.circleName = cInfo.name;
+            state.orientation = cInfo.orientation;
+            updateOrientationButtons();
+
+            // Load all divisions of this circle by default
+            const circleDivObjects = [];
+            cInfo.divisionIds.forEach(dId => {
+                if (window.DIVISIONS_DATA && window.DIVISIONS_DATA[dId]) {
+                    circleDivObjects.push(window.DIVISIONS_DATA[dId]);
+                }
+            });
+
+            state.circleData = {
+                name: cInfo.name,
+                bounds: cInfo.bounds,
+                orientation: cInfo.orientation,
+                counts: cInfo.counts,
+                divisions: circleDivObjects
+            };
+            state.circleDivisionId = '__all__';
+
+            state.rangeColors = {};
+            let globalRIdx = 0;
+            circleDivObjects.forEach(d => {
+                if (d.ranges && d.ranges.features) {
+                    d.ranges.features.forEach(f => {
+                        state.rangeColors[f.properties.name] = CartoStudio.getRangeColor(f.properties.name, globalRIdx++);
+                    });
+                }
+            });
+
+            document.getElementById('circle-stats-box').classList.remove('hidden');
+            document.getElementById('badge-circle-status').textContent = 'Loaded';
+            document.getElementById('badge-circle-status').className = 'text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold';
+
+            document.getElementById('stat-circle-divs').textContent = cInfo.counts.divisions;
+            document.getElementById('stat-circle-ranges').textContent = cInfo.counts.ranges;
+            document.getElementById('stat-circle-beats').textContent = cInfo.counts.beats;
+            document.getElementById('stat-circle-rf').textContent = cInfo.counts.rf;
+            document.getElementById('stat-circle-rl').textContent = cInfo.counts.rl;
+
+            enableLayerToggles();
+            updateDownloadButtonsState();
+            setupCanvasDimensions();
+            redrawCanvas();
+        }
+
+        // DIVISION MODE LOGIC
+        function selectDivision(divId) {
+            if (!divId) {
+                resetDivisionState();
+                return;
+            }
+
+            const divInfo = state.divisionsIndex.find(d => d.id === divId);
+            if (!divInfo) return;
+
+            state.selectedDivisionId = divId;
+            state.divisionName = divInfo.name;
+            state.orientation = divInfo.orientation;
+
+            CartoStudio.elements.map.offsetX = 0.0;
+            CartoStudio.elements.map.offsetY = 0.0;
+            CartoStudio.elements.map.scale = 1.0;
+            document.getElementById('slider-map-zoom').value = 1.0;
+            document.getElementById('badge-map-zoom').textContent = "1.0x";
+
+            updateOrientationButtons();
+
+            if (window.DIVISIONS_DATA && window.DIVISIONS_DATA[divId]) {
+                state.divisionData = window.DIVISIONS_DATA[divId];
+            }
+
+            state.rangeColors = {};
+            if (state.divisionData && state.divisionData.ranges && state.divisionData.ranges.features) {
+                state.divisionData.ranges.features.forEach((feat, idx) => {
+                    state.rangeColors[feat.properties.name] = CartoStudio.getRangeColor(feat.properties.name, idx);
+                });
+            }
+            state.beatColors = {};
+            if (state.divisionData && state.divisionData.beats && state.divisionData.beats.features) {
+                state.divisionData.beats.features.forEach((feat, idx) => {
+                    state.beatColors[feat.properties.name] = CartoStudio.getBeatColor(feat.properties.name, idx);
+                });
+            }
+
+            document.getElementById('badge-division-status').textContent = 'Loaded';
+            document.getElementById('badge-division-status').className = 'text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold';
+            document.getElementById('div-stats-box').classList.remove('hidden');
+            document.getElementById('stat-orientation').textContent = state.orientation;
+            document.getElementById('stat-ranges').textContent = state.divisionData.counts.ranges;
+            document.getElementById('stat-beats').textContent = state.divisionData.counts.beats;
+            document.getElementById('stat-rf').textContent = state.divisionData.counts.rf;
+            document.getElementById('stat-rl').textContent = state.divisionData.counts.rl;
+
+            enableLayerToggles();
+            updateDownloadButtonsState();
+            setupCanvasDimensions();
+            redrawCanvas();
+        }
+
+        function resetDivisionState() {
+            state.selectedDivisionId = null;
+            state.divisionName = '';
+            state.divisionData = null;
+            disableLayerToggles();
+
+            document.getElementById('badge-division-status').textContent = 'Select';
+            document.getElementById('badge-division-status').className = 'text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400';
+            document.getElementById('div-stats-box').classList.add('hidden');
+
+            updateDownloadButtonsState();
+            redrawCanvas();
+        }
+
+        // RANGE MODE LOGIC (Cascaded: Circle -> Division -> Range)
+        function onRangeCircleChange(circleId) {
+            state.rangeCircleId = circleId;
+            state.rangeDivisionId = null;
+            state.selectedRangeName = null;
+            state.rangeFeature = null;
+            state.rangeBounds = null;
+
+            const divSelect = document.getElementById('select-range-division');
+            const rangeSelect = document.getElementById('select-range-item');
+
+            rangeSelect.innerHTML = '<option value="">-- Choose Range to Map --</option>';
+            rangeSelect.disabled = true;
+
+            if (!circleId) {
+                divSelect.innerHTML = '<option value="">-- Choose Division First --</option>';
+                divSelect.disabled = true;
+                document.getElementById('range-stats-box').classList.add('hidden');
+                disableLayerToggles();
+                updateDownloadButtonsState();
+                redrawCanvas();
+                return;
+            }
+
+            const cInfo = state.circlesIndex.find(c => c.id === circleId);
+            divSelect.innerHTML = '<option value="">-- Choose Division of ' + cInfo.name + ' --</option>';
+            cInfo.divisionIds.forEach(dId => {
+                const dItem = state.divisionsIndex.find(d => d.id === dId);
+                const opt = document.createElement('option');
+                opt.value = dId;
+                opt.textContent = dItem ? dItem.name : dId.toUpperCase();
+                divSelect.appendChild(opt);
+            });
+            divSelect.disabled = false;
+        }
+
+        function onRangeDivisionChange(divId) {
+            state.rangeDivisionId = divId;
+            state.selectedRangeName = null;
+            state.rangeFeature = null;
+            state.rangeBounds = null;
+
+            const rangeSelect = document.getElementById('select-range-item');
+
+            if (!divId) {
+                rangeSelect.innerHTML = '<option value="">-- Choose Range to Map --</option>';
+                rangeSelect.disabled = true;
+                document.getElementById('range-stats-box').classList.add('hidden');
+                disableLayerToggles();
+                updateDownloadButtonsState();
+                redrawCanvas();
+                return;
+            }
+
+            if (window.DIVISIONS_DATA && window.DIVISIONS_DATA[divId]) {
+                state.divisionData = window.DIVISIONS_DATA[divId];
+            }
+
+            rangeSelect.innerHTML = '<option value="">-- Choose Range to Map --</option>';
+            if (state.divisionData && state.divisionData.ranges && state.divisionData.ranges.features) {
+                state.divisionData.ranges.features.forEach(feat => {
+                    const opt = document.createElement('option');
+                    opt.value = feat.properties.name;
+                    opt.textContent = `${feat.properties.name} Range`;
+                    rangeSelect.appendChild(opt);
+                });
+            }
+            rangeSelect.disabled = false;
+        }
+
+        function onRangeSelectChange(rangeName) {
+            if (!rangeName) {
+                state.selectedRangeName = null;
+                state.rangeFeature = null;
+                state.rangeBounds = null;
+                document.getElementById('range-stats-box').classList.add('hidden');
+                document.getElementById('badge-range-status').textContent = 'Filter';
+                document.getElementById('badge-range-status').className = 'text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400';
+                disableLayerToggles();
+                updateDownloadButtonsState();
+                redrawCanvas();
+                return;
+            }
+
+            state.selectedRangeName = rangeName;
+            if (state.divisionData && state.divisionData.ranges && state.divisionData.ranges.features) {
+                state.rangeFeature = state.divisionData.ranges.features.find(f => f.properties && f.properties.name === rangeName);
+            }
+
+            if (state.rangeFeature) {
+                state.rangeBounds = CartoStudio.getGeoJSONBounds(state.rangeFeature.geometry);
+                const dx = state.rangeBounds[2] - state.rangeBounds[0];
+                const dy = state.rangeBounds[3] - state.rangeBounds[1];
+                state.orientation = (dx >= dy) ? 'landscape' : 'portrait';
+                updateOrientationButtons();
+            }
+
+            CartoStudio.elements.map.offsetX = 0.0;
+            CartoStudio.elements.map.offsetY = 0.0;
+            CartoStudio.elements.map.scale = 1.0;
+            document.getElementById('slider-map-zoom').value = 1.0;
+            document.getElementById('badge-map-zoom').textContent = "1.0x";
+
+            let bCount = 0, rfCount = 0, rlCount = 0;
+            state.beatColors = {};
+            if (state.divisionData) {
+                if (state.divisionData.beats) {
+                    const rBeats = state.divisionData.beats.features.filter(b => b.properties && b.properties.range === rangeName);
+                    bCount = rBeats.length;
+                    rBeats.forEach((bFeat, idx) => {
+                        state.beatColors[bFeat.properties.name] = CartoStudio.getBeatColor(bFeat.properties.name, idx);
+                    });
+                }
+                if (state.divisionData.rf) rfCount = state.divisionData.rf.features.filter(rf => rf.properties && rf.properties.range === rangeName).length;
+                if (state.divisionData.rl) rlCount = state.divisionData.rl.features.filter(rl => rl.properties && rl.properties.range === rangeName).length;
+            }
+
+            document.getElementById('stat-range-name').textContent = `${rangeName} RANGE`;
+            document.getElementById('stat-range-beats').textContent = bCount;
+            document.getElementById('stat-range-rf').textContent = rfCount;
+            document.getElementById('stat-range-rl').textContent = rlCount;
+            document.getElementById('range-stats-box').classList.remove('hidden');
+
+            document.getElementById('badge-range-status').textContent = 'Loaded';
+            document.getElementById('badge-range-status').className = 'text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold';
+
+            enableLayerToggles();
+            updateDownloadButtonsState();
+            setupCanvasDimensions();
+            redrawCanvas();
+        }
+
+        function enableLayerToggles() {
+            document.getElementById('toggle-range').disabled = false;
+            document.getElementById('toggle-beat').disabled = false;
+            document.getElementById('toggle-rf').disabled = false;
+            document.getElementById('toggle-rl').disabled = false;
+            const rfNames = document.getElementById('toggle-rf-names');
+            if (rfNames) rfNames.disabled = !state.showRF;
+            const rlNames = document.getElementById('toggle-rl-names');
+            if (rlNames) rlNames.disabled = !state.showRL;
+        }
+
+        function disableLayerToggles() {
+            state.showRange = false;
+            state.showBeat = false;
+            state.showRF = false;
+            state.showRL = false;
+            state.showRFNames = false;
+            state.showRLNames = false;
+
+            document.getElementById('toggle-range').checked = false;
+            document.getElementById('toggle-beat').checked = false;
+            document.getElementById('toggle-rf').checked = false;
+            document.getElementById('toggle-rl').checked = false;
+
+            const rfNames = document.getElementById('toggle-rf-names');
+            if (rfNames) {
+                rfNames.checked = false;
+                rfNames.disabled = true;
+            }
+            const rlNames = document.getElementById('toggle-rl-names');
+            if (rlNames) {
+                rlNames.checked = false;
+                rlNames.disabled = true;
+            }
+
+            document.getElementById('toggle-range').disabled = true;
+            document.getElementById('toggle-beat').disabled = true;
+            document.getElementById('toggle-rf').disabled = true;
+            document.getElementById('toggle-rl').disabled = true;
+        }
+
+        function updateDownloadButtonsState() {
+            let canDownload = false;
+            if (state.mapMode === 'circle' && (state.circleData || state.divisionData)) canDownload = true;
+            else if (state.mapMode === 'division' && state.divisionData) canDownload = true;
+            else if (state.mapMode === 'range' && state.rangeFeature) canDownload = true;
+
+            document.getElementById('btn-download-pdf').disabled = !canDownload;
+            document.getElementById('btn-download-png').disabled = !canDownload;
+        }
+
+        function updateOrientationButtons() {
+            const btnLand = document.getElementById('btn-orient-land');
+            const btnPort = document.getElementById('btn-orient-port');
+            if (state.orientation === 'portrait') {
+                btnPort.className = 'px-2.5 py-1 rounded bg-emerald-600 text-white transition';
+                btnLand.className = 'px-2.5 py-1 rounded text-slate-400 hover:text-white transition';
+            } else {
+                btnLand.className = 'px-2.5 py-1 rounded bg-emerald-600 text-white transition';
+                btnPort.className = 'px-2.5 py-1 rounded text-slate-400 hover:text-white transition';
+            }
+        }
+
+        function redrawCanvas() {
+            CartoStudio.renderToCanvas(canvas, state, false);
+        }
+
+        function setupDragAndDrop() {
+            let isDragging = false;
+            let currentItemKey = null;
+            let startClientX = 0, startClientY = 0;
+            let startNormX = 0, startNormY = 0;
+            let startMapOffX = 0, startMapOffY = 0;
+
+            function getCanvasCoordinates(e) {
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                return {
+                    x: (e.clientX - rect.left) * scaleX,
+                    y: (e.clientY - rect.top) * scaleY
+                };
+            }
+
+            function hitTest(px, py) {
+                const items = ['legend', 'northArrow', 'scaleBar', 'seal', 'title'];
+                for (const key of items) {
+                    const el = CartoStudio.elements[key];
+                    if (el && el._bbox) {
+                        const b = el._bbox;
+                        if (px >= b.x && px <= b.x + b.w && py >= b.y && py <= b.y + b.h) {
+                            return key;
+                        }
+                    }
+                }
+                const mapEl = CartoStudio.elements.map;
+                if (mapEl && mapEl._bbox) {
+                    const b = mapEl._bbox;
+                    if (px >= b.x && px <= b.x + b.w && py >= b.y && py <= b.y + b.h) {
+                        return 'map';
+                    }
+                }
+                return null;
+            }
+
+            canvas.addEventListener('mousedown', (e) => {
+                const { x, y } = getCanvasCoordinates(e);
+                const hit = hitTest(x, y);
+                if (hit) {
+                    isDragging = true;
+                    currentItemKey = hit;
+                    CartoStudio.dragState.activeItem = hit;
+                    startClientX = e.clientX;
+                    startClientY = e.clientY;
+                    highlightItemSlider(hit);
+
+                    if (hit === 'map') {
+                        startMapOffX = CartoStudio.elements.map.offsetX || 0;
+                        startMapOffY = CartoStudio.elements.map.offsetY || 0;
+                        canvas.style.cursor = 'grab';
+                    } else {
+                        startNormX = CartoStudio.elements[hit].x;
+                        startNormY = CartoStudio.elements[hit].y;
+                        canvas.style.cursor = 'move';
+                    }
+                    redrawCanvas();
+                }
+            });
+
+            canvas.addEventListener('click', (e) => {
+                const { x, y } = getCanvasCoordinates(e);
+                const hit = hitTest(x, y);
+                if (hit) {
+                    CartoStudio.dragState.activeItem = hit;
+                    highlightItemSlider(hit);
+                    redrawCanvas();
+                }
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!isDragging || !currentItemKey) {
+                    const rect = canvas.getBoundingClientRect();
+                    if (e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) {
+                        const { x, y } = getCanvasCoordinates(e);
+                        const hit = hitTest(x, y);
+                        canvas.style.cursor = hit === 'map' ? 'grab' : (hit ? 'move' : 'default');
+                        if (CartoStudio.dragState.activeItem !== hit) {
+                            CartoStudio.dragState.activeItem = hit;
+                            redrawCanvas();
+                        }
+                    }
+                    return;
+                }
+
+                const rect = canvas.getBoundingClientRect();
+                const deltaNormX = (e.clientX - startClientX) / rect.width;
+                const deltaNormY = (e.clientY - startClientY) / rect.height;
+
+                if (currentItemKey === 'map') {
+                    canvas.style.cursor = 'grabbing';
+                    CartoStudio.elements.map.offsetX = startMapOffX + deltaNormX;
+                    CartoStudio.elements.map.offsetY = startMapOffY - deltaNormY;
+                } else {
+                    canvas.style.cursor = 'move';
+                    const el = CartoStudio.elements[currentItemKey];
+                    el.x = Math.max(0.02, Math.min(0.96, startNormX + deltaNormX));
+                    el.y = Math.max(0.02, Math.min(0.98, startNormY + deltaNormY));
+                }
+
+                redrawCanvas();
+            });
+
+            window.addEventListener('mouseup', () => {
+                if (isDragging) {
+                    isDragging = false;
+                    currentItemKey = null;
+                    canvas.style.cursor = 'default';
+                    redrawCanvas();
+                }
+            });
+
+            canvas.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const zoomDelta = e.deltaY < 0 ? 0.05 : -0.05;
+                const newScale = Math.max(0.3, Math.min(4.0, (CartoStudio.elements.map.scale || 1.0) + zoomDelta));
+                CartoStudio.elements.map.scale = Math.round(newScale * 100) / 100;
+                document.getElementById('slider-map-zoom').value = CartoStudio.elements.map.scale;
+                document.getElementById('badge-map-zoom').textContent = `${CartoStudio.elements.map.scale.toFixed(1)}x`;
+                redrawCanvas();
+            }, { passive: false });
+
+            // Mobile Touch Events (Single-touch drag/pan + Multi-touch pinch-zoom)
+            let touchPinchDist = null;
+            let touchPinchScale = 1.0;
+
+            function getTouchCanvasCoordinates(touch) {
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                return {
+                    x: (touch.clientX - rect.left) * scaleX,
+                    y: (touch.clientY - rect.top) * scaleY
+                };
+            }
+
+            canvas.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 1) {
+                    const touch = e.touches[0];
+                    const { x, y } = getTouchCanvasCoordinates(touch);
+                    const hit = hitTest(x, y);
+                    if (hit) {
+                        isDragging = true;
+                        currentItemKey = hit;
+                        CartoStudio.dragState.activeItem = hit;
+                        startClientX = touch.clientX;
+                        startClientY = touch.clientY;
+                        highlightItemSlider(hit);
+
+                        if (hit === 'map') {
+                            startMapOffX = CartoStudio.elements.map.offsetX || 0;
+                            startMapOffY = CartoStudio.elements.map.offsetY || 0;
+                        } else {
+                            startNormX = CartoStudio.elements[hit].x;
+                            startNormY = CartoStudio.elements[hit].y;
+                        }
+                        redrawCanvas();
+                        e.preventDefault();
+                    }
+                } else if (e.touches.length === 2) {
+                    isDragging = false;
+                    currentItemKey = null;
+                    const p1 = e.touches[0], p2 = e.touches[1];
+                    touchPinchDist = Math.hypot(p1.clientX - p2.clientX, p1.clientY - p2.clientY);
+                    touchPinchScale = CartoStudio.elements.map.scale || 1.0;
+                    e.preventDefault();
+                }
+            }, { passive: false });
+
+            window.addEventListener('touchmove', (e) => {
+                if (e.touches.length === 2 && touchPinchDist) {
+                    const p1 = e.touches[0], p2 = e.touches[1];
+                    const curDist = Math.hypot(p1.clientX - p2.clientX, p1.clientY - p2.clientY);
+                    const scaleFactor = curDist / touchPinchDist;
+                    const newScale = Math.max(0.3, Math.min(4.0, touchPinchScale * scaleFactor));
+                    CartoStudio.elements.map.scale = Math.round(newScale * 100) / 100;
+                    const slider = document.getElementById('slider-map-zoom');
+                    if (slider) slider.value = CartoStudio.elements.map.scale;
+                    const badge = document.getElementById('badge-map-zoom');
+                    if (badge) badge.textContent = `${CartoStudio.elements.map.scale.toFixed(1)}x`;
+                    redrawCanvas();
+                    e.preventDefault();
+                    return;
+                }
+
+                if (!isDragging || !currentItemKey || e.touches.length !== 1) return;
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                const deltaNormX = (touch.clientX - startClientX) / rect.width;
+                const deltaNormY = (touch.clientY - startClientY) / rect.height;
+
+                if (currentItemKey === 'map') {
+                    CartoStudio.elements.map.offsetX = startMapOffX + deltaNormX;
+                    CartoStudio.elements.map.offsetY = startMapOffY - deltaNormY;
+                } else {
+                    const el = CartoStudio.elements[currentItemKey];
+                    el.x = Math.max(0.02, Math.min(0.96, startNormX + deltaNormX));
+                    el.y = Math.max(0.02, Math.min(0.98, startNormY + deltaNormY));
+                }
+
+                redrawCanvas();
+                e.preventDefault();
+            }, { passive: false });
+
+            window.addEventListener('touchend', (e) => {
+                if (isDragging) {
+                    isDragging = false;
+                    currentItemKey = null;
+                    redrawCanvas();
+                }
+                if (e.touches.length < 2) {
+                    touchPinchDist = null;
+                }
+            });
+
+            window.addEventListener('touchcancel', () => {
+                isDragging = false;
+                currentItemKey = null;
+                touchPinchDist = null;
+                redrawCanvas();
+            });
+        }
+
+        function highlightItemSlider(itemKey) {
+            document.querySelectorAll('.slider-ctrl-row').forEach(row => {
+                row.classList.remove('bg-emerald-950/80', 'border-emerald-500/80', 'ring-2', 'ring-emerald-400', 'shadow-md', 'shadow-emerald-900/40');
+                const tag = row.querySelector('.active-tag');
+                if (tag) tag.remove();
+            });
+
+            if (!itemKey) return;
+
+            let rowIds = [];
+            if (itemKey === 'title') {
+                rowIds = ['ctrl-row-title-dept', 'ctrl-row-title-sub'];
+            } else if (itemKey === 'legend') {
+                rowIds = ['ctrl-row-legend'];
+            } else if (itemKey === 'northArrow') {
+                rowIds = ['ctrl-row-na'];
+            } else if (itemKey === 'scaleBar') {
+                rowIds = ['ctrl-row-scale'];
+            } else if (itemKey === 'seal') {
+                rowIds = ['ctrl-row-seal'];
+            } else if (itemKey === 'map') {
+                rowIds = ['ctrl-row-map'];
+            }
+
+            rowIds.forEach((id, index) => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.classList.add('bg-emerald-950/80', 'border-emerald-500/80', 'ring-2', 'ring-emerald-400', 'shadow-md', 'shadow-emerald-900/40');
+                    const labelSpan = el.querySelector('span:first-child');
+                    if (labelSpan && !el.querySelector('.active-tag')) {
+                        const tag = document.createElement('span');
+                        tag.className = 'active-tag text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/30 text-emerald-300 font-bold ml-1.5 inline-flex items-center gap-1 border border-emerald-500/40';
+                        tag.innerHTML = '<i class="fa-solid fa-crosshairs text-[8px]"></i> Selected';
+                        labelSpan.appendChild(tag);
+                    }
+                    if (index === 0) {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }
+                }
+            });
+        }
+
+        function setupEventListeners() {
+            // Slider Row Click Selection (Bidirectional Highlight)
+            const rowMap = {
+                'ctrl-row-map': 'map',
+                'ctrl-row-title-dept': 'title',
+                'ctrl-row-title-sub': 'title',
+                'ctrl-row-legend': 'legend',
+                'ctrl-row-na': 'northArrow',
+                'ctrl-row-scale': 'scaleBar',
+                'ctrl-row-seal': 'seal'
+            };
+            Object.keys(rowMap).forEach(id => {
+                const row = document.getElementById(id);
+                if (row) {
+                    row.addEventListener('click', (e) => {
+                        if (e.target.tagName === 'INPUT') return;
+                        const key = rowMap[id];
+                        CartoStudio.dragState.activeItem = key;
+                        highlightItemSlider(key);
+                        redrawCanvas();
+                    });
+                }
+            });
+
+            // Circle Mode Selectors
+            document.getElementById('select-circle').addEventListener('change', (e) => {
+                selectCircle(e.target.value);
+            });
+
+            // Division Mode Selector
+            document.getElementById('select-division').addEventListener('change', (e) => {
+                selectDivision(e.target.value);
+            });
+
+            // Range Mode Cascaded Selectors
+            document.getElementById('select-range-circle').addEventListener('change', (e) => {
+                onRangeCircleChange(e.target.value);
+            });
+            document.getElementById('select-range-division').addEventListener('change', (e) => {
+                onRangeDivisionChange(e.target.value);
+            });
+            document.getElementById('select-range-item').addEventListener('change', (e) => {
+                onRangeSelectChange(e.target.value);
+            });
+
+            // Orientation Toggles
+            document.getElementById('btn-orient-land').addEventListener('click', () => {
+                state.orientation = 'landscape';
+                updateOrientationButtons();
+                setupCanvasDimensions();
+                redrawCanvas();
+            });
+
+            document.getElementById('btn-orient-port').addEventListener('click', () => {
+                state.orientation = 'portrait';
+                updateOrientationButtons();
+                setupCanvasDimensions();
+                redrawCanvas();
+            });
+
+            // Layer Toggles
+            document.getElementById('toggle-range').addEventListener('change', (e) => {
+                state.showRange = e.target.checked;
+                redrawCanvas();
+            });
+
+            document.getElementById('toggle-beat').addEventListener('change', (e) => {
+                state.showBeat = e.target.checked;
+                redrawCanvas();
+            });
+
+            const toggleRF = document.getElementById('toggle-rf');
+            const toggleRFNames = document.getElementById('toggle-rf-names');
+            toggleRF.addEventListener('change', (e) => {
+                state.showRF = e.target.checked;
+                if (toggleRFNames) {
+                    toggleRFNames.disabled = !state.showRF;
+                    if (!state.showRF) {
+                        state.showRFNames = false;
+                        toggleRFNames.checked = false;
+                    }
+                }
+                redrawCanvas();
+            });
+
+            if (toggleRFNames) {
+                toggleRFNames.addEventListener('change', (e) => {
+                    state.showRFNames = e.target.checked;
+                    redrawCanvas();
+                });
+            }
+
+            const toggleRL = document.getElementById('toggle-rl');
+            const toggleRLNames = document.getElementById('toggle-rl-names');
+            toggleRL.addEventListener('change', (e) => {
+                state.showRL = e.target.checked;
+                if (toggleRLNames) {
+                    toggleRLNames.disabled = !state.showRL;
+                    if (!state.showRL) {
+                        state.showRLNames = false;
+                        toggleRLNames.checked = false;
+                    }
+                }
+                redrawCanvas();
+            });
+
+            if (toggleRLNames) {
+                toggleRLNames.addEventListener('change', (e) => {
+                    state.showRLNames = e.target.checked;
+                    redrawCanvas();
+                });
+            }
+
+            // Circle Map Legend Toggles
+            const toggleCircleDivs = document.getElementById('toggle-circle-legend-divs');
+            if (toggleCircleDivs) {
+                toggleCircleDivs.addEventListener('change', (e) => {
+                    state.legendShowDivNames = e.target.checked;
+                    redrawCanvas();
+                });
+            }
+
+            const toggleCircleRanges = document.getElementById('toggle-circle-legend-ranges');
+            if (toggleCircleRanges) {
+                toggleCircleRanges.addEventListener('change', (e) => {
+                    state.legendShowRangeNames = e.target.checked;
+                    redrawCanvas();
+                });
+            }
+
+            // Division Map Legend & Color Toggles
+            const toggleDivRanges = document.getElementById('toggle-div-legend-ranges');
+            if (toggleDivRanges) {
+                toggleDivRanges.addEventListener('change', (e) => {
+                    state.legendShowRangeNames = e.target.checked;
+                    redrawCanvas();
+                });
+            }
+
+            const toggleDivDistinctRanges = document.getElementById('toggle-div-distinct-ranges');
+            if (toggleDivDistinctRanges) {
+                toggleDivDistinctRanges.addEventListener('change', (e) => {
+                    state.distinctRangeColors = e.target.checked;
+                    redrawCanvas();
+                });
+            }
+
+            const toggleDivBeats = document.getElementById('toggle-div-legend-beats');
+            if (toggleDivBeats) {
+                toggleDivBeats.addEventListener('change', (e) => {
+                    state.legendShowBeatNames = e.target.checked;
+                    redrawCanvas();
+                });
+            }
+
+            const toggleDivDistinctBeats = document.getElementById('toggle-div-distinct-beats');
+            if (toggleDivDistinctBeats) {
+                toggleDivDistinctBeats.addEventListener('change', (e) => {
+                    state.distinctBeatColors = e.target.checked;
+                    redrawCanvas();
+                });
+            }
+
+            // Range Map Legend & Color Toggles
+            const toggleRangeDistinctBeats = document.getElementById('toggle-range-distinct-beats');
+            if (toggleRangeDistinctBeats) {
+                toggleRangeDistinctBeats.addEventListener('change', (e) => {
+                    state.distinctBeatColors = e.target.checked;
+                    redrawCanvas();
+                });
+            }
+
+            const toggleRangeBeats = document.getElementById('toggle-range-legend-beats');
+            if (toggleRangeBeats) {
+                toggleRangeBeats.addEventListener('change', (e) => {
+                    state.legendShowBeatNames = e.target.checked;
+                    redrawCanvas();
+                });
+            }
+
+            // General Legend Item Toggles
+            const toggleLegendBoundary = document.getElementById('toggle-legend-boundary');
+            if (toggleLegendBoundary) {
+                toggleLegendBoundary.addEventListener('change', (e) => {
+                    state.legendShowBoundary = e.target.checked;
+                    redrawCanvas();
+                });
+            }
+
+            const toggleLegendRF = document.getElementById('toggle-legend-rf');
+            if (toggleLegendRF) {
+                toggleLegendRF.addEventListener('change', (e) => {
+                    state.legendShowRF = e.target.checked;
+                    redrawCanvas();
+                });
+            }
+
+            function syncRFNamesInLegend(val) {
+                state.legendShowRFNames = val;
+                if (val && !state.showRF) {
+                    state.showRF = true;
+                    const rfToggle = document.getElementById('toggle-rf');
+                    if (rfToggle) rfToggle.checked = true;
+                }
+                ['toggle-circle-legend-rf-names', 'toggle-div-legend-rf-names', 'toggle-range-legend-rf-names', 'toggle-legend-rf-names'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.checked = val;
+                });
+                redrawCanvas();
+            }
+
+            ['toggle-circle-legend-rf-names', 'toggle-div-legend-rf-names', 'toggle-range-legend-rf-names', 'toggle-legend-rf-names'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.addEventListener('change', (e) => syncRFNamesInLegend(e.target.checked));
+                }
+            });
+
+            const toggleLegendRL = document.getElementById('toggle-legend-rl');
+            if (toggleLegendRL) {
+                toggleLegendRL.addEventListener('change', (e) => {
+                    state.legendShowRL = e.target.checked;
+                    redrawCanvas();
+                });
+            }
+
+            function syncRLNamesInLegend(val) {
+                state.legendShowRLNames = val;
+                if (val && !state.showRL) {
+                    state.showRL = true;
+                    const rlToggle = document.getElementById('toggle-rl');
+                    if (rlToggle) rlToggle.checked = true;
+                }
+                ['toggle-circle-legend-rl-names', 'toggle-div-legend-rl-names', 'toggle-range-legend-rl-names', 'toggle-legend-rl-names'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.checked = val;
+                });
+                redrawCanvas();
+            }
+
+            ['toggle-circle-legend-rl-names', 'toggle-div-legend-rl-names', 'toggle-range-legend-rl-names', 'toggle-legend-rl-names'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.addEventListener('change', (e) => syncRLNamesInLegend(e.target.checked));
+                }
+            });
+
+            // Extended Sliders with multiplier badge updates
+            const mapZoomSlider = document.getElementById('slider-map-zoom');
+            mapZoomSlider.addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                CartoStudio.elements.map.scale = val;
+                document.getElementById('badge-map-zoom').textContent = `${val.toFixed(1)}x`;
+                redrawCanvas();
+            });
+
+            // Line 1: Dept Header Size (Brown)
+            const titleDeptSizeSlider = document.getElementById('slider-title-dept-size');
+            titleDeptSizeSlider.addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                CartoStudio.elements.title.scaleDept = 1.35 * val;
+                document.getElementById('badge-title-dept-size').textContent = `${val.toFixed(1)}x`;
+                redrawCanvas();
+            });
+
+            // Line 2: Map Subtitle Size (Centered)
+            const titleSubSizeSlider = document.getElementById('slider-title-sub-size');
+            titleSubSizeSlider.addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                CartoStudio.elements.title.scaleSub = 0.95 * val;
+                document.getElementById('badge-title-sub-size').textContent = `${val.toFixed(1)}x`;
+                redrawCanvas();
+            });
+
+            const legendSizeSlider = document.getElementById('slider-legend-size');
+            legendSizeSlider.addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                CartoStudio.elements.legend.scale = 1.22 * val;
+                document.getElementById('badge-legend-size').textContent = `${val.toFixed(1)}x`;
+                redrawCanvas();
+            });
+
+            const naSizeSlider = document.getElementById('slider-na-size');
+            naSizeSlider.addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                CartoStudio.elements.northArrow.scale = 1.15 * val;
+                document.getElementById('badge-na-size').textContent = `${val.toFixed(1)}x`;
+                redrawCanvas();
+            });
+
+            const scaleSizeSlider = document.getElementById('slider-scale-size');
+            scaleSizeSlider.addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                CartoStudio.elements.scaleBar.scale = 1.20 * val;
+                document.getElementById('badge-scale-size').textContent = `${val.toFixed(1)}x`;
+                redrawCanvas();
+            });
+
+            const sealSizeSlider = document.getElementById('slider-seal-size');
+            sealSizeSlider.addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                CartoStudio.elements.seal.scale = 1.25 * val;
+                document.getElementById('badge-seal-size').textContent = `${val.toFixed(1)}x`;
+                redrawCanvas();
+            });
+
+            // Center Map
+            document.getElementById('btn-reset-map').addEventListener('click', () => {
+                CartoStudio.elements.map.offsetX = 0.0;
+                CartoStudio.elements.map.offsetY = 0.0;
+                CartoStudio.elements.map.scale = 1.0;
+                mapZoomSlider.value = 1.0;
+                document.getElementById('badge-map-zoom').textContent = "1.0x";
+                redrawCanvas();
+            });
+
+            // Reset all positions to border-safe enlarged defaults
+            document.getElementById('btn-reset-positions').addEventListener('click', () => {
+                CartoStudio.elements.map = { offsetX: 0.0, offsetY: 0.0, scale: 1.0 };
+                CartoStudio.elements.title = { x: 0.5, y: 0.065, scaleDept: 1.35, scaleSub: 0.95, scale: 1.0, align: 'center' };
+                CartoStudio.elements.northArrow = { x: 0.93, y: 0.095, size: 85, scale: 1.15 };
+                CartoStudio.elements.seal = { x: 0.045, y: 0.945, scale: 1.25 };
+                CartoStudio.elements.scaleBar = { x: 0.44, y: 0.950, totalKm: 12, scale: 1.20 };
+                CartoStudio.elements.legend = { x: 0.60, y: 0.60, scale: 1.15 };
+
+                mapZoomSlider.value = 1.0;
+                titleDeptSizeSlider.value = 1.0;
+                titleSubSizeSlider.value = 1.0;
+                legendSizeSlider.value = 1.0;
+                naSizeSlider.value = 1.0;
+                scaleSizeSlider.value = 1.0;
+                sealSizeSlider.value = 1.0;
+
+                document.getElementById('badge-map-zoom').textContent = "1.0x";
+                document.getElementById('badge-title-dept-size').textContent = "1.0x";
+                document.getElementById('badge-title-sub-size').textContent = "1.0x";
+                document.getElementById('badge-legend-size').textContent = "1.0x";
+                document.getElementById('badge-na-size').textContent = "1.0x";
+                document.getElementById('badge-scale-size').textContent = "1.0x";
+                document.getElementById('badge-seal-size').textContent = "1.0x";
+
+                redrawCanvas();
+            });
+
+            // Downloads
+            document.getElementById('btn-download-pdf').addEventListener('click', () => {
+                CartoStudio.exportHighResPDF(state);
+            });
+
+            document.getElementById('btn-download-png').addEventListener('click', () => {
+                CartoStudio.exportHighResPNG(state);
+            });
+
+            window.addEventListener('resize', () => {
+                setupCanvasDimensions();
+                redrawCanvas();
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>

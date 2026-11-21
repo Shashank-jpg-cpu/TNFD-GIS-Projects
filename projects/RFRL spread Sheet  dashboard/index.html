@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RF & RL KML Verification Dashboard</title>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        forest: {
+                            50: '#ecfdf5',
+                            100: '#d1fae5',
+                            200: '#a7f3d0',
+                            300: '#6ee7b7',
+                            400: '#34d399',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                            800: '#065f46',
+                            900: '#064e3b',
+                            950: '#022c22',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- PapaParse (CSV) & SheetJS (XLSX) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="styles.css">
+  <script src="../tabSync.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-emerald-500 selection:text-white">
+
+    <!-- Top Navigation Bar -->
+    <header class="glass-panel border-b border-slate-800 sticky top-0 z-40 px-4 lg:px-8 py-3.5">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            
+            <!-- Logo & Title -->
+            <div class="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-forest-800 flex items-center justify-center shadow-lg shadow-emerald-900/40 border border-emerald-400/30">
+                        <i data-lucide="trees" class="w-6 h-6 text-white"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h1 class="text-base lg:text-lg font-bold text-white tracking-tight">RF & RL KML VERIFICATION DASHBOARD</h1>
+                        </div>
+                        <p class="text-xs text-slate-400 flex items-center gap-1.5">
+                            <span>Forest Boundary & KML Quality Management</span>
+                            <span class="text-slate-600">•</span>
+                            <span id="activeSheetBadge" class="px-2 py-0.2 rounded-full text-[10px] font-semibold bg-emerald-950 text-emerald-300 border border-emerald-700/60">🌲 Reserved Forest (RF Index)</span>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Mobile Live Pulse -->
+                <div class="md:hidden flex items-center gap-2">
+                    <span id="liveBeaconMobile" class="w-2.5 h-2.5 rounded-full bg-emerald-400 live-beacon"></span>
+                </div>
+            </div>
+
+            <!-- Live Continuous Sync Status Controller -->
+            <div class="flex items-center gap-3 w-full md:w-auto justify-end">
+                <div class="flex items-center gap-3 bg-slate-900/90 border border-slate-700/80 rounded-xl px-3.5 py-1.5 shadow-inner">
+                    <!-- Beacon & Status -->
+                    <div class="flex items-center gap-2">
+                        <span id="liveBeacon" class="w-2.5 h-2.5 rounded-full bg-emerald-400 live-beacon"></span>
+                        <div class="leading-none">
+                            <span id="liveStatusText" class="text-emerald-400 font-bold tracking-wider text-[10px] block">LIVE SYNC ACTIVE</span>
+                            <span id="lastSyncTime" class="text-[10px] text-slate-400 block mt-0.5">Connecting...</span>
+                        </div>
+                    </div>
+
+                    <div class="h-6 w-px bg-slate-700/60"></div>
+
+                    <!-- Countdown & Interval -->
+                    <div class="flex items-center gap-1.5 text-xs text-slate-300">
+                        <i data-lucide="clock" class="w-3.5 h-3.5 text-slate-400"></i>
+                        <span id="syncCountdown" class="font-mono text-emerald-400 text-xs font-semibold">1h 0m</span>
+                        <select id="syncIntervalSelect" class="bg-slate-800 text-[11px] rounded border border-slate-700 text-slate-300 px-1.5 py-0.5 focus:outline-none focus:border-emerald-500">
+                            <option value="3600" selected>1 Hour (Default)</option>
+                            <option value="1800">30 Min</option>
+                            <option value="900">15 Min</option>
+                            <option value="300">5 Min</option>
+                            <option value="60">1 Min</option>
+                            <option value="10">10s</option>
+                            <option value="0">Off (Manual)</option>
+                        </select>
+                    </div>
+
+                    <!-- Manual Sync Button -->
+                    <button id="manualSyncBtn" title="Sync now from Google Sheets" class="p-1.5 text-slate-300 hover:text-emerald-400 hover:bg-slate-800 rounded-lg transition">
+                        <i id="syncStatusIcon" data-lucide="refresh-cw" class="w-4 h-4"></i>
+                    </button>
+                    
+                    <!-- Pause/Play Toggle -->
+                    <button id="toggleSyncBtn" title="Pause or Resume Auto-Sync" class="p-1.5 text-slate-300 hover:text-amber-400 hover:bg-slate-800 rounded-lg transition">
+                        <i data-lucide="pause-circle" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="max-w-7xl mx-auto px-4 lg:px-8 py-6 flex-1 w-full space-y-6">
+
+        <!-- Top Controls: Sheet Link Bar & File Uploader -->
+        <div class="glass-card rounded-2xl p-4 border border-slate-800">
+            <div class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
+                
+                <!-- Google Sheet URL Input Group -->
+                <div class="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                    <div class="relative flex-1">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                            <i data-lucide="link-2" class="w-4 h-4"></i>
+                        </div>
+                        <input id="sheetUrlInput" type="text" 
+                            value="https://docs.google.com/spreadsheets/d/1r0rRxR5_5MG7Yt4p1x8Q1gusoA3DAbh4pyy6KWTxaEw/edit?gid=1204036234#gid=1204036234"
+                            placeholder="Enter Google Spreadsheet link..." 
+                            class="w-full pl-9 pr-4 py-2 bg-slate-900/90 border border-slate-700/80 rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition">
+                    </div>
+                    <button id="updateSheetUrlBtn" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 shadow-md shadow-emerald-900/30 transition">
+                        <i data-lucide="database" class="w-3.5 h-3.5"></i>
+                        <span>Fetch Sheet</span>
+                    </button>
+                    <a href="https://docs.google.com/spreadsheets/d/1r0rRxR5_5MG7Yt4p1x8Q1gusoA3DAbh4pyy6KWTxaEw/edit?gid=1204036234#gid=1204036234" target="_blank" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium flex items-center justify-center gap-1 border border-slate-700 transition" title="Open Google Sheet in new tab">
+                        <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                        <span>Open Sheet</span>
+                    </a>
+                </div>
+
+                <!-- Offline / File Upload Alternative -->
+                <div class="flex items-center gap-2 self-end lg:self-auto">
+                    <label class="cursor-pointer px-3.5 py-2 bg-slate-800/80 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium flex items-center gap-1.5 border border-slate-700 transition">
+                        <i data-lucide="upload" class="w-3.5 h-3.5 text-emerald-400"></i>
+                        <span>Upload Excel / CSV</span>
+                        <input id="fileUploadInput" type="file" accept=".xlsx,.xls,.csv" class="hidden">
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- One-Click Sheet Switcher Tabs -->
+        <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800/80 pb-3">
+            <div class="flex items-center gap-2 bg-slate-900/80 p-1 rounded-2xl border border-slate-800">
+                
+                <!-- RF Tab -->
+                <button data-sheet="RF" class="sheet-tab active flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition">
+                    <i data-lucide="tree-pine" class="w-4 h-4"></i>
+                    <span>RF Sheet (Reserved Forest)</span>
+                    <span id="rfCountBadge" class="ml-1.5 px-2 py-0.5 text-[11px] rounded-full bg-emerald-950 text-emerald-300 border border-emerald-700/60 font-mono">108</span>
+                </button>
+
+                <!-- RL Tab -->
+                <button data-sheet="RL" class="sheet-tab flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                    <i data-lucide="map" class="w-4 h-4"></i>
+                    <span>RL Sheet (Revenue Land)</span>
+                    <span id="rlCountBadge" class="ml-1.5 px-2 py-0.5 text-[11px] rounded-full bg-slate-800 text-slate-300 border border-slate-700 font-mono">40</span>
+                </button>
+
+                <!-- Combined Tab -->
+                <button data-sheet="COMBINED" class="sheet-tab flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                    <i data-lucide="layers" class="w-4 h-4"></i>
+                    <span>Combined (RF + RL)</span>
+                    <span id="combinedCountBadge" class="ml-1.5 px-2 py-0.5 text-[11px] rounded-full bg-slate-800 text-slate-300 border border-slate-700 font-mono">148</span>
+                </button>
+            </div>
+
+            <div class="text-xs text-slate-400 flex items-center gap-2">
+                <i data-lucide="info" class="w-4 h-4 text-emerald-400"></i>
+                <span>Click any KPI card below to filter the records instantly.</span>
+            </div>
+        </div>
+
+        <!-- Active Quick Filter Bar (Displays when a card is clicked) -->
+        <div id="activeFilterBar" class="hidden flex items-center justify-between px-4 py-2.5 rounded-xl bg-emerald-950/80 border border-emerald-600/60 text-emerald-200 text-xs shadow-lg">
+            <div class="flex items-center gap-2 font-medium">
+                <i data-lucide="filter" class="w-4 h-4 text-emerald-400"></i>
+                <span id="activeFilterText">Active Filter</span>
+            </div>
+            <button onclick="clearAllFilters()" class="px-2.5 py-1 bg-emerald-900 hover:bg-emerald-800 text-white rounded-lg text-xs font-semibold flex items-center gap-1 transition">
+                <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                <span>Clear Filter</span>
+            </button>
+        </div>
+
+        <!-- Clickable KPI Metric Filter Cards Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            
+            <!-- Card 1: Total Records & Total Area -->
+            <div data-filter="ALL" class="kpi-card glass-card rounded-2xl p-4 border border-slate-800 cursor-pointer group" style="--filter-color: #3b82f6; --filter-glow: rgba(59,130,246,0.3);">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Total Blocks / Records</span>
+                        <div class="flex items-baseline gap-2 mt-1">
+                            <span id="kpiTotalCount" class="text-3xl font-extrabold text-white">0</span>
+                            <span class="text-xs text-slate-400">records</span>
+                        </div>
+                    </div>
+                    <div class="w-10 h-10 rounded-xl bg-blue-950/80 text-blue-400 border border-blue-800/50 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <i data-lucide="folder-tree" class="w-5 h-5"></i>
+                    </div>
+                </div>
+                <div class="mt-3 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs">
+                    <span class="text-slate-400">Total Notified Area:</span>
+                    <span id="kpiTotalNotifiedArea" class="font-semibold text-white font-mono">0.00 Ha</span>
+                </div>
+            </div>
+
+            <!-- Card 2: KML Added to Database (Green) -->
+            <div data-filter="ADDED" class="kpi-card glass-card rounded-2xl p-4 border border-slate-800 cursor-pointer group" style="--filter-color: #10b981; --filter-glow: rgba(16,185,129,0.35);">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-xs font-semibold text-emerald-400 uppercase tracking-wider block">Added to Database</span>
+                            <span class="filter-badge hidden px-1.5 py-0.2 rounded text-[9px] bg-emerald-500 text-slate-950 font-bold">FILTERED</span>
+                        </div>
+                        <div class="flex items-baseline gap-2 mt-1">
+                            <span id="kpiAddedCount" class="text-3xl font-extrabold text-emerald-400">0</span>
+                            <span id="kpiAddedPct" class="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-950 text-emerald-300 border border-emerald-800/60 font-mono">0%</span>
+                        </div>
+                    </div>
+                    <div class="w-10 h-10 rounded-xl bg-emerald-950/80 text-emerald-400 border border-emerald-800/50 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <i data-lucide="check-circle-2" class="w-5 h-5"></i>
+                    </div>
+                </div>
+                <div class="mt-3 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs">
+                    <span class="text-slate-400">Approved Area:</span>
+                    <span id="kpiAddedArea" class="font-semibold text-emerald-300 font-mono">0.00 Ha</span>
+                </div>
+            </div>
+
+            <!-- Card 3: KML Rejected (Rose) -->
+            <div data-filter="REJECTED" class="kpi-card glass-card rounded-2xl p-4 border border-slate-800 cursor-pointer group" style="--filter-color: #f43f5e; --filter-glow: rgba(244,63,94,0.35);">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-xs font-semibold text-rose-400 uppercase tracking-wider block">KML Rejected</span>
+                            <span class="filter-badge hidden px-1.5 py-0.2 rounded text-[9px] bg-rose-500 text-white font-bold">FILTERED</span>
+                        </div>
+                        <div class="flex items-baseline gap-2 mt-1">
+                            <span id="kpiRejectedCount" class="text-3xl font-extrabold text-rose-400">0</span>
+                            <span id="kpiRejectedPct" class="px-2 py-0.5 rounded-full text-xs font-bold bg-rose-950 text-rose-300 border border-rose-800/60 font-mono">0%</span>
+                        </div>
+                    </div>
+                    <div class="w-10 h-10 rounded-xl bg-rose-950/80 text-rose-400 border border-rose-800/50 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <i data-lucide="x-circle" class="w-5 h-5"></i>
+                    </div>
+                </div>
+                <div class="mt-3 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs">
+                    <span class="text-slate-400">Affected Area:</span>
+                    <span id="kpiRejectedArea" class="font-semibold text-rose-300 font-mono">0.00 Ha</span>
+                </div>
+            </div>
+
+            <!-- Card 4: Action Required: Revised KML Required (Amber) -->
+            <div data-filter="ACTION_REQUIRED" class="kpi-card glass-card rounded-2xl p-4 border border-slate-800 cursor-pointer group" style="--filter-color: #f59e0b; --filter-glow: rgba(245,158,11,0.35);">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-xs font-semibold text-amber-400 uppercase tracking-wider block">Action Required</span>
+                            <span class="filter-badge hidden px-1.5 py-0.2 rounded text-[9px] bg-amber-500 text-slate-950 font-bold">FILTERED</span>
+                        </div>
+                        <div class="flex items-baseline gap-2 mt-1">
+                            <span id="kpiActionReqCount" class="text-3xl font-extrabold text-amber-400">0</span>
+                            <span class="text-xs text-amber-300/80">pending action</span>
+                        </div>
+                    </div>
+                    <div class="w-10 h-10 rounded-xl bg-amber-950/80 text-amber-400 border border-amber-800/50 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+                    </div>
+                </div>
+                <div class="mt-3 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-amber-300/90">
+                    <span>Revised KML / Signature</span>
+                    <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                </div>
+            </div>
+
+            <!-- Card 5: Huge Area Differences -->
+            <div data-filter="HUGE_DIFF" class="kpi-card glass-card rounded-2xl p-4 border border-slate-800 cursor-pointer group" style="--filter-color: #06b6d4; --filter-glow: rgba(6,182,212,0.35);">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-xs font-semibold text-cyan-400 uppercase tracking-wider block">Huge Area Difference</span>
+                            <span class="filter-badge hidden px-1.5 py-0.2 rounded text-[9px] bg-cyan-500 text-slate-950 font-bold">FILTERED</span>
+                        </div>
+                        <div class="flex items-baseline gap-2 mt-1">
+                            <span id="kpiHugeDiffCount" class="text-3xl font-extrabold text-cyan-400">0</span>
+                            <span class="text-xs text-slate-400">discrepancies</span>
+                        </div>
+                    </div>
+                    <div class="w-10 h-10 rounded-xl bg-cyan-950/80 text-cyan-400 border border-cyan-800/50 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <i data-lucide="scaling" class="w-5 h-5"></i>
+                    </div>
+                </div>
+                <div class="mt-3 pt-3 border-t border-slate-800/80 text-xs text-slate-400">
+                    <span>Polygon vs Notified mismatch > 20%</span>
+                </div>
+            </div>
+
+            <!-- Card 6: Overlap Detected -->
+            <div data-filter="OVERLAP" class="kpi-card glass-card rounded-2xl p-4 border border-slate-800 cursor-pointer group" style="--filter-color: #a855f7; --filter-glow: rgba(168,85,247,0.35);">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-xs font-semibold text-purple-400 uppercase tracking-wider block">Overlap Issues</span>
+                            <span class="filter-badge hidden px-1.5 py-0.2 rounded text-[9px] bg-purple-500 text-white font-bold">FILTERED</span>
+                        </div>
+                        <div class="flex items-baseline gap-2 mt-1">
+                            <span id="kpiOverlapCount" class="text-3xl font-extrabold text-purple-400">0</span>
+                            <span class="text-xs text-slate-400">blocks</span>
+                        </div>
+                    </div>
+                    <div class="w-10 h-10 rounded-xl bg-purple-950/80 text-purple-400 border border-purple-800/50 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <i data-lucide="copy" class="w-5 h-5"></i>
+                    </div>
+                </div>
+                <div class="mt-3 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-purple-300">
+                    <span id="kpiLabCorrectedCount">0 Lab Corrected</span>
+                    <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                </div>
+            </div>
+
+            <!-- Card 7: Verifiers Distribution (Spans 2 columns) -->
+            <div class="glass-card rounded-2xl p-4 border border-slate-800 sm:col-span-2 flex flex-col justify-between">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                        <i data-lucide="users" class="w-4 h-4 text-emerald-400"></i>
+                        <span>Verified By Breakdown</span>
+                    </span>
+                    <span class="text-[10px] text-slate-400">CCF (IT) & Forest Rangers</span>
+                </div>
+                <div id="kpiVerifierList" class="space-y-1 divide-y divide-slate-800/60 max-h-[85px] overflow-y-auto pr-1">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Visual Analytics & Charts Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Chart 1: Status Distribution Donut -->
+            <div class="glass-card rounded-2xl p-5 border border-slate-800 flex flex-col">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                        <i data-lucide="pie-chart" class="w-4 h-4 text-emerald-400"></i>
+                        <span>KML Approval Status</span>
+                    </h3>
+                    <span class="text-[11px] text-slate-400">Click segment to filter</span>
+                </div>
+                <div class="relative flex-1 min-h-[200px]">
+                    <canvas id="statusChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart 2: Rejection Reasons Horizontal Bar -->
+            <div class="glass-card rounded-2xl p-5 border border-slate-800 flex flex-col">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                        <i data-lucide="bar-chart-3" class="w-4 h-4 text-rose-400"></i>
+                        <span>Top Rejection Reasons</span>
+                    </h3>
+                    <span class="text-[11px] text-slate-400">Frequency count</span>
+                </div>
+                <div class="relative flex-1 min-h-[200px]">
+                    <canvas id="reasonsChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart 3: Verifier Verification Progress -->
+            <div class="glass-card rounded-2xl p-5 border border-slate-800 flex flex-col">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                        <i data-lucide="user-check" class="w-4 h-4 text-blue-400"></i>
+                        <span>Verifier Workload</span>
+                    </h3>
+                    <span class="text-[11px] text-slate-400">Approved vs Rejected</span>
+                </div>
+                <div class="relative flex-1 min-h-[200px]">
+                    <canvas id="verifiersChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Interactive Data Grid & Table -->
+        <div class="glass-panel rounded-2xl border border-slate-800 shadow-2xl overflow-hidden">
+            
+            <!-- Table Action Toolbar -->
+            <div class="p-4 lg:p-5 border-b border-slate-800 bg-slate-900/60 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
+                
+                <!-- Search & Filters -->
+                <div class="flex flex-wrap items-center gap-2.5 flex-1">
+                    
+                    <!-- Search Input -->
+                    <div class="relative min-w-[240px] flex-1">
+                        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
+                        <input id="tableSearch" type="text" placeholder="Search RF/RL name, verifier, reason..." 
+                            class="w-full pl-9 pr-4 py-2 bg-slate-800/80 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500 transition">
+                    </div>
+
+                    <!-- Status Filter -->
+                    <select id="filterStatus" class="bg-slate-800/80 border border-slate-700/80 text-xs text-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-500">
+                        <option value="ALL">All Statuses</option>
+                        <option value="ADDED">Added to Database</option>
+                        <option value="REJECTED">KML Rejected</option>
+                        <option value="PENDING">Pending Review</option>
+                    </select>
+
+                    <!-- Circle Filter -->
+                    <select id="filterCircle" class="bg-slate-800/80 border border-slate-700/80 text-xs text-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-500">
+                        <option value="ALL">All Circles</option>
+                    </select>
+
+                    <!-- Division Filter -->
+                    <select id="filterDivision" class="bg-slate-800/80 border border-slate-700/80 text-xs text-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-500">
+                        <option value="ALL">All Divisions</option>
+                    </select>
+
+                    <!-- Overlap Filter -->
+                    <select id="filterOverlap" class="bg-slate-800/80 border border-slate-700/80 text-xs text-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-500">
+                        <option value="ALL">All Overlaps</option>
+                        <option value="NO">No Overlap</option>
+                        <option value="YES">Overlap Detected</option>
+                        <option value="CORRECTED">GIS Lab Corrected</option>
+                    </select>
+
+                    <!-- Reset Filters Button -->
+                    <button id="clearFiltersBtn" title="Reset all filters" class="p-2 text-slate-400 hover:text-white bg-slate-800/60 hover:bg-slate-700 rounded-xl border border-slate-700 transition">
+                        <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                    </button>
+                </div>
+
+                <!-- Export & Page Size Controls -->
+                <div class="flex items-center gap-2 self-end lg:self-auto">
+                    <select id="pageSizeSelect" class="bg-slate-800/80 border border-slate-700/80 text-xs text-slate-200 rounded-xl px-2.5 py-2 focus:outline-none focus:border-emerald-500">
+                        <option value="15">15 rows</option>
+                        <option value="25" selected>25 rows</option>
+                        <option value="50">50 rows</option>
+                        <option value="100">100 rows</option>
+                        <option value="ALL">All rows</option>
+                    </select>
+
+                    <button id="exportExcelBtn" class="px-3 py-2 bg-emerald-700/40 hover:bg-emerald-600/60 text-emerald-300 hover:text-white border border-emerald-600/50 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition">
+                        <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i>
+                        <span>Export Excel</span>
+                    </button>
+
+                    <button id="exportCsvBtn" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium flex items-center gap-1.5 border border-slate-700 transition">
+                        <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                        <span>CSV</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Table Body Container -->
+            <div id="tableContainer" class="overflow-x-auto min-h-[350px]">
+                <table class="w-full text-left forest-table border-collapse">
+                    <thead class="bg-slate-900/90 text-[11px] uppercase tracking-wider text-slate-400 border-b border-slate-800 select-none">
+                        <tr>
+                            <th class="px-4 py-3.5 font-semibold">Sl.No.</th>
+                            <th class="px-4 py-3.5 font-semibold">Name of Forest / Land</th>
+                            <th class="px-4 py-3.5 font-semibold text-right">Notified Area</th>
+                            <th class="px-4 py-3.5 font-semibold text-right">Polygon Area & Diff</th>
+                            <th class="px-4 py-3.5 font-semibold text-center">Closed Polygon?</th>
+                            <th class="px-4 py-3.5 font-semibold text-center">Overlap?</th>
+                            <th class="px-4 py-3.5 font-semibold">Remarks / Status</th>
+                            <th class="px-4 py-3.5 font-semibold">Reason</th>
+                            <th class="px-4 py-3.5 font-semibold">Further Action Required</th>
+                            <th class="px-4 py-3.5 font-semibold">Verified By</th>
+                            <th class="px-4 py-3.5 font-semibold text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody" class="divide-y divide-slate-800/60 text-xs">
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Table Footer & Pagination -->
+            <div class="p-4 border-t border-slate-800 bg-slate-900/40 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
+                <div id="tableInfo">
+                    Showing records...
+                </div>
+                <div id="paginationControls" class="flex items-center gap-1">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Deep Inspection Modal -->
+    <div id="recordModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm hidden modal-backdrop">
+        <div class="glass-panel bg-slate-900 border border-slate-700/80 rounded-3xl max-w-2xl w-full p-6 shadow-2xl modal-content max-h-[90vh] overflow-y-auto">
+            <div id="modalDetails">
+                <!-- Injected by JS -->
+            </div>
+            <div class="mt-6 pt-4 border-t border-slate-800 flex justify-end">
+                <button id="closeModalBtn" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold transition">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Toast Alert -->
+    <div id="toastAlert" class="fixed bottom-5 right-5 z-50 flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-900/95 text-slate-200 border border-slate-700 shadow-2xl backdrop-blur-md opacity-0 translate-y-4 pointer-events-none transition-all duration-300">
+        <i id="toastIcon" data-lucide="info" class="w-5 h-5 text-emerald-400"></i>
+        <span id="toastMessage" class="text-xs font-medium">Notification</span>
+    </div>
+
+    <!-- Pre-loaded Default Dataset -->
+    <script src="sample-data.js"></script>
+    <!-- Application Logic -->
+    <script src="app.js"></script>
+</body>
+</html>

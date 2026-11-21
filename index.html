@@ -1,0 +1,3334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>GIS & Web Projects Central Portal</title>
+  <link rel="icon" type="image/png" href="app_logo.png" />
+  <link rel="apple-touch-icon" href="app_logo.png" />
+  <style>
+    html {
+      overflow-x: hidden !important;
+      width: 100% !important;
+      max-width: 100vw !important;
+      touch-action: pan-y !important;
+    }
+    :root {
+      --bg: #060913;
+      --surface: rgba(15, 23, 42, 0.75);
+      --surface-hover: rgba(30, 41, 59, 0.85);
+      --surface-border: rgba(255, 255, 255, 0.08);
+      --surface-border-hover: rgba(96, 165, 250, 0.4);
+      --text: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --card-radius: 20px;
+      --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+      --shadow-md: 0 12px 30px -6px rgba(0, 0, 0, 0.5);
+      --shadow-lg: 0 24px 50px -15px rgba(0, 0, 0, 0.75);
+
+      /* Theme Colors */
+      --gis-glow: rgba(16, 185, 129, 0.4);
+      --gis-color: #10b981;
+      --gis-gradient: linear-gradient(135deg, #059669 0%, #10b981 60%, #34d399 100%);
+
+      --excel-glow: rgba(245, 158, 11, 0.4);
+      --excel-color: #f59e0b;
+      --excel-gradient: linear-gradient(135deg, #d97706 0%, #f59e0b 60%, #fbbf24 100%);
+
+      --analytics-glow: rgba(168, 85, 247, 0.4);
+      --analytics-color: #a855f7;
+      --analytics-gradient: linear-gradient(135deg, #7c3aed 0%, #a855f7 60%, #c084fc 100%);
+
+      --sync-glow: rgba(6, 182, 212, 0.4);
+      --sync-color: #06b6d4;
+      --sync-gradient: linear-gradient(135deg, #0891b2 0%, #06b6d4 60%, #38bdf8 100%);
+
+      --default-glow: rgba(59, 130, 246, 0.4);
+      --default-color: #3b82f6;
+      --default-gradient: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 60%, #60a5fa 100%);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* Custom Sleek Scrollbar */
+    ::-webkit-scrollbar {
+      width: 9px;
+      height: 9px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #060913;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 6px;
+      border: 2px solid #060913;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #334155;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", "Helvetica Neue", Arial, sans-serif;
+      background-color: #080d1a;
+      background-image: 
+        radial-gradient(circle at 10% 15%, rgba(59, 130, 246, 0.22) 0%, transparent 40%),
+        radial-gradient(circle at 90% 12%, rgba(16, 185, 129, 0.22) 0%, transparent 42%),
+        radial-gradient(circle at 80% 60%, rgba(245, 158, 11, 0.16) 0%, transparent 45%),
+        radial-gradient(circle at 15% 70%, rgba(168, 85, 247, 0.18) 0%, transparent 45%),
+        radial-gradient(circle at 50% 90%, rgba(244, 63, 94, 0.14) 0%, transparent 50%),
+        radial-gradient(circle at 50% 30%, rgba(6, 182, 212, 0.1) 0%, transparent 55%),
+        linear-gradient(180deg, #090e1c 0%, #060a14 50%, #04070e 100%);
+      background-attachment: fixed;
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.5;
+      overflow-x: hidden !important;
+      width: 100% !important;
+      max-width: 100vw !important;
+      position: relative;
+      touch-action: pan-y !important;
+    }
+
+    /* Ambient Spatial Mesh & Subtle Grid Overlay */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image: 
+        linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+      background-size: 50px 50px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Soft Edge Vignette to spotlight the colorful cards */
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(circle at 50% 45%, transparent 50%, rgba(4, 7, 14, 0.75) 100%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Header */
+    header {
+      background: rgba(8, 13, 24, 0.78);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      padding: 16px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      box-shadow: 0 4px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      user-select: none;
+      cursor: default;
+    }
+
+    .brand-icon {
+      width: 46px;
+      height: 46px;
+      background: linear-gradient(135deg, #2563eb, #4f46e5, #06b6d4);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      box-shadow: 0 0 25px rgba(59, 130, 246, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+    }
+
+    .brand:hover .brand-icon {
+      transform: scale(1.06) rotate(3deg);
+      box-shadow: 0 0 32px rgba(59, 130, 246, 0.7);
+    }
+
+    .brand-info h1 {
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      background: linear-gradient(90deg, #ffffff 20%, #e2e8f0 60%, #93c5fd 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 2px 10px rgba(255, 255, 255, 0.1);
+    }
+
+    .brand-info p {
+      font-size: 0.76rem;
+      color: #94a3b8;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      margin-top: 2px;
+    }
+
+    .header-badge {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      color: #34d399;
+      font-size: 0.82rem;
+      font-weight: 700;
+      padding: 7px 16px;
+      border-radius: 9999px;
+      box-shadow: 0 0 15px rgba(16, 185, 129, 0.15);
+      letter-spacing: 0.02em;
+    }
+
+    .pulse-dot {
+      width: 9px;
+      height: 9px;
+      background-color: #34d399;
+      border-radius: 50%;
+      box-shadow: 0 0 10px #34d399;
+      animation: radarPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+
+    @keyframes radarPulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(1.25); box-shadow: 0 0 16px #34d399; }
+    }
+
+    /* Main Container */
+    main {
+      flex: 1;
+      max-width: 1440px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 36px 40px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Hero / Search Section */
+    .hero-section {
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+      margin-bottom: 34px;
+    }
+
+    .hero-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .hero-title h2 {
+      font-size: 1.9rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      background: linear-gradient(135deg, #ffffff 30%, #cbd5e1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-title p {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      margin-top: 4px;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      width: 100%;
+      flex-wrap: wrap;
+    }
+
+    .search-box {
+      flex: 1;
+      min-width: 280px;
+      position: relative;
+    }
+
+    .search-box svg {
+      position: absolute;
+      left: 17px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 19px;
+      height: 19px;
+      stroke: var(--text-muted);
+      pointer-events: none;
+      transition: stroke 0.2s ease;
+    }
+
+    .search-box input {
+      width: 100%;
+      background: rgba(15, 23, 42, 0.72);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #ffffff;
+      padding: 13px 18px 13px 48px;
+      border-radius: 14px;
+      font-size: 0.95rem;
+      outline: none;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+    }
+
+    .search-box input:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25), 0 8px 25px rgba(0, 0, 0, 0.4);
+      background: rgba(21, 30, 51, 0.9);
+    }
+
+    .search-box input:focus + svg,
+    .search-box:focus-within svg {
+      stroke: #60a5fa;
+    }
+
+    .search-box input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .filter-pills {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .filter-pill {
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #94a3b8;
+      padding: 9px 18px;
+      border-radius: 9999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      user-select: none;
+    }
+
+    .filter-pill:hover {
+      background: rgba(30, 41, 59, 0.85);
+      color: #ffffff;
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-1px);
+    }
+
+    .filter-pill.active {
+      background: linear-gradient(135deg, #2563eb, #3b82f6);
+      border-color: #60a5fa;
+      color: #ffffff;
+      box-shadow: 0 4px 15px rgba(37, 99, 235, 0.45);
+      transform: translateY(-1px);
+    }
+
+    .btn-import-zip {
+      background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #06b6d4 100%);
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 9px 20px;
+      border-radius: 9999px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      white-space: nowrap;
+      box-shadow: 0 4px 18px rgba(37, 99, 235, 0.35);
+      letter-spacing: 0.01em;
+    }
+
+    .btn-import-zip:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 25px rgba(37, 99, 235, 0.55), 0 0 15px rgba(6, 182, 212, 0.4);
+    }
+
+    /* Modal Backdrop & Dialog */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background: rgba(0, 0, 0, 0.82);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      animation: fadeIn 0.25s ease-out;
+    }
+
+    .modal-dialog {
+      background: linear-gradient(145deg, #0f172a 0%, #090e1a 100%);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 22px;
+      max-width: 580px;
+      width: 100%;
+      box-shadow: 0 30px 70px -15px rgba(0, 0, 0, 0.85), 0 0 30px rgba(59, 130, 246, 0.15);
+      overflow: hidden;
+      animation: scaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes scaleUp { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+    .modal-header {
+      background: rgba(30, 41, 59, 0.7);
+      padding: 20px 26px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-header h3 {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.01em;
+    }
+
+    .modal-header p {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      margin-top: 2px;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      color: #94a3b8;
+      font-size: 26px;
+      cursor: pointer;
+      line-height: 1;
+      padding: 6px;
+      border-radius: 8px;
+      transition: all 0.15s;
+    }
+    .modal-close:hover { color: #fff; background: rgba(255, 255, 255, 0.1); }
+
+    .modal-body {
+      padding: 26px;
+      max-height: 75vh;
+      overflow-y: auto;
+    }
+
+    .zip-dropzone {
+      border: 2px dashed #3b82f6;
+      background: rgba(59, 130, 246, 0.06);
+      border-radius: 16px;
+      padding: 32px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .zip-dropzone:hover, .zip-dropzone.dragover {
+      background: rgba(59, 130, 246, 0.14);
+      border-color: #60a5fa;
+      transform: scale(1.01);
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+    }
+
+    .dropzone-icon {
+      font-size: 42px;
+      filter: drop-shadow(0 4px 10px rgba(0,0,0,0.3));
+    }
+
+    .dropzone-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #f1f5f9;
+    }
+
+    .dropzone-sub {
+      font-size: 0.8rem;
+      color: #94a3b8;
+    }
+
+    .btn-primary-action {
+      background: linear-gradient(135deg, #059669, #10b981);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 11px 22px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 16px rgba(16, 185, 129, 0.35);
+      transition: all 0.2s;
+    }
+    .btn-primary-action:hover {
+      background: linear-gradient(135deg, #047857, #059669);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 22px rgba(16, 185, 129, 0.5);
+    }
+
+    .btn-secondary-action {
+      background: rgba(51, 65, 85, 0.8);
+      color: #f1f5f9;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 11px 20px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-secondary-action:hover {
+      background: #475569;
+      color: #ffffff;
+    }
+
+    /* Projects Grid with Deep 3D Perspective */
+    .projects-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+      gap: 32px;
+      perspective: 2000px;
+      perspective-origin: 50% 20%;
+      transform-style: preserve-3d;
+    }
+
+    /* Multi-Directional 3D Falling Trajectories (Left, Right, Center) */
+    /* Slower, dramatic 3D descent where cards visibly tumble and glide from different sides */
+    @keyframes fallFromLeft {
+      0% {
+        opacity: 0;
+        transform: translate3d(-260px, -360px, 280px) rotateX(50deg) rotateY(-32deg) rotateZ(-14deg) scale(0.76);
+      }
+      20% {
+        opacity: 0.85;
+      }
+      65% {
+        opacity: 1;
+        transform: translate3d(16px, 16px, 15px) rotateX(-8deg) rotateY(4deg) rotateZ(2deg) scale(1.03);
+      }
+      82% {
+        transform: translate3d(-5px, -5px, 0) rotateX(3deg) rotateY(-1deg) scale(0.995);
+      }
+      100% {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale(1);
+      }
+    }
+
+    @keyframes fallFromRight {
+      0% {
+        opacity: 0;
+        transform: translate3d(260px, -360px, 280px) rotateX(50deg) rotateY(32deg) rotateZ(14deg) scale(0.76);
+      }
+      20% {
+        opacity: 0.85;
+      }
+      65% {
+        opacity: 1;
+        transform: translate3d(-16px, 16px, 15px) rotateX(-8deg) rotateY(-4deg) rotateZ(-2deg) scale(1.03);
+      }
+      82% {
+        transform: translate3d(5px, -5px, 0) rotateX(3deg) rotateY(1deg) scale(0.995);
+      }
+      100% {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale(1);
+      }
+    }
+
+    @keyframes fallFromCenter {
+      0% {
+        opacity: 0;
+        transform: translate3d(0, -400px, 320px) rotateX(58deg) rotateY(0deg) rotateZ(0deg) scale(0.72);
+      }
+      20% {
+        opacity: 0.85;
+      }
+      65% {
+        opacity: 1;
+        transform: translate3d(0, 20px, 20px) rotateX(-9deg) scale(1.035);
+      }
+      82% {
+        transform: translate3d(0, -6px, 0) rotateX(3deg) scale(0.99);
+      }
+      100% {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale(1);
+      }
+    }
+
+    .fall-left {
+      animation: fallFromLeft 1.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    .fall-right {
+      animation: fallFromRight 1.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    .fall-center {
+      animation: fallFromCenter 1.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    /* =========================================
+       3D POCKET CHASSIS & ZIPPER CAP STRUCTURE
+       ========================================= */
+
+    /* The outer container is the 3D Pocket Case */
+    .project-card {
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      background: var(--card-bg, linear-gradient(150deg, rgba(29, 78, 216, 0.5) 0%, rgba(15, 23, 42, 0.85) 100%));
+      backdrop-filter: blur(22px);
+      -webkit-backdrop-filter: blur(22px);
+      border-radius: var(--card-radius);
+      padding: 58px 18px 18px 18px; /* Top padding accommodates the 3D zip cap with generous clearance */
+      /* Heavy 3D Pocket Slab Edges, Extrusion & Tailored Seams */
+      border-top: 2px solid rgba(255, 255, 255, 0.65);
+      border-left: 2px dashed var(--theme-border-base, rgba(255, 255, 255, 0.35));
+      border-right: 2px dashed var(--theme-border-base, rgba(255, 255, 255, 0.35));
+      border-bottom: 9px solid rgba(0, 0, 0, 0.78);
+      position: relative;
+      cursor: pointer;
+      user-select: none;
+      transform-style: preserve-3d;
+      transform-origin: center top;
+      transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s ease, border-color 0.25s ease;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      min-height: 295px;
+      overflow: visible; /* Allows emerging card to rise up in full 3D without clipping */
+      /* Layered 3D Depth Shadows */
+      box-shadow: 
+        inset 0 2px 3px rgba(255, 255, 255, 0.5),
+        inset 0 -5px 8px rgba(0, 0, 0, 0.65),
+        0 8px 0 rgba(0, 0, 0, 0.45),
+        0 14px 25px -4px rgba(0, 0, 0, 0.7),
+        0 32px 60px -10px rgba(0, 0, 0, 0.9),
+        0 0 32px -4px var(--theme-glow, rgba(59, 130, 246, 0.3));
+    }
+
+    /* 3D POCKET TOP CAP WITH ZIPPER */
+    .pocket-cap {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 42px;
+      background: linear-gradient(180deg, rgba(30, 41, 59, 0.96) 0%, rgba(15, 23, 42, 0.98) 100%);
+      border-radius: var(--card-radius) var(--card-radius) 0 0;
+      border-top: 2px solid rgba(255, 255, 255, 0.65);
+      border-left: 2px solid var(--theme-border-base, rgba(255, 255, 255, 0.3));
+      border-right: 2px solid var(--theme-border-base, rgba(255, 255, 255, 0.3));
+      border-bottom: 2px solid rgba(0, 0, 0, 0.85);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6), inset 0 1px 2px rgba(255, 255, 255, 0.35);
+      z-index: 15;
+      transform-origin: top center;
+      transition: transform 0.55s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.45s ease;
+      display: flex;
+      align-items: center;
+      pointer-events: none;
+    }
+
+    /* Metallic Corner Rivets / Studs */
+    .pocket-stud {
+      position: absolute;
+      top: 10px;
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #ffffff 0%, #cbd5e1 45%, #475569 85%, #0f172a 100%);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.8), inset 0 1px 1px rgba(255,255,255,0.9);
+      border: 1px solid rgba(0,0,0,0.5);
+      z-index: 4;
+    }
+    .pocket-stud-left { left: 10px; }
+    .pocket-stud-right { right: 10px; }
+
+    /* Zipper Track Across the Cap */
+    .pocket-zip-track {
+      position: relative;
+      height: 14px;
+      flex: 1;
+      margin: 0 26px;
+      background: #090e17;
+      border-radius: 7px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: inset 0 2px 5px rgba(0,0,0,0.85), 0 1px 2px rgba(255,255,255,0.15);
+      overflow: hidden;
+    }
+
+    /* Zipper Interleaved Teeth */
+    .pocket-zip-teeth {
+      position: absolute;
+      inset: 2px 4px;
+      background: repeating-linear-gradient(
+        90deg,
+        #cbd5e1 0px,
+        #cbd5e1 4px,
+        #090e17 4px,
+        #090e17 7px,
+        #94a3b8 7px,
+        #94a3b8 11px,
+        #090e17 11px,
+        #090e17 14px
+      );
+      opacity: 0.85;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    }
+
+    /* Zipper Slider */
+    .pocket-zip-slider {
+      position: absolute;
+      left: 6px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 20px;
+      height: 16px;
+      background: linear-gradient(135deg, #f8fafc 0%, #cbd5e1 45%, #64748b 100%);
+      border-radius: 4px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.8), inset 0 1px 1px rgba(255,255,255,0.95);
+      z-index: 6;
+      transition: transform 0.5s cubic-bezier(0.2, 0.9, 0.3, 1), left 0.5s ease;
+    }
+
+    /* Zipper Pull Tag */
+    .pocket-zip-tag {
+      position: absolute;
+      top: 13px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 12px;
+      height: 15px;
+      background: linear-gradient(180deg, #94a3b8 0%, #475569 60%, #1e293b 100%);
+      border-radius: 2px 2px 4px 4px;
+      border: 1px solid rgba(255,255,255,0.3);
+      box-shadow: 0 3px 6px rgba(0,0,0,0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 8px;
+      color: #fbbf24;
+      text-shadow: 0 0 4px rgba(245, 158, 11, 0.8);
+      pointer-events: none;
+    }
+
+    /* Illuminated Cap Edge Seam */
+    .pocket-cap-edge {
+      position: absolute;
+      bottom: -2px;
+      left: 8px;
+      right: 8px;
+      height: 2px;
+      background: var(--theme-accent, linear-gradient(90deg, #3b82f6, #60a5fa));
+      box-shadow: 0 0 8px var(--theme-glow, rgba(59, 130, 246, 0.6));
+      border-radius: 1px;
+    }
+
+    /* POCKET MOUTH COLLAR TRIM (SLEEVE ENTRANCE) */
+    .pocket-mouth-trim {
+      position: absolute;
+      top: 42px;
+      left: 0;
+      right: 0;
+      height: 5px;
+      background: rgba(0, 0, 0, 0.6);
+      box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.8);
+      z-index: 8;
+      pointer-events: none;
+    }
+
+    /* INNER PROJECT CARD - SITS IN POCKET, EMERGES & GROWS BIG */
+    .pocket-inner-card {
+      position: relative;
+      background: rgba(15, 23, 42, 0.52);
+      border-radius: 14px;
+      padding: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      box-shadow: 
+        inset 0 1px 2px rgba(255, 255, 255, 0.25),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.5),
+        0 4px 14px rgba(0, 0, 0, 0.4);
+      transform-style: preserve-3d;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 235px;
+      flex: 1;
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease;
+      z-index: 5;
+    }
+
+    .pocket-inner-card .card-top,
+    .pocket-inner-card .card-title-row,
+    .pocket-inner-card .card-tags,
+    .pocket-inner-card .card-footer {
+      transform: translateZ(8px);
+    }
+
+    /* Tactile Hover: inner card peeks up slightly, zip slider wiggles */
+    .project-card:hover:not(.is-opening) {
+      transform: translateY(-16px) rotateX(7deg) rotateY(-2deg) scale(1.035);
+      border-top-color: rgba(255, 255, 255, 0.85);
+      border-bottom: 11px solid rgba(0, 0, 0, 0.82);
+      box-shadow: 
+        inset 0 2px 4px rgba(255, 255, 255, 0.7),
+        inset 0 -6px 10px rgba(0, 0, 0, 0.65),
+        0 10px 0 rgba(0, 0, 0, 0.5),
+        0 24px 45px -5px rgba(0, 0, 0, 0.7),
+        0 55px 95px -15px rgba(0, 0, 0, 0.95),
+        0 0 60px 8px var(--theme-glow, rgba(59, 130, 246, 0.6));
+    }
+
+    .project-card:hover:not(.is-opening) .pocket-inner-card {
+      transform: translateY(-6px) translateZ(12px);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.6), inset 0 1px 2px rgba(255, 255, 255, 0.35);
+    }
+
+    .project-card:hover:not(.is-opening) .pocket-zip-slider {
+      transform: translateY(-50%) translateX(8px);
+    }
+
+    .project-card:hover:not(.is-opening) .pocket-cap {
+      transform: perspective(600px) rotateX(-6deg) translateY(-1px);
+    }
+
+    /* =========================================================================
+       2-STAGE OPENING SEQUENCE (NO ZOOM, EXACT 1:1 SIZE - 2.5s TOTAL):
+       1) Cover stays stationary at original size, zip fully opens first (0.0s - 0.5s)
+       2) Card pulls straight out from the top without zooming or scaling (0.5s - 2.5s)
+       3) Cover remains in grid with zip open and no card inside (empty cover state)
+       ========================================================================= */
+
+    /* Cover envelope stays in exact same size and position! */
+    .project-card.is-opening {
+      z-index: 999 !important;
+      transform: none !important;
+      transition: none !important;
+    }
+
+    /* Stage 1: Full zip unzips completely across the top */
+    .project-card.is-opening .pocket-zip-slider,
+    .project-card.card-cover-empty .pocket-zip-slider {
+      transform: translateY(-50%) translateX(240px) !important;
+      transition: transform 0.48s cubic-bezier(0.2, 0.9, 0.3, 1);
+    }
+
+    /* Top cap flips open, uncovering the open top mouth */
+    .project-card.is-opening .pocket-cap,
+    .project-card.card-cover-empty .pocket-cap {
+      transform: perspective(700px) rotateX(-125deg) translateY(-8px) !important;
+      opacity: 0.35 !important;
+      filter: blur(0.5px);
+      box-shadow: 0 -8px 25px var(--theme-glow, rgba(59, 130, 246, 0.5));
+      transition: transform 0.52s cubic-bezier(0.2, 0.9, 0.3, 1) 0.05s, opacity 0.45s ease;
+    }
+
+    /* Stage 2: Card pulled straight up out from the top of the cover (NO ZOOM / NO SCALE INCREASE) */
+    @keyframes pullCardFromCoverNoZoom {
+      0%, 20% {
+        /* While zip is opening (0.0s - 0.5s), card remains securely inside cover */
+        transform: translate3d(0, 0, 0) scale(1);
+        opacity: 1;
+      }
+      65% {
+        /* Card is pulled straight UPWARDS through top mouth (EXACT 1:1 SIZE, NO ZOOM) */
+        transform: translate3d(0, -180px, 0) scale(1);
+        opacity: 1;
+        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85), 0 0 40px var(--theme-glow, rgba(59, 130, 246, 0.7));
+      }
+      88% {
+        /* Fully clear of the cover, stays exact same size */
+        transform: translate3d(0, -250px, 0) scale(1);
+        opacity: 0.95;
+        box-shadow: 0 35px 85px rgba(0, 0, 0, 0.95), 0 0 65px var(--theme-glow, rgba(59, 130, 246, 0.9));
+      }
+      100% {
+        /* Fully extracted from the cover, converts to new tab */
+        transform: translate3d(0, -275px, 0) scale(1);
+        opacity: 0;
+      }
+    }
+
+    .project-card.is-opening .pocket-inner-card {
+      animation: pullCardFromCoverNoZoom 2.5s cubic-bezier(0.18, 0.85, 0.22, 1) forwards;
+      background: var(--card-bg, #0f172a) !important;
+      background-color: #0b1329 !important;
+      border: 2px solid rgba(255, 255, 255, 0.6) !important;
+      backdrop-filter: blur(35px) !important;
+      -webkit-backdrop-filter: blur(35px) !important;
+    }
+
+    /* Launch Status Indicator Pill that shines during emergence */
+    .launch-status-pill {
+      display: none;
+      position: absolute;
+      bottom: -14px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #ffffff;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.6), 0 0 15px rgba(255, 255, 255, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      white-space: nowrap;
+      z-index: 50;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .project-card.is-opening .launch-status-pill {
+      display: inline-flex;
+      animation: pillFadeIn 0.4s ease 0.55s both;
+    }
+
+    @keyframes pillFadeIn {
+      0% { opacity: 0; transform: translateX(-50%) translateY(10px) scale(0.9); }
+      100% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+    }
+
+    /* =========================================================================
+       CARD RETURN TO NORMAL ANIMATION (WHEN TAB IS CLOSED)
+       ========================================================================= */
+    .project-card.is-closing-zip .pocket-zip-slider {
+      animation: zipSlideClosed 0.75s cubic-bezier(0.2, 0.9, 0.3, 1) forwards !important;
+    }
+
+    @keyframes zipSlideClosed {
+      0% { transform: translateY(-50%) translateX(240px); }
+      100% { transform: translateY(-50%) translateX(0); }
+    }
+
+    .project-card.is-closing-zip .pocket-cap {
+      animation: capCloseFlap 0.75s cubic-bezier(0.2, 0.9, 0.3, 1) forwards !important;
+    }
+
+    @keyframes capCloseFlap {
+      0% { transform: perspective(700px) rotateX(-125deg) translateY(-8px); opacity: 0.35; }
+      100% { transform: perspective(600px) rotateX(0deg) translateY(0); opacity: 1; }
+    }
+
+    .project-card.is-closing-zip .pocket-inner-card {
+      animation: cardSlideIntoCover 0.75s cubic-bezier(0.18, 0.85, 0.22, 1) forwards !important;
+    }
+
+    @keyframes cardSlideIntoCover {
+      0% { transform: translate3d(0, -90px, 0); opacity: 0.4; }
+      100% { transform: translate3d(0, 0, 0); opacity: 1; }
+    }
+
+    /* =========================================================================
+       EMPTY COVER STATE (SKETCH 2): Cover is here with zip open, card is in tab
+       ========================================================================= */
+
+    .project-card.card-cover-empty {
+      background: var(--card-bg, linear-gradient(150deg, rgba(29, 78, 216, 0.25) 0%, rgba(15, 23, 42, 0.8) 100%));
+      border-left: 2px dashed var(--theme-border-base, rgba(255, 255, 255, 0.4));
+      border-right: 2px dashed var(--theme-border-base, rgba(255, 255, 255, 0.4));
+      cursor: default;
+    }
+
+    .cover-empty-interior {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      text-align: center;
+      flex: 1;
+      min-height: 235px;
+      padding: 22px 14px 14px;
+      border-radius: 14px;
+      background: rgba(11, 19, 43, 0.5);
+      border: 1px dashed rgba(255, 255, 255, 0.22);
+      box-shadow: inset 0 4px 18px rgba(0, 0, 0, 0.75);
+    }
+
+    .empty-cover-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(16, 185, 129, 0.18);
+      border: 1px solid rgba(16, 185, 129, 0.45);
+      color: #34d399;
+      font-size: 0.74rem;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 20px;
+      letter-spacing: 0.5px;
+    }
+
+    .status-pulse-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 8px #10b981;
+      animation: statusDotPulse 1.5s infinite ease-in-out;
+    }
+
+    @keyframes statusDotPulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.35; transform: scale(0.75); }
+    }
+
+    .empty-cover-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #f8fafc;
+      margin: 10px 0 4px;
+      line-height: 1.35;
+    }
+
+    .empty-cover-note {
+      font-size: 0.76rem;
+      color: #94a3b8;
+      line-height: 1.4;
+    }
+
+    .empty-cover-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      width: 100%;
+    }
+
+    .btn-focus-tab {
+      background: var(--theme-btn-bg, linear-gradient(135deg, #2563eb, #3b82f6));
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      padding: 8px 14px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 0.82rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    }
+
+    .btn-focus-tab:hover {
+      filter: brightness(1.15);
+      transform: translateY(-1px);
+    }
+
+    .btn-return-card {
+      background: rgba(51, 65, 85, 0.7);
+      color: #cbd5e1;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 0.74rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-return-card:hover {
+      background: rgba(71, 85, 105, 0.9);
+      color: #ffffff;
+    }
+
+    /* Shimmer Light Reflection on Card Hover */
+    .project-card::after {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(
+        60deg,
+        transparent 30%,
+        rgba(255, 255, 255, 0.06) 50%,
+        transparent 70%
+      );
+      transform: rotate(30deg);
+      transition: all 0.6s ease;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .project-card:hover::after {
+      opacity: 1;
+      transform: rotate(30deg) translate(25%, 25%);
+    }
+
+    .card-accent-strip {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: var(--theme-accent, var(--default-gradient));
+      box-shadow: 0 0 14px var(--theme-glow, rgba(59, 130, 246, 0.6));
+      opacity: 0.95;
+      transition: height 0.2s ease, opacity 0.2s ease;
+    }
+
+    .project-card:hover .card-accent-strip {
+      height: 5px;
+      opacity: 1;
+    }
+
+    /* THEME CLASSES - ATTRACTIVE DISTINCT CARD COLORING */
+    .theme-gis {
+      --card-bg: linear-gradient(150deg, rgba(6, 78, 59, 0.55) 0%, rgba(6, 44, 34, 0.78) 50%, rgba(4, 25, 20, 0.92) 100%);
+      --theme-border-base: rgba(16, 185, 129, 0.45);
+      --theme-border: rgba(52, 211, 153, 0.9);
+      --theme-glow: rgba(16, 185, 129, 0.45);
+      --theme-accent: linear-gradient(90deg, #059669 0%, #10b981 50%, #34d399 100%);
+      --theme-color: #10b981;
+      --theme-icon-bg: rgba(6, 95, 70, 0.75);
+      --theme-badge-bg: rgba(6, 95, 70, 0.5);
+      --theme-btn-bg: linear-gradient(135deg, #059669, #10b981);
+      --theme-btn-hover: linear-gradient(135deg, #047857, #059669);
+      --theme-btn-text: #ffffff;
+    }
+
+    .theme-excel {
+      --card-bg: linear-gradient(150deg, rgba(146, 64, 14, 0.55) 0%, rgba(69, 26, 3, 0.78) 50%, rgba(35, 14, 2, 0.92) 100%);
+      --theme-border-base: rgba(245, 158, 11, 0.45);
+      --theme-border: rgba(251, 191, 36, 0.9);
+      --theme-glow: rgba(245, 158, 11, 0.45);
+      --theme-accent: linear-gradient(90deg, #d97706 0%, #f59e0b 50%, #fbbf24 100%);
+      --theme-color: #f59e0b;
+      --theme-icon-bg: rgba(180, 83, 9, 0.75);
+      --theme-badge-bg: rgba(146, 64, 14, 0.5);
+      --theme-btn-bg: linear-gradient(135deg, #d97706, #f59e0b);
+      --theme-btn-hover: linear-gradient(135deg, #b45309, #d97706);
+      --theme-btn-text: #ffffff;
+    }
+
+    .theme-analytics {
+      --card-bg: linear-gradient(150deg, rgba(107, 33, 168, 0.55) 0%, rgba(59, 15, 95, 0.78) 50%, rgba(30, 8, 48, 0.92) 100%);
+      --theme-border-base: rgba(168, 85, 247, 0.45);
+      --theme-border: rgba(192, 132, 252, 0.9);
+      --theme-glow: rgba(168, 85, 247, 0.45);
+      --theme-accent: linear-gradient(90deg, #7c3aed 0%, #a855f7 50%, #c084fc 100%);
+      --theme-color: #a855f7;
+      --theme-icon-bg: rgba(126, 34, 206, 0.75);
+      --theme-badge-bg: rgba(107, 33, 168, 0.5);
+      --theme-btn-bg: linear-gradient(135deg, #7c3aed, #a855f7);
+      --theme-btn-hover: linear-gradient(135deg, #6d28d9, #7c3aed);
+      --theme-btn-text: #ffffff;
+    }
+
+    .theme-sync {
+      --card-bg: linear-gradient(150deg, rgba(14, 116, 144, 0.55) 0%, rgba(12, 54, 70, 0.78) 50%, rgba(6, 26, 36, 0.92) 100%);
+      --theme-border-base: rgba(6, 182, 212, 0.45);
+      --theme-border: rgba(34, 211, 238, 0.9);
+      --theme-glow: rgba(6, 182, 212, 0.45);
+      --theme-accent: linear-gradient(90deg, #0891b2 0%, #06b6d4 50%, #22d3ee 100%);
+      --theme-color: #06b6d4;
+      --theme-icon-bg: rgba(14, 116, 144, 0.75);
+      --theme-badge-bg: rgba(14, 116, 144, 0.5);
+      --theme-btn-bg: linear-gradient(135deg, #0891b2, #06b6d4);
+      --theme-btn-hover: linear-gradient(135deg, #0e7490, #0891b2);
+      --theme-btn-text: #ffffff;
+    }
+
+    .theme-urgent {
+      --card-bg: linear-gradient(150deg, rgba(190, 18, 60, 0.55) 0%, rgba(76, 10, 26, 0.78) 50%, rgba(38, 5, 13, 0.92) 100%);
+      --theme-border-base: rgba(244, 63, 94, 0.45);
+      --theme-border: rgba(251, 113, 133, 0.9);
+      --theme-glow: rgba(244, 63, 94, 0.5);
+      --theme-accent: linear-gradient(90deg, #e11d48 0%, #f43f5e 50%, #fb7185 100%);
+      --theme-color: #f43f5e;
+      --theme-icon-bg: rgba(190, 18, 60, 0.75);
+      --theme-badge-bg: rgba(159, 18, 57, 0.5);
+      --theme-btn-bg: linear-gradient(135deg, #e11d48, #f43f5e);
+      --theme-btn-hover: linear-gradient(135deg, #be123c, #e11d48);
+      --theme-btn-text: #ffffff;
+    }
+
+    .theme-default {
+      --card-bg: linear-gradient(150deg, rgba(29, 78, 216, 0.55) 0%, rgba(18, 44, 110, 0.78) 50%, rgba(8, 20, 52, 0.92) 100%);
+      --theme-border-base: rgba(59, 130, 246, 0.45);
+      --theme-border: rgba(96, 165, 250, 0.9);
+      --theme-glow: rgba(59, 130, 246, 0.45);
+      --theme-accent: linear-gradient(90deg, #1d4ed8 0%, #3b82f6 50%, #60a5fa 100%);
+      --theme-color: #3b82f6;
+      --theme-icon-bg: rgba(29, 78, 216, 0.75);
+      --theme-badge-bg: rgba(30, 64, 175, 0.5);
+      --theme-btn-bg: linear-gradient(135deg, #1d4ed8, #3b82f6);
+      --theme-btn-hover: linear-gradient(135deg, #1e40af, #1d4ed8);
+      --theme-btn-text: #ffffff;
+    }
+
+    /* Card Contents */
+    .card-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .card-icon-title {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .card-icon {
+      width: 54px;
+      height: 54px;
+      background: var(--theme-icon-bg, rgba(30, 41, 59, 0.85));
+      border: 1px solid var(--theme-border-base, rgba(255, 255, 255, 0.2));
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      flex-shrink: 0;
+      overflow: hidden;
+      box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.2), 0 4px 15px var(--theme-glow, rgba(0, 0, 0, 0.3));
+      transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .project-card:hover .card-icon {
+      transform: scale(1.06);
+      border-color: rgba(255, 255, 255, 0.4);
+      box-shadow: 0 6px 20px var(--theme-glow);
+    }
+
+    .card-icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .card-names {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .folder-badge {
+      display: inline-block;
+      font-size: 0.73rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      color: #f1f5f9;
+      background: var(--theme-badge-bg, rgba(0, 0, 0, 0.45));
+      border: 1px solid var(--theme-border-base, rgba(255, 255, 255, 0.2));
+      padding: 3px 9px;
+      border-radius: 8px;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+      letter-spacing: -0.01em;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+    }
+
+    .card-actions-group {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 5px;
+      flex-shrink: 0;
+    }
+
+    .btn-card-delete,
+    .btn-card-rename {
+      border-radius: 7px;
+      padding: 3px 8px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+      flex-shrink: 0;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+    }
+
+    .btn-card-delete {
+      background: rgba(239, 68, 68, 0.14);
+      border: 1px solid rgba(239, 68, 68, 0.32);
+      color: #f87171;
+    }
+
+    .btn-card-delete:hover {
+      background: #ef4444;
+      color: #ffffff;
+      border-color: #dc2626;
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+      transform: scale(1.04);
+    }
+
+    .btn-card-rename {
+      background: rgba(59, 130, 246, 0.16);
+      border: 1px solid rgba(59, 130, 246, 0.35);
+      color: #93c5fd;
+    }
+
+    .btn-card-rename:hover {
+      background: #2563eb;
+      color: #ffffff;
+      border-color: #3b82f6;
+      box-shadow: 0 0 10px rgba(59, 130, 246, 0.45);
+      transform: scale(1.04);
+    }
+
+    .rename-modal-input {
+      width: 100%;
+      background: rgba(15, 23, 42, 0.88);
+      border: 2px solid #3b82f6;
+      color: #ffffff;
+      padding: 13px 16px;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+      box-sizing: border-box;
+      user-select: text !important;
+      -webkit-user-select: text !important;
+      -webkit-touch-callout: default !important;
+    }
+
+    .rename-modal-input:focus {
+      border-color: #60a5fa;
+      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.45);
+    }
+
+    .card-title-row {
+      margin-bottom: 12px;
+      position: relative;
+    }
+
+    .card-title {
+      font-size: 1.18rem;
+      font-weight: 700;
+      color: #f8fafc;
+      line-height: 1.35;
+      word-break: break-word;
+      cursor: pointer;
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      letter-spacing: -0.015em;
+      transition: color 0.2s ease;
+    }
+
+    .project-card:hover .card-title {
+      color: #93c5fd;
+    }
+
+    .title-rename-hint {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      font-weight: normal;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 4px;
+      opacity: 0.7;
+      transition: all 0.2s;
+    }
+
+    .project-card:hover .title-rename-hint {
+      color: #60a5fa;
+      opacity: 1;
+    }
+
+    /* Inline Rename Form */
+    .title-edit-form {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: 100%;
+      margin: 4px 0;
+    }
+
+    .title-edit-input {
+      -webkit-user-select: text !important;
+      user-select: text !important;
+      width: 100%;
+      background: #1e293b;
+      border: 2px solid #3b82f6;
+      color: #ffffff;
+      font-size: 1rem;
+      font-weight: 600;
+      padding: 7px 12px;
+      border-radius: 10px;
+      outline: none;
+      box-shadow: 0 0 12px rgba(59, 130, 246, 0.3);
+    }
+
+    .title-edit-btns {
+      display: flex;
+      gap: 6px;
+      justify-content: flex-end;
+    }
+
+    .btn-title-save {
+      background: #10b981;
+      color: white;
+      border: none;
+      padding: 5px 12px;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+    }
+
+    .btn-title-cancel {
+      background: #475569;
+      color: white;
+      border: none;
+      padding: 5px 12px;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+
+    /* Tags */
+    .card-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+
+    .tag {
+      font-size: 0.72rem;
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-weight: 700;
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #cbd5e1;
+      letter-spacing: 0.02em;
+      transition: all 0.2s ease;
+    }
+
+    .tag.gis {
+      background: rgba(16, 185, 129, 0.15);
+      border-color: rgba(16, 185, 129, 0.4);
+      color: #34d399;
+      box-shadow: 0 0 8px rgba(16, 185, 129, 0.12);
+    }
+
+    .tag.excel {
+      background: rgba(245, 158, 11, 0.15);
+      border-color: rgba(245, 158, 11, 0.4);
+      color: #fbbf24;
+      box-shadow: 0 0 8px rgba(245, 158, 11, 0.12);
+    }
+
+    .tag.analytics {
+      background: rgba(168, 85, 247, 0.15);
+      border-color: rgba(168, 85, 247, 0.4);
+      color: #c084fc;
+      box-shadow: 0 0 8px rgba(168, 85, 247, 0.12);
+    }
+
+    .tag.sync {
+      background: rgba(6, 182, 212, 0.15);
+      border-color: rgba(6, 182, 212, 0.4);
+      color: #22d3ee;
+      box-shadow: 0 0 8px rgba(6, 182, 212, 0.12);
+    }
+
+    /* Card Footer */
+    .card-footer {
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      padding-top: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: #94a3b8;
+      margin-top: auto;
+    }
+
+    .card-stats {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.78rem;
+      font-family: ui-monospace, SFMono-Regular, monospace;
+      color: #94a3b8;
+    }
+
+    .launch-hint {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--theme-btn-bg, linear-gradient(135deg, #1d4ed8, #3b82f6));
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      color: var(--theme-btn-text, #ffffff);
+      font-weight: 700;
+      font-size: 0.78rem;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      box-shadow: 0 4px 12px var(--theme-glow);
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .project-card:hover .launch-hint {
+      background: var(--theme-btn-hover, var(--theme-btn-bg));
+      box-shadow: 0 6px 20px var(--theme-glow);
+      transform: translateX(3px);
+      gap: 9px;
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+
+    /* Empty state */
+    .empty-state {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 60px 20px;
+      background: rgba(17, 24, 39, 0.4);
+      border: 1px dashed var(--surface-border);
+      border-radius: var(--card-radius);
+    }
+
+    .empty-state h3 {
+      font-size: 1.2rem;
+      margin-bottom: 6px;
+      color: #f1f5f9;
+    }
+
+    .empty-state p {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    /* Toast Notification */
+    .toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .toast {
+      background: rgba(15, 23, 42, 0.92);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #fff;
+      padding: 13px 22px;
+      border-radius: 14px;
+      font-size: 0.88rem;
+      box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.6);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      animation: slideIn 0.25s ease-out;
+    }
+
+    .toast.success {
+      border-color: rgba(16, 185, 129, 0.5);
+      background: rgba(6, 78, 59, 0.92);
+      color: #a7f3d0;
+      box-shadow: 0 0 25px rgba(16, 185, 129, 0.25);
+    }
+
+    @keyframes slideIn {
+      from { transform: translateX(50px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(8, 13, 24, 0.6);
+      backdrop-filter: blur(12px);
+      padding: 20px 40px;
+      color: var(--text-muted);
+      font-size: 0.82rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .btn-reset-titles {
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #94a3b8;
+      padding: 5px 12px;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-reset-titles:hover {
+      color: #ffffff;
+      background: #334155;
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Mobile Responsive Optimizations (Lock horizontal slide, Zoom out cards, Fix zip overlap) */
+    @media (max-width: 768px) {
+      html, body {
+        overflow-x: hidden !important;
+        width: 100% !important;
+        max-width: 100vw !important;
+        touch-action: pan-y !important;
+        position: relative !important;
+      }
+      header {
+        padding: 12px 14px;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+        width: 100% !important;
+        max-width: 100vw !important;
+        box-sizing: border-box !important;
+      }
+      .brand {
+        justify-content: flex-start;
+        gap: 10px;
+      }
+      .brand-icon {
+        width: 36px;
+        height: 36px;
+        font-size: 19px;
+      }
+      .brand-info h1 {
+        font-size: 1.1rem;
+      }
+      .brand-info p {
+        font-size: 0.7rem;
+      }
+      .header-badge {
+        align-self: flex-start;
+        font-size: 0.72rem;
+        padding: 4px 10px;
+      }
+      main {
+        padding: 14px 12px !important;
+        width: 100% !important;
+        max-width: 100vw !important;
+        box-sizing: border-box !important;
+        overflow-x: hidden !important;
+      }
+      .hero-section {
+        margin-bottom: 16px;
+        gap: 12px;
+      }
+      .hero-title h2 {
+        font-size: 1.35rem;
+      }
+      .hero-title p {
+        font-size: 0.78rem;
+      }
+      .toolbar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+      }
+      .search-box {
+        min-width: 100%;
+        width: 100%;
+      }
+      .search-box input {
+        padding: 10px 14px 10px 42px;
+        font-size: 0.86rem;
+      }
+      .filter-pills {
+        overflow-x: auto;
+        white-space: nowrap;
+        padding-bottom: 4px;
+        -webkit-overflow-scrolling: touch;
+        flex-wrap: nowrap;
+        max-width: 100%;
+      }
+      .filter-pill {
+        flex-shrink: 0;
+        padding: 6px 12px;
+        font-size: 0.74rem;
+      }
+      .btn-import-zip {
+        align-self: flex-start;
+        font-size: 0.76rem;
+        padding: 6px 14px;
+      }
+
+      /* Grid & Zoomed-out Cards (Flex column centered guarantees zero horizontal sliding) */
+      .projects-grid {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        gap: 16px !important;
+        perspective: none !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        overflow-x: hidden !important;
+        padding: 0 !important;
+      }
+
+      /* 3D Pocket Case: 60px top padding ensures 38px zip cap never overlaps card content! */
+      .project-card {
+        padding: 60px 14px 14px 14px !important;
+        min-height: 215px !important;
+        border-radius: 16px !important;
+        width: 93% !important;
+        max-width: 375px !important;
+        margin: 0 auto !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
+        border-bottom: 7px solid rgba(0, 0, 0, 0.78) !important;
+      }
+      .project-card.is-opening {
+        overflow: visible !important;
+      }
+      .pocket-cap {
+        height: 38px !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        z-index: 15 !important;
+      }
+      .pocket-mouth-trim {
+        top: 38px !important;
+        height: 5px !important;
+        z-index: 14 !important;
+      }
+
+      /* Zoomed-Out Inner Card */
+      .pocket-inner-card {
+        padding: 14px 12px 12px 12px !important;
+        min-height: 155px !important;
+        border-radius: 12px !important;
+        box-sizing: border-box !important;
+        margin-top: 3px !important;
+      }
+      .card-top {
+        margin-bottom: 6px !important;
+        gap: 8px !important;
+      }
+      .card-icon {
+        width: 36px !important;
+        height: 36px !important;
+        font-size: 18px !important;
+        border-radius: 9px !important;
+      }
+      .folder-badge {
+        font-size: 0.68rem !important;
+        padding: 2px 7px !important;
+        max-width: 140px !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+      }
+      .card-actions-group {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: flex-end !important;
+        gap: 4px !important;
+      }
+      .btn-card-delete,
+      .btn-card-rename {
+        font-size: 0.65rem !important;
+        padding: 3px 7px !important;
+      }
+      .card-title {
+        font-size: 0.90rem !important;
+        line-height: 1.30 !important;
+      }
+      .title-rename-hint {
+        font-size: 0.66rem !important;
+      }
+      .card-tags {
+        margin: 5px 0 !important;
+        gap: 4px !important;
+      }
+      .tag {
+        font-size: 0.65rem !important;
+        padding: 2px 6px !important;
+      }
+      .card-footer {
+        margin-top: 6px !important;
+        flex-wrap: wrap !important;
+        gap: 6px !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+      }
+      .card-stats {
+        font-size: 0.68rem !important;
+      }
+      .launch-hint {
+        padding: 3px 8px !important;
+        font-size: 0.70rem !important;
+      }
+
+      /* Vertical only falling on mobile, no sideways translation */
+      @keyframes fallFromLeft {
+        0% { opacity: 0; transform: translateY(-30px) scale(0.96); }
+        100% { opacity: 1; transform: translateY(0) scale(1); }
+      }
+      @keyframes fallFromRight {
+        0% { opacity: 0; transform: translateY(-30px) scale(0.96); }
+        100% { opacity: 1; transform: translateY(0) scale(1); }
+      }
+      @keyframes fallFromCenter {
+        0% { opacity: 0; transform: translateY(-30px) scale(0.96); }
+        100% { opacity: 1; transform: translateY(0) scale(1); }
+      }
+    }
+
+    /* Mouse Drag-to-Scroll visual states */
+    body.is-mouse-dragging {
+      user-select: none !important;
+      cursor: grabbing !important;
+    }
+    body.is-mouse-dragging * {
+      cursor: grabbing !important;
+      user-select: none !important;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="brand">
+      <div class="brand-icon"><img src="app_logo.png" alt="Logo" style="width:100%; height:100%; object-fit:contain; border-radius:12px; background:#ffffff;" /></div>
+      <div class="brand-info">
+        <h1>GIS &amp; Web Projects Portal</h1>
+        <p>Tap to open &bull; Long-press to rename</p>
+      </div>
+    </div>
+    
+    <div class="header-badge">
+      <div class="pulse-dot"></div>
+      <span id="headerCount">5 Projects Ready</span>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main>
+    <section class="hero-section">
+      <div class="hero-header">
+        <div class="hero-title">
+          <h2 id="projectCountHeading">Projects Workspace</h2>
+          <p>Double-click anywhere on a card to open in a new tab &bull; Pasted a new folder? Run <strong style="color: #60a5fa;">Scan_Projects.bat</strong> and refresh!</p>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <input type="text" id="searchInput" placeholder="Search projects by name, category, or keywords..." />
+        </div>
+
+        <div class="filter-pills" id="filterContainer">
+          <button class="filter-pill active" data-filter="all">All Projects</button>
+          <button class="filter-pill" data-filter="GIS & Maps">GIS &amp; Maps</button>
+          <button class="filter-pill" data-filter="Excel / Data">Excel / Data</button>
+          <button class="filter-pill" data-filter="Analytics">Analytics</button>
+          <button class="filter-pill" data-filter="Sync Tools">Sync Tools</button>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:8px;">
+          <a href="TNFD_GIS_Portal.apk" download="TNFD_GIS_Portal.apk" id="btnDownloadApk" class="btn-import-zip" style="text-decoration:none; background:linear-gradient(135deg, #059669 0%, #047857 100%); color:#fff; border-color:rgba(16,185,129,0.4);" title="Download Android Mobile App (APK)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download Mobile App (.apk)</a>
+          <button class="btn-import-zip" onclick="openImportModal()" title="Import a new project from a .zip file">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Import Project (.zip)
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Grid Container -->
+    <div class="projects-grid" id="projectsGrid"></div>
+  </main>
+
+  <!-- Import Project Modal -->
+  <div class="modal-backdrop" id="importModal" style="display:none;" onclick="handleModalBackdropClick(event)">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <span style="font-size:24px;">📦</span>
+          <div>
+            <h3>Import New Project (.zip)</h3>
+            <p>Upload a project archive to unpack and add it to your portal</p>
+          </div>
+        </div>
+        <button class="modal-close" onclick="closeImportModal()">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Drag and drop zone -->
+        <div class="zip-dropzone" id="zipDropzone" onclick="document.getElementById('zipFileInput').click()">
+          <input type="file" id="zipFileInput" accept=".zip" style="display:none;" onchange="handleZipSelected(event)" />
+          <div class="dropzone-icon">📥</div>
+          <div class="dropzone-title" id="dropzoneTitle">Click to choose or drag &amp; drop project .zip here</div>
+          <div class="dropzone-sub">Supports zipped web projects, dashboards, and GIS maps</div>
+        </div>
+
+        <!-- Detected Project Details -->
+        <div id="zipPreviewCard" style="display:none; margin-top:18px; background:#1e293b; border:1px solid #334155; border-radius:12px; padding:18px;">
+          <div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:12px;">
+            <div>
+              <strong id="previewTitle" style="color:#ffffff; font-size:1.05rem; display:block;">Project Name</strong>
+              <span id="previewFolderBadge" class="folder-badge" style="margin-top:4px;">📁 folder</span>
+            </div>
+            <span id="previewStats" style="font-size:0.8rem; color:#94a3b8;">0 files</span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:6px; font-size:0.82rem; color:#94a3b8; border-top:1px solid rgba(255,255,255,0.06); padding-top:10px;">
+            <div><strong style="color:#cbd5e1;">Detected Entry Point:</strong> <code id="previewEntry" style="color:#34d399;">index.html</code></div>
+            <div><strong style="color:#cbd5e1;">Categories:</strong> <span id="previewTags" style="color:#60a5fa;">Web App</span></div>
+          </div>
+
+          <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap;">
+            <button class="btn-primary-action" id="btnExtractToProjects" onclick="extractZipToProjectsFolder()">
+              📦 Unpack &amp; Add to projects/ folder
+            </button>
+            <button class="btn-secondary-action" onclick="addProjectCardOnly()">
+              + Add Card Only
+            </button>
+          </div>
+        </div>
+
+        <!-- 1-Click Helper Advice -->
+        <div style="margin-top:18px; background:rgba(30, 41, 59, 0.6); border:1px solid rgba(255, 255, 255, 0.08); border-radius:10px; padding:14px; font-size:0.82rem; color:#94a3b8; line-height:1.6;">
+          <strong style="color:#f1f5f9; display:block; margin-bottom:4px;">💡 1-Click Windows Shortcut:</strong>
+          You can also drag and drop any <code style="color:#93c5fd;">.zip</code> file onto <strong style="color:#60a5fa;">Import_Project.bat</strong> in this folder. It automatically unzips into <code style="color:#cbd5e1;">projects/</code>, scans, and opens the portal!
+        </div>
+      </div>
+
+      <div style="background:#1e293b; padding:12px 24px; border-top:1px solid #334155; display:flex; justify-content:flex-end;">
+        <button class="btn-secondary-action" onclick="closeImportModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dedicated Rename Project Modal (Fixes virtual keyboard & accidental card-opening on mobile) -->
+  <div class="modal-backdrop" id="renameModal" style="display:none;" onclick="handleRenameBackdropClick(event)">
+    <div class="modal-dialog" style="max-width: 460px;">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <span style="font-size:24px;">✏️</span>
+          <div>
+            <h3 style="margin:0; font-size:1.15rem; color:#fff;">Rename Project</h3>
+            <p id="renameModalFolderHint" style="margin:2px 0 0 0; font-size:0.78rem; color:#94a3b8;">Folder: ...</p>
+          </div>
+        </div>
+        <button class="modal-close" type="button" onclick="closeRenameModal()">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding: 20px 24px;">
+        <label for="renameProjectInput" style="display:block; font-size:0.84rem; font-weight:600; color:#cbd5e1; margin-bottom:8px;">
+          Project Display Name
+        </label>
+        <input 
+          type="text" 
+          id="renameProjectInput" 
+          class="rename-modal-input"
+          placeholder="Enter project display name..." 
+          autocomplete="off"
+          autocorrect="off"
+          spellcheck="false"
+        />
+        <p style="font-size:0.75rem; color:#64748b; margin-top:8px; margin-bottom:0; line-height:1.4;">
+          💡 Changes the display title on this card. The project folder and files remain safe and untouched.
+        </p>
+      </div>
+
+      <div style="background:#1e293b; padding:12px 24px; border-top:1px solid #334155; display:flex; justify-content:flex-end; gap:10px; border-radius:0 0 22px 22px;">
+        <button type="button" class="btn-secondary-action" onclick="closeRenameModal()">Cancel</button>
+        <button type="button" class="btn-primary-action" id="btnSaveModalRename" onclick="submitModalRename()">💾 Save Name</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Footer -->
+  <footer>
+    <div>Central Web Projects Hub &bull; Self-Contained Standalone Portal</div>
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <span>Offline Ready</span>
+      <button class="btn-reset-titles" id="btnResetTitles" title="Restore original project titles">Reset Custom Titles</button>
+    </div>
+  </footer>
+
+  <!-- Automatically loads projects list generated by Scan_Projects.bat -->
+  <script src="jszip.min.js"></script>
+  <script src="projects.js"></script>
+  <script>
+    // 100% STANDALONE EMBEDDED PROJECTS LIST (ZERO SERVER REQUIRED)
+    const BUILTIN_PROJECTS = [
+{
+      "id": "admin_boundary_studio",
+      "name": "admin_boundary_studio",
+      "defaultTitle": "Administrative Boundary Studio (Circle, Division & Range Map Layouts)",
+      "entry": "projects/admin_boundary_studio/index.html",
+      "logo": "projects/admin_boundary_studio/LOGO.jpeg",
+      "size": "42.5 MB",
+      "fileCount": 52,
+      "tags": [
+            "GIS & Maps",
+            "Web App"
+      ]
+},
+      {
+        id: "division clip",
+        name: "division clip",
+        defaultTitle: "Division Extractor & Disc Image File / Raster Clip Studio",
+        entry: "projects/division clip/index.html",
+        logo: "projects/division clip/LOGO.jpeg",
+        size: "901.7 MB",
+        fileCount: 29,
+        tags: ["GIS & Maps", "Web App"]
+      },
+      {
+        id: "forest_asset_studio",
+        name: "forest_asset_studio",
+        defaultTitle: "Forest Assets Mapping",
+        entry: "projects/Forest_Assets_Mapping/index.html",
+        logo: "projects/Forest_Assets_Mapping/LOGO.jpeg",
+        size: "83.2 MB",
+        fileCount: 59,
+        tags: ["GIS & Maps", "Web App"]
+      },
+      {
+        id: "IT WING- IMPORTANT ISSUE MONITORING SYSTEM",
+        name: "IT WING- IMPORTANT ISSUE MONITORING SYSTEM",
+        defaultTitle: "IT WING- IMPORTANT ISSUE MONITORING SYSTEM",
+        entry: "projects/IT WING- IMPORTANT ISSUE MONITORING SYSTEM/index.html",
+        logo: null,
+        size: "50 KB",
+        fileCount: 4,
+        tags: ["Web App"]
+      },
+      {
+        id: "IT_Equipments_Dashboard",
+        name: "IT_Equipments_Dashboard",
+        defaultTitle: "IT Equipments",
+        entry: "projects/IT_Equipments_Dashboard/index.html",
+        logo: null,
+        size: "174 KB",
+        fileCount: 2,
+        tags: ["Web App"]
+      },
+      {
+        id: "KML_Overlap_Analyzer",
+        name: "KML_Overlap_Analyzer",
+        defaultTitle: "KML Overlap & Cadastral Analyzer",
+        entry: "projects/KML_Overlap_Analyzer/index.html",
+        logo: null,
+        size: "323 KB",
+        fileCount: 11,
+        tags: ["GIS & Maps", "Web App"]
+      },
+      {
+        id: "mbox",
+        name: "mbox",
+        defaultTitle: "Flash Reports Monitoring (from 01.01.2026) - Tamil Nadu Forest Department",
+        entry: "projects/mbox/index.html",
+        logo: null,
+        size: "152.5 MB",
+        fileCount: 71,
+        tags: ["Web App"]
+      },
+      {
+        id: "Meeting_Dashboard",
+        name: "Meeting_Dashboard",
+        defaultTitle: "Meeting Schedule Dashboard | One-View Slot Management",
+        entry: "projects/Meeting_Dashboard/index.html",
+        logo: null,
+        size: "551 KB",
+        fileCount: 6,
+        tags: ["Excel / Data", "Web App"]
+      },
+      {
+        id: "Requirment Dashboard",
+        name: "Requirment Dashboard",
+        defaultTitle: "IT Requirment",
+        entry: "projects/Requirment Dashboard/index.html",
+        logo: null,
+        size: "7.6 MB",
+        fileCount: 29,
+        tags: ["Excel / Data", "Analytics", "Sync Tools", "Web App"]
+      },
+      {
+        id: "RFRL DASHBOARD",
+        name: "RFRL DASHBOARD",
+        defaultTitle: "Reserved Forest (RF) & Reserved Land (RL) Dashboard - Tamil Nadu Forest Department",
+        entry: "projects/RFRL DASHBOARD/index.html",
+        logo: null,
+        size: "5.8 MB",
+        fileCount: 19,
+        tags: ["GIS & Maps", "Excel / Data", "Analytics", "Sync Tools", "Web App"]
+      },
+      {
+        id: "RFRL spread Sheet  dashboard",
+        name: "RFRL spread Sheet  dashboard",
+        defaultTitle: "RF & RL KML Verification Dashboard",
+        entry: "projects/RFRL spread Sheet  dashboard/index.html",
+        logo: null,
+        size: "243 KB",
+        fileCount: 8,
+        tags: ["Excel / Data", "Analytics", "Web App"]
+      },
+      {
+        id: "URGENT ISSUES MONITORING",
+        name: "URGENT ISSUES MONITORING",
+        defaultTitle: "Urgent Issues Monitoring Portal - Head Office",
+        entry: "projects/URGENT ISSUES MONITORING/index.html",
+        logo: "projects/URGENT ISSUES MONITORING/logo.jpg",
+        size: "150 KB",
+        fileCount: 6,
+        tags: ["Web App"]
+      },
+      {
+        id: "GIS_CLASS",
+        name: "GIS_CLASS",
+        defaultTitle: "Live Session - Host Dashboard",
+        entry: "projects/GIS_CLASS/index.html",
+        logo: null,
+        size: "327 KB",
+        fileCount: 11,
+        tags: ["Web App"]
+      }
+    ];
+
+    // LocalStorage Key for Renamed Titles
+    const STORAGE_KEY = 'gis_portal_titles';
+
+    function getCustomTitles() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? JSON.parse(raw) : {};
+      } catch (e) {
+        return {};
+      }
+    }
+
+    function saveCustomTitle(projectId, newTitle) {
+      try {
+        const titles = getCustomTitles();
+        titles[projectId] = newTitle;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(titles));
+      } catch (e) {
+        console.warn('Could not save to localStorage', e);
+      }
+    }
+
+    function resetCustomTitles() {
+      if (confirm("Reset all project titles back to original names?")) {
+        try {
+          localStorage.removeItem(STORAGE_KEY);
+        } catch (e) {}
+        renderProjects();
+        showToast("Titles reset to original defaults", "success");
+      }
+    }
+
+    // State
+    let currentFilter = 'all';
+    let searchQuery = '';
+
+    // Elements
+    const grid = document.getElementById('projectsGrid');
+    const searchInput = document.getElementById('searchInput');
+    const filterContainer = document.getElementById('filterContainer');
+    const projectCountHeading = document.getElementById('projectCountHeading');
+    const headerCount = document.getElementById('headerCount');
+    const btnResetTitles = document.getElementById('btnResetTitles');
+
+    // Toast Utility
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.innerHTML = message;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(10px)';
+        toast.style.transition = 'all 0.3s';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    // =========================================================================
+    // =========================================================================
+    // OPENED TABS TRACKING (SKETCH 2: EMPTY COVER WITH OPEN ZIP)
+    // =========================================================================
+    const OPENED_PROJECTS_KEY = 'gis_portal_opened_tabs';
+    const openedWindowHandles = {};
+    const lastHeartbeats = {};
+
+    // Detect if running inside Android APK / Mobile App
+    function isMobileApp() {
+      if (typeof window.AndroidBlobDownloader !== 'undefined') return true;
+      if (window.location.protocol === 'file:' && /Android/i.test(navigator.userAgent)) return true;
+      return false;
+    }
+
+    // In Mobile App, there are no browser tabs. Always clear tab tracker so cards remain normally resting inside covers!
+    if (isMobileApp()) {
+      try {
+        localStorage.removeItem(OPENED_PROJECTS_KEY);
+        sessionStorage.removeItem(OPENED_PROJECTS_KEY);
+        const apkBtn = document.getElementById('btnDownloadApk');
+        if (apkBtn) apkBtn.style.display = 'none';
+      } catch (e) {}
+    }
+
+    function getOpenedProjects() {
+      if (isMobileApp()) return {};
+      try {
+        const raw = localStorage.getItem(OPENED_PROJECTS_KEY) || sessionStorage.getItem(OPENED_PROJECTS_KEY);
+        return raw ? JSON.parse(raw) : {};
+      } catch (e) {
+        return {};
+      }
+    }
+
+    function setProjectOpened(id, meta) {
+      if (isMobileApp()) return;
+      try {
+        const map = getOpenedProjects();
+        map[id] = meta || { openedAt: Date.now() };
+        localStorage.setItem(OPENED_PROJECTS_KEY, JSON.stringify(map));
+        sessionStorage.setItem(OPENED_PROJECTS_KEY, JSON.stringify(map));
+      } catch (e) {}
+    }
+
+    const recentClosedProjects = new Set();
+
+    function handleTabClosed(projectId, reason) {
+      const map = getOpenedProjects();
+      if (!map[projectId]) return;
+
+      delete map[projectId];
+      delete openedWindowHandles[projectId];
+      delete lastHeartbeats[projectId];
+
+      try {
+        localStorage.removeItem('tnfd_alive_' + projectId);
+        localStorage.setItem(OPENED_PROJECTS_KEY, JSON.stringify(map));
+        sessionStorage.setItem(OPENED_PROJECTS_KEY, JSON.stringify(map));
+      } catch (e) {}
+
+      recentClosedProjects.add(projectId);
+      renderProjects();
+      setTimeout(() => {
+        recentClosedProjects.delete(projectId);
+      }, 850);
+
+      const loaded = getLoadedProjects();
+      const proj = loaded.find(p => p.id === projectId);
+      const title = proj ? (proj.title || proj.name) : projectId;
+      showToast(`📥 Tab for "${title}" closed — card returned inside cover & zip closed!`, 'info');
+    }
+
+    function returnCardToCover(event, projectId) {
+      if (event) {
+        event.stopPropagation();
+        event.preventDefault();
+      }
+      try {
+        const win = openedWindowHandles[projectId];
+        if (win && !win.closed) {
+          try { win.close(); } catch(e) {}
+        }
+        delete openedWindowHandles[projectId];
+      } catch (e) {}
+
+      handleTabClosed(projectId, 'manual_return');
+    }
+
+    // BroadcastChannel for instant cross-tab communication
+    const portalTabChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('TNFD_PORTAL_SYNC') : null;
+    if (portalTabChannel) {
+      portalTabChannel.onmessage = (event) => {
+        if (!event || !event.data) return;
+        const { type, projectId } = event.data;
+        if (type === 'CLOSED' && projectId) {
+          handleTabClosed(projectId, 'broadcast_close');
+        } else if ((type === 'OPEN' || type === 'HEARTBEAT') && projectId) {
+          lastHeartbeats[projectId] = Date.now();
+        }
+      };
+    }
+
+    // CONTINUOUS BACKGROUND MONITOR:
+    // Automatically watches if opened tabs are closed by the user in the browser.
+    // Checks 3 independent signals:
+    // 1. Live win.closed state
+    // 2. Continuous heartbeat from tabSync.js
+    // 3. Stored tab alive state
+    function checkOpenedTabsInBackground() {
+      if (isMobileApp()) return;
+      const map = getOpenedProjects();
+      const keys = Object.keys(map);
+      if (keys.length === 0) return;
+
+      const now = Date.now();
+
+      for (const projectId of keys) {
+        const win = openedWindowHandles[projectId];
+
+        // Signal 1: Window object reports closed
+        if (win && win.closed) {
+          handleTabClosed(projectId, 'win_closed');
+          continue;
+        }
+
+        // Signal 2 & 3: Heartbeat verification (works even if portal was refreshed or window handle is detached)
+        const meta = map[projectId] || {};
+        const openedAt = meta.openedAt || 0;
+        // Allow a 4-second startup grace period after opening before enforcing heartbeat
+        if (now - openedAt > 4000) {
+          const rawAlive = localStorage.getItem('tnfd_alive_' + projectId);
+          const lastAlive = rawAlive ? Number(rawAlive) : (lastHeartbeats[projectId] || 0);
+
+          if (!lastAlive || (now - lastAlive > 2600)) {
+            // Heartbeat expired => Tab was closed by user in browser!
+            handleTabClosed(projectId, 'heartbeat_expired');
+          }
+        }
+      }
+    }
+
+    // Check continuously in background every 400ms
+    setInterval(checkOpenedTabsInBackground, 400);
+
+    // Auto-update immediately when user switches back to this portal tab
+    window.addEventListener('focus', () => {
+      setTimeout(checkOpenedTabsInBackground, 100);
+    });
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        setTimeout(checkOpenedTabsInBackground, 100);
+      }
+    });
+
+    // Cross-tab storage synchronization
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'tnfd_event_closed' && e.newValue) {
+        try {
+          const data = JSON.parse(e.newValue);
+          if (data && data.id) {
+            handleTabClosed(data.id, 'storage_close_event');
+          }
+        } catch (err) {}
+      } else if (e.key === OPENED_PROJECTS_KEY) {
+        renderProjects();
+      }
+    });
+
+    // Clean up any stale tab states from prior sessions on portal startup
+    (function cleanupStaleTabsOnBoot() {
+      if (isMobileApp()) return;
+      try {
+        const map = getOpenedProjects();
+        const keys = Object.keys(map);
+        if (keys.length === 0) return;
+        const now = Date.now();
+        let changed = false;
+        for (const pid of keys) {
+          const rawAlive = localStorage.getItem('tnfd_alive_' + pid);
+          const lastAlive = rawAlive ? Number(rawAlive) : 0;
+          if (!lastAlive || (now - lastAlive > 2600)) {
+            delete map[pid];
+            localStorage.removeItem('tnfd_alive_' + pid);
+            changed = true;
+          }
+        }
+        if (changed) {
+          localStorage.setItem(OPENED_PROJECTS_KEY, JSON.stringify(map));
+          sessionStorage.setItem(OPENED_PROJECTS_KEY, JSON.stringify(map));
+        }
+      } catch (e) {}
+    })();
+
+    function focusOpenedTab(event, projectId) {
+      if (event) {
+        event.stopPropagation();
+        event.preventDefault();
+      }
+      const project = getLoadedProjects().find(p => p.id === projectId);
+      const title = project ? (project.title || project.name) : projectId;
+      const win = openedWindowHandles[projectId];
+
+      if (win && !win.closed) {
+        win.focus();
+        showToast(`🔍 Switched to opened tab: "${title}"`, 'success');
+      } else {
+        // Tab is not open! Return card to normal!
+        returnCardToCover(event, projectId);
+        showToast(`ℹ️ Project tab was closed — card returned to normal!`, 'info');
+      }
+    }
+
+    // Helper to get projects list (from projects.js or built-in fallback)
+    function getLoadedProjects() {
+      if (window.ALL_PROJECTS && Array.isArray(window.ALL_PROJECTS) && window.ALL_PROJECTS.length > 0) {
+        return window.ALL_PROJECTS;
+      }
+      return BUILTIN_PROJECTS;
+    }
+
+    // Render Projects
+    function renderProjects() {
+      const customTitles = getCustomTitles();
+      const sourceProjects = getLoadedProjects();
+      const openedMap = getOpenedProjects();
+
+      const projects = sourceProjects.map(p => {
+        const title = customTitles[p.id] || p.title || p.defaultTitle || p.name;
+        return { ...p, title };
+      });
+
+      const filtered = projects.filter(p => {
+        const matchesFilter = (currentFilter === 'all') || (p.tags && p.tags.includes(currentFilter));
+        const q = searchQuery.toLowerCase().trim();
+        const matchesSearch = !q ||
+          (p.title && p.title.toLowerCase().includes(q)) ||
+          (p.name && p.name.toLowerCase().includes(q)) ||
+          (p.tags && p.tags.some(t => t.toLowerCase().includes(q)));
+        return matchesFilter && matchesSearch;
+      });
+
+      projectCountHeading.textContent = `${filtered.length} Projects Available`;
+      headerCount.textContent = `${projects.length} Projects Ready`;
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `
+          <div class="empty-state">
+            <h3>No matching projects found</h3>
+            <p>Try clearing your search query or selecting "All Projects".</p>
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = filtered.map((p, idx) => {
+        const iconHtml = p.logo 
+          ? `<img src="${encodeURI(p.logo)}" alt="Logo" onerror="this.onerror=null;this.parentElement.innerHTML='🌐';" />`
+          : getCategoryIcon(p.tags);
+
+        const tagsHtml = (p.tags || []).map(t => {
+          let c = '';
+          if (t.includes('GIS') || t.includes('KML')) c = 'gis';
+          else if (t.includes('Excel')) c = 'excel';
+          else if (t.includes('Analytics')) c = 'analytics';
+          else if (t.includes('Sync')) c = 'sync';
+          return `<span class="tag ${c}">${t}</span>`;
+        }).join('');
+
+        // Category Theme Class - Attractive & Consistent for Existing and Upcoming Projects
+        let themeClass = 'theme-default';
+        const nameLower = (p.name || '').toLowerCase();
+        const titleLower = (p.title || '').toLowerCase();
+        const pTags = p.tags || [];
+
+        if (nameLower.includes('urgent') || titleLower.includes('urgent') || nameLower.includes('important issue') || titleLower.includes('important issue')) {
+          themeClass = 'theme-urgent';
+        } else if (pTags.some(t => t.includes('Analytics')) || nameLower.includes('requirment') || nameLower.includes('report') || nameLower.includes('chart')) {
+          themeClass = 'theme-analytics';
+        } else if (pTags.some(t => t.includes('GIS') || t.includes('KML')) || nameLower.includes('gis') || nameLower.includes('clip') || nameLower.includes('kml') || nameLower.includes('rfrl')) {
+          themeClass = 'theme-gis';
+        } else if (pTags.some(t => t.includes('Excel')) || nameLower.includes('sheet') || nameLower.includes('meeting')) {
+          themeClass = 'theme-excel';
+        } else if (pTags.some(t => t.includes('Sync')) || nameLower.includes('sync')) {
+          themeClass = 'theme-sync';
+        } else if (nameLower.includes('equipment')) {
+          themeClass = 'theme-default';
+        } else {
+          // Deterministic vibrant fallback cycle so any new or upcoming imported project takes the exact same attractive pattern
+          const paletteCycle = ['theme-default', 'theme-gis', 'theme-excel', 'theme-analytics', 'theme-sync', 'theme-urgent'];
+          const hashVal = (p.name || '').split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+          themeClass = paletteCycle[hashVal % paletteCycle.length];
+        }
+
+        // Multi-directional 3D trajectories: falling separated from left, right, and center
+        // Rather than a single chain, staggered multi-directional waves so cards fall concurrently from different sides and lock into rows & columns
+        const trajectoryList = ['fall-left', 'fall-right', 'fall-center', 'fall-right', 'fall-left', 'fall-center'];
+        const delayList = [0.06, 0.28, 0.14, 0.40, 0.22, 0.52, 0.32, 0.62, 0.38, 0.72];
+        const trajClass = trajectoryList[idx % trajectoryList.length];
+        const animDelay = (delayList[idx % delayList.length]).toFixed(2);
+
+        // SKETCH 2: IF CARD IS ALREADY OPENED IN A TAB -> SHOW EMPTY COVER WITH OPEN ZIP (Desktop Only)
+        const isOpenedInTab = !isMobileApp() && !!openedMap[p.id];
+
+        if (isOpenedInTab) {
+          return `
+            <div class="project-card ${themeClass} ${trajClass} card-cover-empty" style="animation-delay: ${animDelay}s;" data-project-id="${p.id}" data-entry="${encodeURI(p.entry)}" ondblclick="focusOpenedTab(event, '${escapeQuotes(p.id)}')">
+              <!-- 3D POCKET CAP WITH METALLIC ZIPPER (REMAINS FULLY OPEN) -->
+              <div class="pocket-cap">
+                <div class="pocket-stud pocket-stud-left"></div>
+                <div class="pocket-zip-track">
+                  <div class="pocket-zip-teeth"></div>
+                  <div class="pocket-zip-slider" style="transform: translateY(-50%) translateX(240px);">
+                    <div class="pocket-zip-tag">⚡</div>
+                  </div>
+                </div>
+                <div class="pocket-stud pocket-stud-right"></div>
+                <div class="pocket-cap-edge"></div>
+              </div>
+
+              <!-- POCKET MOUTH COLLAR TRIM (OPENED MOUTH) -->
+              <div class="pocket-mouth-trim"></div>
+
+              <!-- EMPTY INTERIOR (SKETCH 2: COVER IS HERE ONLY, CARD INSIDE IS NOT) -->
+              <div class="cover-empty-interior">
+                <div class="empty-cover-status">
+                  <span class="status-pulse-dot"></span>
+                  CARD OPENED IN TAB
+                </div>
+
+                <div>
+                  <div class="empty-cover-title">${p.title}</div>
+                  <div class="empty-cover-note">📂 Card extracted from cover &amp; active in browser tab</div>
+                </div>
+
+                <div class="empty-cover-actions">
+                  <button class="btn-focus-tab" type="button" onclick="focusOpenedTab(event, '${escapeQuotes(p.id)}')">
+                    <span>🔍 Switch / View Tab</span>
+                  </button>
+                  <button class="btn-return-card" type="button" onclick="returnCardToCover(event, '${escapeQuotes(p.id)}')">
+                    <span>↩ Return Card to Cover</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+
+        const isReturningAnim = recentClosedProjects.has(p.id) ? 'is-closing-zip' : '';
+        const delayStyle = isReturningAnim ? 'animation-delay: 0s;' : `animation-delay: ${animDelay}s;`;
+
+        // NORMAL POCKET CARD (CARD RESTING INSIDE COVER)
+        return `
+          <div class="project-card ${themeClass} ${trajClass} ${isReturningAnim}" style="${delayStyle}" data-project-id="${p.id}" data-entry="${encodeURI(p.entry)}">
+            <!-- 3D POCKET CAP WITH METALLIC ZIPPER -->
+            <div class="pocket-cap">
+              <div class="pocket-stud pocket-stud-left"></div>
+              <div class="pocket-zip-track">
+                <div class="pocket-zip-teeth"></div>
+                <div class="pocket-zip-slider">
+                  <div class="pocket-zip-tag">⚡</div>
+                </div>
+              </div>
+              <div class="pocket-stud pocket-stud-right"></div>
+              <div class="pocket-cap-edge"></div>
+            </div>
+
+            <!-- POCKET MOUTH COLLAR TRIM -->
+            <div class="pocket-mouth-trim"></div>
+
+            <!-- INNER PROJECT CARD (SKETCH 1: SLIDES STRAIGHT UP FROM TOP WITH ZERO ZOOM) -->
+            <div class="pocket-inner-card">
+              <div class="card-accent-strip"></div>
+              <div>
+                <div class="card-top">
+                  <div class="card-icon-title">
+                    <div class="card-icon">${iconHtml}</div>
+                    <div class="card-names">
+                      <span class="folder-badge" title="${p.name}">📁 ${p.name}</span>
+                    </div>
+                  </div>
+                  <div class="card-actions-group">
+                    <button class="btn-card-delete" type="button" onclick="deleteProject(event, '${escapeQuotes(p.id)}', '${escapeQuotes(p.name)}')" title="Delete project card & folder">
+                      🗑️ Delete
+                    </button>
+                    <button class="btn-card-rename" type="button" onclick="openRenameModal(event, '${escapeQuotes(p.id)}')" title="Rename project display title">
+                      ✏️ Rename
+                    </button>
+                  </div>
+                </div>
+
+                <div class="card-title-row" id="titleRow_${escapeId(p.id)}">
+                  <div class="card-title" title="Tap Rename button or long-press to rename" ondblclick="openRenameModal(event, '${escapeQuotes(p.id)}')">
+                    ${p.title}
+                  </div>
+                  <div class="title-rename-hint" onclick="openRenameModal(event, '${escapeQuotes(p.id)}')">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    Tap ✏️ Rename or long-press
+                  </div>
+                </div>
+
+                <div class="card-tags">
+                  ${tagsHtml}
+                </div>
+              </div>
+
+              <div class="card-footer">
+                <div class="card-stats">
+                  <span>${p.size || '0 B'}</span>
+                  <span>&bull;</span>
+                  <span>${p.fileCount || 0} files</span>
+                </div>
+                <div class="launch-hint" title="Double-click to open project">
+                  <span>⚡ Double-click to open</span>
+                  <span>&rarr;</span>
+                </div>
+              </div>
+
+              <!-- Emergence status indicator -->
+              <div class="launch-status-pill">
+                <span>🚀 Launching in New Tab...</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Add double-click open and long-press to rename handlers
+      document.querySelectorAll('.project-card').forEach(card => {
+        const projectId = card.getAttribute('data-project-id');
+        const isOpened = card.classList.contains('card-cover-empty');
+
+        if (isOpened) {
+          // If already opened, single or double click focuses the existing tab (cannot re-open duplicate!)
+          card.addEventListener('click', (e) => {
+            if (e.target.closest('.btn-focus-tab') || e.target.closest('.btn-return-card')) return;
+            focusOpenedTab(e, projectId);
+          });
+          return;
+        }
+
+        function launchProject() {
+          if (card._isOpening) return;
+          card._isOpening = true;
+
+          const entry = card.getAttribute('data-entry');
+          if (!entry) {
+            card._isOpening = false;
+            return;
+          }
+
+          // Trigger 2.5-second sequence: zip unzips full, card pulls straight up out of cover (NO ZOOM)
+          card.classList.add('is-opening');
+
+          if (navigator.vibrate) {
+            try { navigator.vibrate([40, 70, 90]); } catch(err) {}
+          }
+
+          // 2.5-second sequence as requested ("take 0.5s more")
+          setTimeout(() => {
+            if (isMobileApp()) {
+              // Mobile Android app: no browser tabs!
+              // Card has cleanly unzipped and slid up, now open project directly inside app
+              if (window.AndroidBlobDownloader && typeof window.AndroidBlobDownloader.openProject === 'function') {
+                window.AndroidBlobDownloader.openProject(decodeURIComponent(entry));
+              } else {
+                window.location.href = entry;
+              }
+              // Reset card state so when user clicks green return button (btnHome), card is rested in cover!
+              card.classList.remove('is-opening');
+              card._isOpening = false;
+              return;
+            }
+
+            let win = window.open(entry, 'proj_tab_' + escapeId(projectId));
+            if (win) {
+              openedWindowHandles[projectId] = win;
+            }
+
+            const now = Date.now();
+            lastHeartbeats[projectId] = now;
+            try {
+              localStorage.setItem('tnfd_alive_' + projectId, now.toString());
+            } catch (e) {}
+
+            // Mark project as opened in tab, so cover stays in grid with zip open and no card inside!
+            const project = getLoadedProjects().find(p => p.id === projectId);
+            setProjectOpened(projectId, { 
+              title: project ? (project.title || project.name) : projectId,
+              openedAt: now
+            });
+
+            // Re-render UI: Cover remains in same spot, zip opened, no card inside (Sketch 2)
+            renderProjects();
+          }, 2500); // Exactly 2.5 seconds
+        }
+
+        let pressTimer = null;
+        let isLongPress = false;
+        let startX = 0, startY = 0;
+        let didMove = false;
+        let lastTapTime = 0;
+
+        function startPress(e) {
+          if (e.target.closest('.btn-card-rename') || 
+              e.target.closest('.btn-card-delete') || 
+              e.target.closest('.title-rename-hint')) {
+            return;
+          }
+          isLongPress = false;
+          didMove = false;
+          if (e.touches && e.touches[0]) {
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+          } else {
+            startX = e.clientX;
+            startY = e.clientY;
+          }
+          clearTimeout(pressTimer);
+          pressTimer = setTimeout(() => {
+            if (!didMove) {
+              isLongPress = true;
+              card.style.transform = 'scale(0.98)';
+              setTimeout(() => { card.style.transform = ''; }, 200);
+              if (navigator.vibrate) {
+                try { navigator.vibrate(60); } catch(err) {}
+              }
+              openRenameModal(e, projectId);
+            }
+          }, 450); // 450ms long press to rename
+        }
+
+        function cancelPress() {
+          clearTimeout(pressTimer);
+        }
+
+        function movePress(e) {
+          let curX = 0, curY = 0;
+          if (e.touches && e.touches[0]) {
+            curX = e.touches[0].clientX;
+            curY = e.touches[0].clientY;
+          } else {
+            curX = e.clientX;
+            curY = e.clientY;
+          }
+          if (Math.abs(curX - startX) > 10 || Math.abs(curY - startY) > 10) {
+            didMove = true;
+            clearTimeout(pressTimer);
+          }
+        }
+
+        // Touch handlers for mobile
+        card.addEventListener('touchstart', startPress, { passive: true });
+        card.addEventListener('touchmove', movePress, { passive: true });
+        card.addEventListener('touchend', (e) => {
+          clearTimeout(pressTimer);
+          if (isLongPress) {
+            e.preventDefault();
+            e.stopPropagation();
+            setTimeout(() => { isLongPress = false; }, 300);
+            return;
+          }
+          if (e.target.closest('.btn-card-rename') || 
+              e.target.closest('.btn-card-delete') || 
+              e.target.closest('.title-rename-hint')) {
+            return;
+          }
+          const now = Date.now();
+          if (now - lastTapTime < 350) {
+            // Double-tap detected on touch screen
+            e.preventDefault();
+            launchProject();
+          }
+          lastTapTime = now;
+        });
+        card.addEventListener('touchcancel', cancelPress);
+        card.addEventListener('contextmenu', (e) => {
+          e.preventDefault();
+        });
+
+        // Mouse handlers for desktop
+        card.addEventListener('mousedown', startPress);
+        card.addEventListener('mousemove', movePress);
+        card.addEventListener('mouseup', cancelPress);
+        card.addEventListener('mouseleave', cancelPress);
+
+        // ONLY double-click opens the project with pocket sequence
+        card.addEventListener('dblclick', (e) => {
+          if (e.target.closest('.btn-card-rename') || 
+              e.target.closest('.btn-card-delete') || 
+              e.target.closest('.title-rename-hint')) {
+            return;
+          }
+          launchProject();
+        });
+      });
+    }
+
+    // =========================================================================
+    // DEDICATED RENAME MODAL DIALOG (100% RELIABLE KEYBOARD & NO CARD CLASH)
+    // =========================================================================
+    let currentRenamingProjectId = null;
+
+    function openRenameModal(e, projectId) {
+      if (e) {
+        e.stopPropagation();
+        e.preventDefault();
+      }
+      currentRenamingProjectId = projectId;
+      const project = getLoadedProjects().find(p => p.id === projectId);
+      if (!project) return;
+
+      const customTitles = getCustomTitles();
+      const currentTitle = customTitles[projectId] || project.title || project.defaultTitle || project.name;
+
+      const modal = document.getElementById('renameModal');
+      const input = document.getElementById('renameProjectInput');
+      const folderHint = document.getElementById('renameModalFolderHint');
+
+      if (folderHint) folderHint.textContent = `Folder: ${project.name}`;
+      if (input) input.value = currentTitle;
+      if (modal) modal.style.display = 'flex';
+
+      // Focus and trigger virtual keyboard reliably in WebView
+      setTimeout(() => {
+        if (input) {
+          input.focus();
+          try {
+            input.setSelectionRange(0, input.value.length);
+          } catch(err) {}
+        }
+      }, 80);
+    }
+
+    function closeRenameModal() {
+      const modal = document.getElementById('renameModal');
+      if (modal) modal.style.display = 'none';
+      currentRenamingProjectId = null;
+    }
+
+    function handleRenameBackdropClick(e) {
+      if (e.target.id === 'renameModal') {
+        closeRenameModal();
+      }
+    }
+
+    function submitModalRename() {
+      if (!currentRenamingProjectId) return;
+      const input = document.getElementById('renameProjectInput');
+      if (!input) return;
+
+      const newTitle = input.value.trim();
+      if (!newTitle) {
+        showToast('⚠️ Project title cannot be empty', 'error');
+        return;
+      }
+
+      saveCustomTitle(currentRenamingProjectId, newTitle);
+      closeRenameModal();
+      renderProjects();
+      showToast(`✅ Renamed to "${newTitle}"`, 'success');
+    }
+
+    // Global keyboard listener for modal
+    document.addEventListener('keydown', (e) => {
+      const renameModal = document.getElementById('renameModal');
+      if (renameModal && renameModal.style.display === 'flex') {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          submitModalRename();
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          closeRenameModal();
+        }
+      }
+    });
+
+    function getCategoryIcon(tags = []) {
+      if (tags.some(t => t.includes('GIS') || t.includes('KML'))) return '🗺️';
+      if (tags.some(t => t.includes('Excel'))) return '📊';
+      if (tags.some(t => t.includes('Analytics'))) return '📈';
+      return '💻';
+    }
+
+    function escapeQuotes(str) {
+      return (str || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    }
+
+    function escapeId(str) {
+      return (str || '').replace(/[^a-zA-Z0-9_-]/g, '_');
+    }
+
+    // =========================================================================
+    // IMPORT PROJECT (.ZIP) & STORAGE INTEGRATION
+    // =========================================================================
+    const IMPORTED_STORAGE_KEY = 'gis_portal_imported_projects';
+    let currentZipFile = null;
+    let detectedProjectInfo = null;
+
+    function getImportedProjects() {
+      try {
+        const raw = localStorage.getItem(IMPORTED_STORAGE_KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveImportedProject(proj) {
+      try {
+        const list = getImportedProjects().filter(p => p.id !== proj.id);
+        list.push(proj);
+        localStorage.setItem(IMPORTED_STORAGE_KEY, JSON.stringify(list));
+      } catch (e) {}
+    }
+
+    function openImportModal() {
+      currentZipFile = null;
+      detectedProjectInfo = null;
+      const modal = document.getElementById('importModal');
+      const preview = document.getElementById('zipPreviewCard');
+      const title = document.getElementById('dropzoneTitle');
+      const fileInput = document.getElementById('zipFileInput');
+      if (fileInput) fileInput.value = '';
+      if (preview) preview.style.display = 'none';
+      if (title) title.textContent = 'Click to choose or drag & drop project .zip here';
+      if (modal) modal.style.display = 'flex';
+    }
+
+    function closeImportModal() {
+      const modal = document.getElementById('importModal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    function handleModalBackdropClick(e) {
+      if (e.target.id === 'importModal') {
+        closeImportModal();
+      }
+    }
+
+    // Drag and drop for ZIP dropzone
+    const dropzone = document.getElementById('zipDropzone');
+    if (dropzone) {
+      ['dragenter', 'dragover'].forEach(name => {
+        dropzone.addEventListener(name, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dropzone.classList.add('dragover');
+        });
+      });
+      ['dragleave', 'drop'].forEach(name => {
+        dropzone.addEventListener(name, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dropzone.classList.remove('dragover');
+        });
+      });
+      dropzone.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        if (dt && dt.files && dt.files.length > 0) {
+          const file = dt.files[0];
+          if (file.name.toLowerCase().endsWith('.zip')) {
+            processZipFile(file);
+          } else {
+            showToast('Please drop a valid .zip archive file', 'error');
+          }
+        }
+      });
+    }
+
+    function handleZipSelected(e) {
+      const file = e.target.files[0];
+      if (file) {
+        processZipFile(file);
+      }
+    }
+
+    function formatBytes(bytes) {
+      if (!bytes || bytes === 0) return '0 B';
+      if (bytes > 1024 * 1024 * 1024) return (bytes / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
+      if (bytes > 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+      if (bytes > 1024) return (bytes / 1024).toFixed(0) + ' KB';
+      return bytes + ' B';
+    }
+
+    async function processZipFile(file) {
+      currentZipFile = file;
+      const titleEl = document.getElementById('dropzoneTitle');
+      if (titleEl) titleEl.textContent = `📦 Loaded: ${file.name} (${formatBytes(file.size)})`;
+
+      if (typeof JSZip === 'undefined') {
+        showToast('JSZip library not found. Please refresh the page.', 'error');
+        return;
+      }
+
+      showToast('Inspecting project ZIP contents...', 'info');
+
+      try {
+        const zip = await JSZip.loadAsync(file);
+        const fileNames = Object.keys(zip.files);
+        const nonDirs = fileNames.filter(f => !zip.files[f].dir);
+
+        // Detect root folder
+        const zipStem = file.name.replace(/\.zip$/i, '');
+        let detectedFolder = zipStem;
+        let rootPrefix = '';
+
+        // Check if all files are inside a single top-level folder
+        const topParts = new Set();
+        fileNames.forEach(fn => {
+          const parts = fn.split('/').filter(Boolean);
+          if (parts.length > 0) topParts.add(parts[0]);
+        });
+        if (topParts.size === 1) {
+          const singleTop = Array.from(topParts)[0];
+          detectedFolder = singleTop;
+          rootPrefix = singleTop + '/';
+        }
+
+        // Find entry point HTML
+        let entryFile = 'index.html';
+        let foundEntry = false;
+        let entryCandidate = nonDirs.find(f => {
+          const rel = rootPrefix ? f.replace(rootPrefix, '') : f;
+          return rel.toLowerCase() === 'index.html';
+        });
+
+        if (!entryCandidate) {
+          entryCandidate = nonDirs.find(f => f.toLowerCase().endsWith('.html'));
+        }
+        if (entryCandidate) {
+          entryFile = rootPrefix ? entryCandidate.replace(rootPrefix, '') : entryCandidate;
+          foundEntry = true;
+        }
+
+        // Detect project title from HTML <title>
+        let detectedTitle = detectedFolder;
+        if (entryCandidate && zip.files[entryCandidate]) {
+          try {
+            const htmlText = await zip.files[entryCandidate].async('text');
+            const titleMatch = htmlText.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+            if (titleMatch && titleMatch[1]) {
+              const clean = titleMatch[1].replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').trim();
+              if (clean.length > 2) detectedTitle = clean;
+            }
+          } catch (e) {}
+        }
+
+        // Detect logo
+        let detectedLogo = null;
+        const logoCandidate = nonDirs.find(f => {
+          const lower = f.toLowerCase();
+          return lower.endsWith('/logo.jpeg') || lower.endsWith('/logo.jpg') || lower.endsWith('/logo.png') || lower.endsWith('logo.jpeg') || lower.endsWith('logo.jpg') || lower.endsWith('logo.png');
+        });
+        if (logoCandidate) {
+          detectedLogo = rootPrefix ? logoCandidate.replace(rootPrefix, '') : logoCandidate;
+        }
+
+        // Detect tags
+        const tags = ['Web App'];
+        if (nonDirs.some(f => /\.(kml|kmz|shp|img|tif|geojson)$/i.test(f))) tags.push('GIS & Maps');
+        if (nonDirs.some(f => /\.(xlsx|xls|csv)$/i.test(f))) tags.push('Excel / Data');
+        if (nonDirs.some(f => /chart/i.test(f))) tags.push('Analytics');
+        if (nonDirs.some(f => /\.(py|bat)$/i.test(f))) tags.push('Sync Tools');
+
+        detectedProjectInfo = {
+          id: detectedFolder,
+          name: detectedFolder,
+          title: detectedTitle,
+          entry: `projects/${detectedFolder}/${entryFile}`,
+          logo: detectedLogo ? `projects/${detectedFolder}/${detectedLogo}` : null,
+          size: formatBytes(file.size),
+          fileCount: nonDirs.length,
+          tags: tags,
+          rootPrefix: rootPrefix
+        };
+
+        // Render in preview
+        document.getElementById('previewTitle').textContent = detectedTitle;
+        document.getElementById('previewFolderBadge').textContent = `📁 projects/${detectedFolder}`;
+        document.getElementById('previewStats').textContent = `${nonDirs.length} files • ${formatBytes(file.size)}`;
+        document.getElementById('previewEntry').textContent = entryFile;
+        document.getElementById('previewTags').textContent = tags.join(', ');
+        document.getElementById('zipPreviewCard').style.display = 'block';
+
+        showToast(`✅ Detected "${detectedTitle}" (${nonDirs.length} files)`, 'success');
+      } catch (err) {
+        console.error('Error reading ZIP:', err);
+        showToast('Error reading ZIP file: ' + err.message, 'error');
+      }
+    }
+
+    async function extractZipToProjectsFolder() {
+      if (!currentZipFile || !detectedProjectInfo) {
+        showToast('Please select a project ZIP first', 'error');
+        return;
+      }
+
+      if (!window.showDirectoryPicker) {
+        alert('Your browser does not support the File System Access API. Please use "Import_Project.bat" or extract into the projects/ folder manually, then click Add Project Card!');
+        return;
+      }
+
+      try {
+        let projectsDir = window.savedProjectsDirHandle;
+        if (!projectsDir) {
+          showToast('Select your "projects" or "GIS_Projects" folder on disk...', 'info');
+          const picked = await window.showDirectoryPicker({ mode: 'readwrite' });
+          if (picked.name.toLowerCase() === 'projects') {
+            projectsDir = picked;
+          } else {
+            try {
+              projectsDir = await picked.getDirectoryHandle('projects', { create: true });
+            } catch (e) {
+              projectsDir = picked;
+            }
+          }
+          window.savedProjectsDirHandle = projectsDir;
+        }
+
+        showToast(`Unpacking "${detectedProjectInfo.name}" into projects/ directory...`, 'info');
+        const zip = await JSZip.loadAsync(currentZipFile);
+        const folderHandle = await projectsDir.getDirectoryHandle(detectedProjectInfo.name, { create: true });
+
+        const nonDirs = Object.keys(zip.files).filter(k => !zip.files[k].dir);
+        let extracted = 0;
+
+        for (const filePath of nonDirs) {
+          let cleanPath = filePath.replace(/\\/g, '/');
+          if (detectedProjectInfo.rootPrefix && cleanPath.startsWith(detectedProjectInfo.rootPrefix)) {
+            cleanPath = cleanPath.slice(detectedProjectInfo.rootPrefix.length);
+          }
+          if (!cleanPath || cleanPath.startsWith('.')) continue;
+
+          const parts = cleanPath.split('/').filter(Boolean);
+          let currentDir = folderHandle;
+          for (let i = 0; i < parts.length - 1; i++) {
+            currentDir = await currentDir.getDirectoryHandle(parts[i], { create: true });
+          }
+          const fileName = parts[parts.length - 1];
+          const fileHandle = await currentDir.getFileHandle(fileName, { create: true });
+          const writable = await fileHandle.createWritable();
+          const blob = await zip.files[filePath].async('blob');
+          await writable.write(blob);
+          await writable.close();
+          extracted++;
+        }
+
+        saveImportedProject(detectedProjectInfo);
+        renderProjects();
+        closeImportModal();
+        showToast(`🎉 Unzipped ${extracted} files into projects/${detectedProjectInfo.name} and added card!`, 'success');
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          console.error('Extraction error:', err);
+          showToast('Extraction error: ' + err.message, 'error');
+        }
+      }
+    }
+
+    async function deleteProject(event, projectId, projectName) {
+      if (event) {
+        event.stopPropagation();
+        event.preventDefault();
+      }
+
+      if (!confirm(`Are you sure you want to delete project "${projectName}"?\n\nThis will remove the project card from the portal and delete its folder from "projects/" directory.`)) {
+        return;
+      }
+
+      let diskDeleted = false;
+      if (window.showDirectoryPicker) {
+        try {
+          let projectsDir = window.savedProjectsDirHandle;
+          if (!projectsDir) {
+            showToast('Select your "projects" or "GIS_Projects" folder to confirm deletion from disk...', 'info');
+            const picked = await window.showDirectoryPicker({ mode: 'readwrite' });
+            if (picked.name.toLowerCase() === 'projects') {
+              projectsDir = picked;
+            } else {
+              try {
+                projectsDir = await picked.getDirectoryHandle('projects', { create: false });
+              } catch (e) {
+                projectsDir = picked;
+              }
+            }
+            window.savedProjectsDirHandle = projectsDir;
+          }
+
+          if (projectsDir) {
+            await projectsDir.removeEntry(projectName, { recursive: true });
+            diskDeleted = true;
+          }
+        } catch (err) {
+          if (err.name !== 'AbortError' && err.name !== 'NotFoundError') {
+            console.warn('Direct disk deletion notice:', err);
+          }
+        }
+      }
+
+      // 1. Remove from imported localStorage
+      const imported = getImportedProjects().filter(p => p.id !== projectId && p.name !== projectName);
+      localStorage.setItem(IMPORTED_STORAGE_KEY, JSON.stringify(imported));
+
+      // 2. Remove from in-memory list if present
+      if (window.ALL_PROJECTS && Array.isArray(window.ALL_PROJECTS)) {
+        window.ALL_PROJECTS = window.ALL_PROJECTS.filter(p => p.id !== projectId && p.name !== projectName);
+      }
+
+      // 3. Remove custom title
+      const titles = getCustomTitles();
+      delete titles[projectId];
+      delete titles[projectName];
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(titles));
+
+      // 4. Re-render UI
+      renderProjects();
+
+      if (diskDeleted) {
+        showToast(`🗑️ Deleted project "${projectName}" card and folder from disk!`, 'success');
+      } else {
+        showToast(`🗑️ Project card "${projectName}" removed! (Run Delete_Project.bat if folder remains on disk)`, 'info');
+      }
+    }
+
+    function addProjectCardOnly() {
+      if (!detectedProjectInfo) return;
+      saveImportedProject(detectedProjectInfo);
+      renderProjects();
+      closeImportModal();
+      showToast(`✅ Added card for "${detectedProjectInfo.title}". Ensure folder is in projects/!`, 'success');
+    }
+
+    // Helper to get projects list (from projects.js, built-in fallback, and imported)
+    function getLoadedProjects() {
+      let base = (window.ALL_PROJECTS && Array.isArray(window.ALL_PROJECTS) && window.ALL_PROJECTS.length > 0)
+        ? [...window.ALL_PROJECTS]
+        : [...BUILTIN_PROJECTS];
+
+      const imported = getImportedProjects();
+      if (imported.length > 0) {
+        const existingIds = new Set(base.map(p => p.id));
+        for (const p of imported) {
+          if (!existingIds.has(p.id)) {
+            base.push(p);
+            existingIds.add(p.id);
+          }
+        }
+      }
+      return base;
+    }
+
+    // Event Listeners
+    searchInput.addEventListener('input', (e) => {
+      searchQuery = e.target.value;
+      renderProjects();
+    });
+
+    filterContainer.addEventListener('click', (e) => {
+      const btn = e.target.closest('.filter-pill');
+      if (!btn) return;
+      document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      currentFilter = btn.getAttribute('data-filter');
+      renderProjects();
+    });
+
+    btnResetTitles.addEventListener('click', resetCustomTitles);
+
+    // =========================================================================
+    // MOUSE DRAG-TO-SCROLL (DRAG UP / DOWN WITH MOUSE TO SCROLL)
+    // =========================================================================
+    function initMouseDragToScroll() {
+      let isDragging = false;
+      let startY = 0;
+      let initialScrollY = 0;
+      let movedDistance = 0;
+
+      window.addEventListener('mousedown', (e) => {
+        if (e.button !== 0) return; // Only primary mouse button
+
+        // Ignore interactive inputs, buttons, and links
+        if (e.target.closest('input, textarea, select, button, a, .btn-card-rename, .btn-card-delete, .modal-backdrop')) {
+          return;
+        }
+
+        isDragging = true;
+        movedDistance = 0;
+        startY = e.clientY;
+        initialScrollY = window.pageYOffset || document.documentElement.scrollTop;
+      }, { passive: true });
+
+      window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        const deltaY = e.clientY - startY;
+        movedDistance = Math.abs(deltaY);
+
+        if (movedDistance > 4) {
+          document.body.classList.add('is-mouse-dragging');
+          window.scrollTo(0, initialScrollY - deltaY);
+        }
+      }, { passive: true });
+
+      const endDrag = (e) => {
+        if (!isDragging) return;
+        isDragging = false;
+        document.body.classList.remove('is-mouse-dragging');
+
+        // If the user actually dragged to scroll (> 6px movement), suppress accidental clicks/taps
+        if (movedDistance > 6) {
+          const blockClick = (ev) => {
+            ev.stopPropagation();
+            ev.preventDefault();
+            window.removeEventListener('click', blockClick, true);
+          };
+          window.addEventListener('click', blockClick, true);
+        }
+      };
+
+      window.addEventListener('mouseup', endDrag, true);
+      window.addEventListener('mouseleave', endDrag);
+    }
+
+    // Initialize immediately without any server wait or fetch
+    initMouseDragToScroll();
+    renderProjects();
+  </script>
+</body>
+</html>

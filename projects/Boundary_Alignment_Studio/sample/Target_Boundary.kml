@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>Target_Boundary_Red</name>
+    <Style id="targetStyle">
+      <LineStyle>
+        <color>ff0000ff</color>
+        <width>4</width>
+      </LineStyle>
+      <PolyStyle>
+        <color>1a0000ff</color>
+      </PolyStyle>
+    </Style>
+    <Placemark>
+      <name>Target District Boundary (To Adjust)</name>
+      <styleUrl>#targetStyle</styleUrl>
+      <Polygon>
+        <outerBoundaryIs>
+          <LinearRing>
+            <coordinates>
+              77.52,10.10,0 77.54,10.16,0 77.57,10.21,0 77.61,10.24,0 77.66,10.23,0 77.68,10.20,0 77.73,10.18,0 77.78,10.14,0 77.80,10.08,0 77.76,10.00,0 77.72,9.94,0 77.64,9.89,0 77.55,9.86,0 77.47,9.88,0 77.44,9.94,0 77.48,10.02,0 77.52,10.10,0
+            </coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+    </Placemark>
+  </Document>
+</kml>

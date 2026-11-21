@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KML_Overlap_Analyzer</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- Leaflet CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Turf.js for Geodesic Spatial Calculations & Intersect / Difference -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/6.5.0/turf.min.js"></script>
+
+  <!-- JSZip for KMZ extraction support -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="../tabSync.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 h-screen flex flex-col antialiased overflow-hidden kml-mobile-view-map kml-overlap-mobile-map">
+
+  <!-- Top Header & Global Stats Bar -->
+  <header class="bg-slate-900/90 border-b border-slate-800 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-[1920px] mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-4">
+      
+      <!-- Brand & Title -->
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center shadow-lg shadow-emerald-500/20 text-white text-xl">
+          <i class="fa-solid fa-tree"></i>
+        </div>
+        <div>
+          <h1 class="text-base font-bold text-white flex items-center gap-2">
+            KML_Overlap_Analyzer
+          </h1>
+          <p class="text-xs text-slate-400">Satellite Boundary Viewer, Overlap Detection & Zero-Overlap Resolver</p>
+        </div>
+      </div>
+
+      <!-- Quick Metrics Dashboard -->
+      <div class="flex items-center space-x-2 md:space-x-4 overflow-x-auto py-1">
+        <div class="bg-slate-800/80 border border-slate-700/60 px-3 py-1.5 rounded-lg flex items-center space-x-2">
+          <i class="fa-solid fa-layer-group text-cyan-400 text-sm"></i>
+          <div>
+            <div class="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Total Polygons</div>
+            <div class="text-xs font-bold text-white font-mono" id="stat-total-count">0</div>
+          </div>
+        </div>
+
+        <div class="bg-slate-800/80 border border-slate-700/60 px-3 py-1.5 rounded-lg flex items-center space-x-2">
+          <i class="fa-solid fa-mountain-sun text-emerald-400 text-sm"></i>
+          <div>
+            <div class="text-[10px] text-slate-400 uppercase tracking-wider font-bold">RF (Reserve Forest)</div>
+            <div class="text-xs font-bold text-emerald-400 font-mono" id="stat-rf-count">0</div>
+          </div>
+        </div>
+
+        <div class="bg-slate-800/80 border border-slate-700/60 px-3 py-1.5 rounded-lg flex items-center space-x-2">
+          <i class="fa-solid fa-map-location-dot text-amber-400 text-sm"></i>
+          <div>
+            <div class="text-[10px] text-slate-400 uppercase tracking-wider font-bold">RL (Reserve Land)</div>
+            <div class="text-xs font-bold text-amber-400 font-mono" id="stat-rl-count">0</div>
+          </div>
+        </div>
+
+        <div class="bg-slate-800/80 border border-slate-700/60 px-3 py-1.5 rounded-lg flex items-center space-x-2">
+          <i class="fa-solid fa-chart-area text-blue-400 text-sm"></i>
+          <div>
+            <div class="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Total Area</div>
+            <div class="text-xs font-bold text-blue-300 font-mono" id="stat-total-area">0.00 Ha</div>
+          </div>
+        </div>
+
+        <div class="bg-rose-950/40 border border-rose-800/60 px-3 py-1.5 rounded-lg flex items-center space-x-2">
+          <i class="fa-solid fa-triangle-exclamation text-rose-400 text-sm animate-pulse"></i>
+          <div>
+            <div class="text-[10px] text-rose-300 uppercase tracking-wider font-bold">Overlaps</div>
+            <div class="text-xs font-bold text-rose-400 font-mono flex items-center gap-1">
+              <span id="stat-total-overlaps">0</span>
+              <span class="text-[10px] text-rose-300/80 font-normal">(<span id="stat-overlap-area-sum">0.00 Ha</span>)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Action Buttons -->
+      <div class="flex items-center space-x-2">
+        <button id="btn-load-sample" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 rounded-lg text-xs font-semibold transition flex items-center gap-1.5" title="Load sample dataset with realistic overlaps">
+          <i class="fa-solid fa-wand-magic-sparkles text-emerald-400"></i>
+          <span>Sample Demo</span>
+        </button>
+
+        <button id="btn-clear-all" class="px-2.5 py-1.5 bg-slate-800 hover:bg-rose-950/60 text-slate-300 hover:text-rose-300 border border-slate-700 rounded-lg text-xs transition" title="Clear all loaded data">
+          <i class="fa-solid fa-trash-can"></i>
+        </button>
+
+        <button id="btn-export-all" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold transition shadow-md shadow-emerald-700/20 flex items-center gap-1.5">
+          <i class="fa-solid fa-download"></i>
+          <span>Export KML</span>
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="max-w-[1920px] mx-auto px-4 flex items-center space-x-2 border-t border-slate-800/80 bg-slate-900/50 overflow-x-auto whitespace-nowrap">
+      <button class="nav-tab-btn active px-4 py-2.5 text-xs font-semibold border-b-2 border-emerald-500 text-emerald-400 flex items-center gap-2 transition" data-tab="viewer">
+        <i class="fa-solid fa-map-location-dot"></i>
+        <span>1. Division Viewer & Area</span>
+      </button>
+
+      <button class="nav-tab-btn px-4 py-2.5 text-xs font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 transition" data-tab="overlaps">
+        <i class="fa-solid fa-triangle-exclamation text-rose-400"></i>
+        <span>2. Overlap Detection & Analysis</span>
+        <span id="overlap-nav-badge" class="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-rose-500 text-white">0</span>
+      </button>
+
+      <button class="nav-tab-btn px-4 py-2.5 text-xs font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 transition" data-tab="resolver">
+        <i class="fa-solid fa-scissors text-cyan-400"></i>
+        <span>3. Side-by-Side Overlap Resolver</span>
+      </button>
+
+      <button class="nav-tab-btn px-4 py-2.5 text-xs font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 transition" data-tab="export">
+        <i class="fa-solid fa-file-export text-purple-400"></i>
+        <span>4. KML Export & Summary</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN TAB CONTENT PANELS -->
+  <main class="flex-1 flex flex-col relative overflow-hidden">
+
+    <!-- ========================================== -->
+    <!-- TAB 1: DIVISION VIEWER & AREA DASHBOARD -->
+    <!-- ========================================== -->
+    <div id="tab-panel-viewer" class="tab-panel flex-1 flex flex-col lg:flex-row h-full">
+
+      <!-- Mobile View Mode Switcher for Tab 1 -->
+      <div id="kml-mobile-view-tabs" class="lg:hidden flex bg-slate-900 border-b border-slate-800 px-3 py-1.5 gap-2 shrink-0 z-30">
+        <button type="button" id="kml-tab-btn-map" class="flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 bg-emerald-600 text-white shadow">
+          <i class="fa-solid fa-map-location-dot"></i> 🗺️ Boundary Map
+        </button>
+        <button type="button" id="kml-tab-btn-layers" class="flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 bg-slate-800 text-slate-300">
+          <i class="fa-solid fa-layer-group"></i> 📁 Layers & Polygons (<span id="mobile-poly-count">0</span>)
+        </button>
+      </div>
+      
+      <!-- Left Sidebar: Upload, Categorization & Layer List -->
+      <aside class="w-full lg:w-96 bg-slate-900/95 border-r border-slate-800 flex flex-col h-[40vh] lg:h-[calc(100vh-125px)] z-10 flex-shrink-0">
+        
+        <!-- Upload Dropzone & Action Buttons -->
+        <div class="p-3 border-b border-slate-800 space-y-2.5">
+          <!-- Dropzone -->
+          <div id="upload-dropzone" class="border-2 border-dashed border-slate-700 hover:border-emerald-500 bg-slate-800/40 rounded-xl p-3 text-center cursor-pointer transition relative group">
+            <div class="flex items-center justify-center space-x-2 text-emerald-400 mb-1">
+              <i class="fa-solid fa-cloud-arrow-up text-lg group-hover:scale-110 transition"></i>
+              <span class="text-xs font-bold text-white">Import KML Files or Folder</span>
+            </div>
+            <p class="text-[11px] text-slate-400">Drag & drop files or entire folder here</p>
+            <p class="text-[10px] text-emerald-400/90 font-medium mt-0.5">⚡ Recursively scans all nested subfolders</p>
+
+            <!-- Hidden File & Folder Inputs -->
+            <input type="file" id="kml-file-input" multiple accept=".kml,.xml,.kmz" class="hidden">
+            <input type="file" id="kml-folder-input" webkitdirectory directory multiple class="hidden">
+          </div>
+
+          <!-- Direct Selection Buttons: Add Files & Add Folder -->
+          <div class="grid grid-cols-2 gap-2">
+            <button id="btn-browse-files" class="px-2.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1.5 shadow" title="Select individual .kml / .kmz files">
+              <i class="fa-solid fa-file-lines text-emerald-400 text-xs"></i>
+              <span>Add Files</span>
+            </button>
+            <button id="btn-browse-folder" class="px-2.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1.5 shadow" title="Select a folder to recursively scan all subfolders for KML files">
+              <i class="fa-solid fa-folder-tree text-cyan-400 text-xs"></i>
+              <span>Add Folder</span>
+            </button>
+          </div>
+
+          <!-- Quick Actions: Clear Old & Replace All -->
+          <div class="grid grid-cols-2 gap-2 pt-1 border-t border-slate-800/80">
+            <button id="btn-clear-sidebar" class="px-2 py-1.5 bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border border-rose-800/60 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1.5" title="Remove all currently loaded KMLs">
+              <i class="fa-solid fa-trash-can text-[11px]"></i>
+              <span>Clear All Old</span>
+            </button>
+            <button id="btn-fresh-upload" class="px-2 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1.5" title="Clear old data and choose new files or folder">
+              <i class="fa-solid fa-rotate text-emerald-400 text-[11px]"></i>
+              <span>Replace All</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter & Search Toolbar -->
+        <div class="p-3 border-b border-slate-800 flex flex-col gap-2 bg-slate-900/60">
+          <div class="flex items-center justify-between gap-2">
+            <!-- Filter Pills -->
+            <div class="flex items-center space-x-1 bg-slate-800 p-0.5 rounded-lg border border-slate-700 text-xs">
+              <button class="filter-btn active px-2 py-1 rounded-md text-[11px] font-semibold bg-slate-700 text-white transition" data-filter="ALL">All</button>
+              <button class="filter-btn px-2 py-1 rounded-md text-[11px] font-semibold text-emerald-400 hover:text-white transition" data-filter="RF">RF</button>
+              <button class="filter-btn px-2 py-1 rounded-md text-[11px] font-semibold text-amber-400 hover:text-white transition" data-filter="RL">RL</button>
+            </div>
+
+            <!-- Quick Batch Set All -->
+            <div class="flex items-center space-x-1">
+              <button id="btn-set-all-rf" class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-950 hover:bg-emerald-900 text-emerald-400 border border-emerald-700 transition" title="Mark all loaded boundaries as Reserve Forest (RF)">
+                All RF
+              </button>
+              <button id="btn-set-all-rl" class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-950 hover:bg-amber-900 text-amber-400 border border-amber-700 transition" title="Mark all loaded boundaries as Reserve Land (RL)">
+                All RL
+              </button>
+            </div>
+
+            <!-- Unit Selector -->
+            <div class="flex items-center space-x-1">
+              <span class="text-[10px] text-slate-400 font-bold uppercase">Unit:</span>
+              <select id="unit-selector" class="bg-slate-800 border border-slate-700 rounded text-xs text-slate-200 px-1 py-1 outline-none cursor-pointer">
+                <option value="ha" selected>Ha</option>
+                <option value="acres">Acres</option>
+                <option value="sqkm">Sq Km</option>
+                <option value="sqm">m²</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Search Input & Master Toggle -->
+          <div class="flex items-center gap-2">
+            <div class="relative flex-1">
+              <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-xs text-slate-500"></i>
+              <input type="text" id="search-features" placeholder="Search RF/RL name..." class="w-full bg-slate-800/80 border border-slate-700 rounded-lg pl-7 pr-3 py-1.5 text-xs text-slate-100 placeholder-slate-500 outline-none focus:border-emerald-500">
+            </div>
+            <label class="flex items-center space-x-1.5 text-[11px] text-slate-300 cursor-pointer flex-shrink-0" title="Toggle all layers">
+              <input type="checkbox" id="toggle-all-visibility" checked class="rounded border-slate-700 bg-slate-800 text-emerald-500 focus:ring-emerald-500">
+              <span>All</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Scrollable Feature List -->
+        <div class="flex-1 overflow-y-auto p-3 space-y-2" id="feature-list-container">
+          <!-- Dynamic Feature Cards Rendered Here -->
+        </div>
+
+        <!-- Footer Instructions -->
+        <div class="p-2.5 bg-slate-950/80 border-t border-slate-800 text-[10px] text-slate-400 flex items-center justify-between">
+          <span>💡 Click color swatch or name to customize</span>
+          <span class="text-emerald-400 font-mono">100% Client-Side</span>
+        </div>
+      </aside>
+
+      <!-- Right Main Map Container -->
+      <div class="map-wrapper-col flex-1 flex flex-col relative h-[60vh] lg:h-[calc(100vh-125px)]">
+        
+        <!-- Floating Map Controls Bar -->
+        <div class="absolute top-3 right-3 z-[1000] flex items-center space-x-2 bg-slate-900/90 backdrop-blur border border-slate-700/80 rounded-xl p-1.5 shadow-2xl">
+          <div class="flex items-center space-x-1.5 px-2 text-xs font-semibold text-slate-200">
+            <i class="fa-solid fa-satellite text-emerald-400"></i>
+            <span>Base Layer:</span>
+          </div>
+          <select id="viewer-basemap-select" class="bg-slate-800 border border-slate-600 rounded-lg text-xs text-white px-2 py-1 outline-none cursor-pointer">
+            <option value="satellite" selected>ESRI World Satellite</option>
+            <option value="satelliteClarity">ESRI Clarity Satellite (Ultra Sharp)</option>
+            <option value="googleHybrid">Google Hybrid</option>
+            <option value="osm">OpenStreetMap</option>
+            <option value="cartoDark">CartoDB Dark</option>
+          </select>
+        </div>
+
+        <!-- Leaflet Map Div -->
+        <div id="viewer-map" class="w-full h-full"></div>
+      </div>
+
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- TAB 2: OVERLAP DETECTION & ANALYSIS -->
+    <!-- ========================================== -->
+    <div id="tab-panel-overlaps" class="tab-panel hidden flex-1 flex flex-col lg:flex-row h-full">
+
+      <!-- Mobile View Mode Switcher for Tab 2 -->
+      <div id="kml-overlap-mobile-tabs" class="lg:hidden flex bg-slate-900 border-b border-slate-800 px-3 py-1.5 gap-2 shrink-0 z-30">
+        <button type="button" id="kml-overlap-tab-btn-map" class="flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 bg-rose-600 text-white shadow">
+          <i class="fa-solid fa-map-location-dot"></i> 🗺️ Overlap Map
+        </button>
+        <button type="button" id="kml-overlap-tab-btn-table" class="flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 bg-slate-800 text-slate-300">
+          <i class="fa-solid fa-triangle-exclamation"></i> ⚠️ Conflicts List (<span id="mobile-overlap-badge">0</span>)
+        </button>
+      </div>
+      
+      <!-- Left: Overlap Conflict Table & Summary -->
+      <div class="overlap-table-col w-full lg:w-1/2 bg-slate-900 border-r border-slate-800 flex flex-col h-[45vh] lg:h-[calc(100vh-125px)] overflow-hidden">
+        
+        <div class="p-3 sm:p-4 border-b border-slate-800 bg-slate-900/80 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 class="text-sm font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-triangle-exclamation text-rose-500"></i>
+              <span>Detected Boundary Overlaps</span>
+            </h2>
+            <p class="text-xs text-slate-400">Pairwise geometric intersection analysis between RF & RL</p>
+          </div>
+          
+          <div class="flex items-center gap-2.5">
+            <!-- Filter / Sort by Overlap Area: Max to Min & Min to Max (Default: Max to Min) -->
+            <div class="flex items-center gap-1.5 bg-slate-950 border border-slate-700/80 rounded-lg px-2.5 py-1.5 shadow-sm">
+              <i class="fa-solid fa-arrow-down-wide-short text-emerald-400 text-xs"></i>
+              <label for="select-overlap-sort" class="text-[11px] font-semibold text-slate-400">Sort Area:</label>
+              <select id="select-overlap-sort" class="bg-transparent text-xs font-bold text-emerald-300 focus:outline-none cursor-pointer">
+                <option value="max-to-min" selected class="bg-slate-900 text-slate-200">Max → Min (Highest First)</option>
+                <option value="min-to-max" class="bg-slate-900 text-slate-200">Min → Max (Lowest First)</option>
+              </select>
+            </div>
+
+            <span id="overlap-count-badge" class="px-2.5 py-1 bg-rose-500/20 text-rose-400 border border-rose-500/40 rounded-full text-xs font-bold font-mono">
+              0 Overlaps
+            </span>
+          </div>
+        </div>
+
+        <!-- Table Container -->
+        <div class="flex-1 overflow-y-auto p-3">
+          
+          <div id="no-overlap-message" class="hidden text-center py-16 text-slate-400">
+            <div class="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto mb-3 text-2xl">
+              <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <h3 class="text-base font-bold text-white mb-1">Zero Overlaps Detected!</h3>
+            <p class="text-xs text-slate-400 max-w-sm mx-auto">All Reserve Forest and Reserve Land boundaries in this division are perfectly clean and separated.</p>
+          </div>
+
+          <table class="w-full text-left border-collapse" id="overlap-table">
+            <thead>
+              <tr class="text-[11px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-800 pb-2">
+                <th class="py-2 px-3">#</th>
+                <th class="py-2 px-3">Feature 1</th>
+                <th class="py-2 px-3">Feature 2</th>
+                <th class="py-2 px-3 cursor-pointer hover:text-emerald-400 select-none transition group" id="th-overlap-area" title="Click to toggle: Highest to Lowest (Max → Min) / Lowest to Highest (Min → Max)">
+                  <div class="flex items-center gap-1.5">
+                    <span>Overlap Area</span>
+                    <i id="icon-sort-overlap-area" class="fa-solid fa-arrow-down-wide-short text-emerald-400 text-xs group-hover:scale-110 transition"></i>
+                  </div>
+                </th>
+                <th class="py-2 px-3 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody id="overlap-table-body">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Helper hint -->
+        <div class="p-3 bg-slate-950 border-t border-slate-800 text-xs text-slate-400 flex items-center justify-between">
+          <span>💡 Click any conflict row to zoom in on the map</span>
+          <span>Click <strong>Resolve</strong> to edit in Split-Map</span>
+        </div>
+      </div>
+
+      <!-- Right: Overlap Map View -->
+      <div class="overlap-map-col w-full lg:w-1/2 flex flex-col relative h-[55vh] lg:h-[calc(100vh-125px)]">
+        <div class="absolute top-3 right-3 z-[1000] flex items-center space-x-2 bg-slate-900/90 backdrop-blur border border-slate-700/80 rounded-xl p-1.5 shadow-2xl">
+          <select id="overlap-basemap-select" class="bg-slate-800 border border-slate-600 rounded-lg text-xs text-white px-2 py-1 outline-none">
+            <option value="satellite" selected>ESRI Satellite</option>
+            <option value="satelliteClarity">ESRI Clarity Satellite</option>
+            <option value="googleHybrid">Google Hybrid</option>
+            <option value="osm">OpenStreetMap</option>
+          </select>
+        </div>
+        <div id="overlap-map" class="w-full h-full"></div>
+      </div>
+
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- TAB 3: SIDE-BY-SIDE OVERLAP RESOLVER -->
+    <!-- ========================================== -->
+    <div id="tab-panel-resolver" class="tab-panel hidden flex-1 flex flex-col h-[calc(100vh-125px)] overflow-hidden">
+      
+      <!-- Top Resolution Toolbar -->
+      <div class="bg-slate-900 border-b border-slate-800 px-4 py-3 flex flex-wrap items-center justify-between gap-4 z-10 flex-shrink-0">
+        
+        <!-- Current Pair Info -->
+        <div class="flex items-center space-x-3">
+          <div class="w-8 h-8 rounded-lg bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 flex items-center justify-center font-bold text-sm">
+            <i class="fa-solid fa-code-compare"></i>
+          </div>
+          <div>
+            <div class="text-xs text-slate-400 font-bold uppercase tracking-wider">Active Conflict Pair:</div>
+            <div class="text-sm font-bold text-white flex items-center gap-2" id="resolver-pair-title">
+              Select an overlap to resolve
+            </div>
+          </div>
+        </div>
+
+        <!-- Overlap Stats -->
+        <div class="flex items-center space-x-3">
+          <div class="text-right">
+            <div class="text-[10px] text-slate-400 font-bold uppercase">Intersection Overlap:</div>
+            <div class="text-xs font-bold text-rose-400 font-mono" id="resolver-overlap-area">0.000 Ha</div>
+          </div>
+          <div id="resolver-remaining-badge" class="px-3 py-1 bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-full text-xs font-bold flex items-center">
+            <i class="fa-solid fa-triangle-exclamation mr-1.5"></i> Overlap Remaining
+          </div>
+        </div>
+
+        <!-- Resolution Decision Buttons -->
+        <div class="flex items-center flex-wrap gap-2">
+          <!-- Deduct A -->
+          <button id="btn-deduct-feata" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow" title="Subtract overlap from Feature 1">
+            <i class="fa-solid fa-scissors text-emerald-400"></i>
+            <span>Deduct from Feature 1</span>
+          </button>
+
+          <!-- Deduct B -->
+          <button id="btn-deduct-featb" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow" title="Subtract overlap from Feature 2">
+            <i class="fa-solid fa-scissors text-amber-400"></i>
+            <span>Deduct from Feature 2</span>
+          </button>
+
+          <!-- Button 1: Manual Editing Mode -->
+          <button id="btn-toggle-vertex-edit" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-600/70 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow" title="Click to manually edit and drag polygon boundary points">
+            <i class="fa-solid fa-draw-polygon text-cyan-400"></i>
+            <span id="btn-vertex-edit-label">Manual Editing</span>
+          </button>
+
+          <!-- Button 2: Move to Rejected Folder -->
+          <button id="btn-move-to-rejected" class="px-3 py-2 bg-slate-800 hover:bg-rose-950/70 text-rose-300 border border-rose-700/70 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow" title="Keep original boundaries as-is and move conflict to Rejected / Disputed Folder">
+            <i class="fa-solid fa-folder-minus text-rose-400"></i>
+            <span>Keep & Move to Rejected</span>
+          </button>
+
+          <!-- Reset Pair -->
+          <button id="btn-reset-pair" class="px-2.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 border border-slate-700 rounded-lg text-xs transition" title="Reset changes for this pair">
+            <i class="fa-solid fa-rotate-left"></i>
+          </button>
+
+          <!-- Save & Apply Correction -->
+          <button id="btn-apply-resolution" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition shadow-lg shadow-emerald-600/30 flex items-center gap-1.5">
+            <i class="fa-solid fa-check-double"></i>
+            <span>Save & Apply Correction</span>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Split Map Body -->
+      <div class="flex-1 split-map-container p-3 bg-slate-950 overflow-hidden">
+        
+        <!-- Left Panel: Original Boundary with Red Overlap -->
+        <div class="flex flex-col bg-slate-900 rounded-xl border border-slate-800 overflow-hidden shadow-xl">
+          <div class="bg-slate-800/80 px-3 py-2 border-b border-slate-700 flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse"></span>
+              <span class="text-xs font-bold text-white">Left: Original Overlapping Boundaries</span>
+            </div>
+            <span class="text-[11px] text-rose-400 font-semibold bg-rose-950/60 border border-rose-800/50 px-2 py-0.5 rounded">
+              Conflict View
+            </span>
+          </div>
+          <div id="resolver-left-map" class="flex-1 w-full h-full"></div>
+        </div>
+
+        <!-- Right Panel: Corrected Live Preview & Manual Vertex Editor -->
+        <div class="flex flex-col bg-slate-900 rounded-xl border border-emerald-900/50 overflow-hidden shadow-xl">
+          <div class="bg-emerald-950/40 px-3 py-2 border-b border-emerald-800/60 flex items-center justify-between flex-wrap gap-2">
+            <div class="flex items-center space-x-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+              <span class="text-xs font-bold text-emerald-300">Right: Corrected Boundary Preview</span>
+            </div>
+
+            <!-- Target feature selector when Manual Drag is active -->
+            <div id="manual-edit-selector-bar" class="hidden flex items-center space-x-1.5 bg-slate-900 px-2 py-0.5 rounded-lg border border-cyan-500/50 text-xs shadow">
+              <span class="text-[10px] text-cyan-300 font-bold uppercase"><i class="fa-solid fa-hand-pointer mr-1"></i> Edit Points:</span>
+              <button id="btn-edit-target-a" class="px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-600 text-white transition">Feature 1</button>
+              <button id="btn-edit-target-b" class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-300 hover:text-white transition">Feature 2</button>
+              <button id="btn-edit-target-both" class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-300 hover:text-white transition">Both</button>
+            </div>
+
+            <div class="flex items-center space-x-3 text-xs">
+              <div><span id="resolver-feata-name" class="text-slate-400 font-semibold">RF 1:</span> <span id="resolver-feata-area" class="font-mono text-emerald-400 font-bold">0.00 Ha</span></div>
+              <span class="text-slate-600">|</span>
+              <div><span id="resolver-featb-name" class="text-slate-400 font-semibold">RF 2:</span> <span id="resolver-featb-area" class="font-mono text-amber-400 font-bold">0.00 Ha</span></div>
+            </div>
+          </div>
+          
+          <div id="resolver-right-map" class="flex-1 w-full h-full relative">
+            <!-- Manual Drag Mode Floating Tip Overlay -->
+            <div id="manual-drag-tip" class="hidden absolute bottom-3 left-1/2 -translate-x-1/2 z-[1000] bg-slate-900/95 border border-cyan-500/60 backdrop-blur px-3.5 py-1.5 rounded-full text-xs text-cyan-200 shadow-2xl flex items-center gap-2 pointer-events-none">
+              <i class="fa-solid fa-hand-pointer text-cyan-400 animate-bounce"></i>
+              <span>Click & <b>drag points</b> to reshape boundary • Click <b class="text-white">+</b> on line to add point • <b>Shift+Click</b> point to delete</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- TAB 4: KML EXPORT & SUMMARY -->
+    <!-- ========================================== -->
+    <div id="tab-panel-export" class="tab-panel hidden flex-1 p-6 overflow-y-auto max-w-5xl mx-auto w-full">
+      
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl mb-6">
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-slate-800 pb-6 mb-6">
+          <div>
+            <h2 class="text-lg font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-file-export text-emerald-400"></i>
+              <span>Export Boundaries & Summary</span>
+            </h2>
+            <p class="text-xs text-slate-400 mt-1">Export standard Google Earth KML 2.2 files with corrected geometries, calculated areas, and custom colors.</p>
+          </div>
+
+          <div class="flex items-center space-x-3">
+            <div>
+              <label class="text-[10px] text-slate-400 uppercase font-bold block mb-1">File Name:</label>
+              <input type="text" id="division-name-input" value="KML_Boundaries" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs font-semibold text-white outline-none focus:border-emerald-500" placeholder="Enter file name...">
+            </div>
+            <button id="btn-export-tab-all" class="mt-4 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition shadow-lg shadow-emerald-600/30 flex items-center gap-2">
+              <i class="fa-solid fa-cloud-arrow-down text-sm"></i>
+              <span>Download Batch KML</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Division Overlap Health Status Banner -->
+        <div id="export-health-banner"></div>
+
+        <!-- Features Table Summary -->
+        <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3">Boundary Features & Area Report</h3>
+        <div class="overflow-x-auto border border-slate-800 rounded-xl">
+          <table class="w-full text-left border-collapse">
+            <thead class="bg-slate-950 text-slate-400 text-[11px] font-bold uppercase tracking-wider border-b border-slate-800">
+              <tr>
+                <th class="py-3 px-4">Placemark Name</th>
+                <th class="py-3 px-4">Index Area (Ha)</th>
+                <th class="py-3 px-4">Calculated GIS Area</th>
+                <th class="py-3 px-4">Variance / Diff</th>
+                <th class="py-3 px-4">Overlap Status</th>
+                <th class="py-3 px-4 text-right">Individual KML</th>
+              </tr>
+            </thead>
+            <tbody id="export-features-list">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Section 2: Rejected / Disputed Boundaries Folder -->
+        <div id="rejected-folder-section" class="hidden mt-8 pt-6 border-t border-slate-800">
+          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+            <div class="flex items-center space-x-3">
+              <div class="w-9 h-9 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center text-lg border border-rose-500/30">
+                <i class="fa-solid fa-folder-minus"></i>
+              </div>
+              <div>
+                <h3 class="text-sm font-bold text-rose-300 flex items-center gap-2">
+                  <span>Rejected / Disputed Boundaries Folder</span>
+                  <span id="rejected-count-badge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/40 font-mono">0 Conflicts</span>
+                </h3>
+                <p class="text-xs text-slate-400">These boundaries are kept in their original shapes and moved to the rejected folder for surveyor review.</p>
+              </div>
+            </div>
+            <button id="btn-export-rejected-all" class="px-3.5 py-1.5 bg-rose-900/60 hover:bg-rose-800 text-rose-200 border border-rose-700 rounded-lg text-xs font-bold transition flex items-center gap-2 shadow">
+              <i class="fa-solid fa-download"></i>
+              <span>Download Rejected Folder KML</span>
+            </button>
+          </div>
+
+          <div class="overflow-x-auto border border-slate-800 rounded-xl">
+            <table class="w-full text-left border-collapse">
+              <thead class="bg-slate-950 text-slate-400 text-[11px] font-bold uppercase tracking-wider border-b border-slate-800">
+                <tr>
+                  <th class="py-2.5 px-3">Disputed Boundary Pair</th>
+                  <th class="py-2.5 px-3">Feature 1 Area</th>
+                  <th class="py-2.5 px-3">Feature 2 Area</th>
+                  <th class="py-2.5 px-3">Overlap Area</th>
+                  <th class="py-2.5 px-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="rejected-features-list">
+                <!-- Rendered dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- ========================================== -->
+  <!-- COLOR & STYLE STUDIO MODAL (DRAG & SLIDE) -->
+  <!-- ========================================== -->
+  <div id="color-studio-modal" class="fixed inset-0 z-[9990] bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-200">
+      
+      <!-- Studio Header -->
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center space-x-2.5">
+          <div id="studio-preview-circle" class="w-7 h-7 rounded-full border-2 border-white shadow flex-shrink-0"></div>
+          <div>
+            <h3 class="text-sm font-bold text-white flex items-center gap-2" id="studio-feature-title">
+              Boundary Color Studio
+            </h3>
+            <p class="text-[11px] text-slate-400">Drag sliders to adjust color, opacity & thickness</p>
+          </div>
+        </div>
+        <button id="btn-close-studio" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Drag Slider 1: Rainbow Hue Spectrum Slider -->
+      <div class="space-y-1.5 bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+        <div class="flex items-center justify-between text-xs">
+          <span class="font-semibold text-slate-200 flex items-center gap-1.5">
+            <i class="fa-solid fa-palette text-cyan-400"></i>
+            <span>Drag Hue Spectrum:</span>
+          </span>
+          <span id="studio-hue-val" class="font-mono text-cyan-400 text-[11px]">140°</span>
+        </div>
+        <input type="range" id="studio-hue-slider" min="0" max="360" value="140" class="hue-slider w-full cursor-pointer">
+        <div class="flex justify-between text-[9px] text-slate-500 font-mono">
+          <span>Red</span>
+          <span>Yellow</span>
+          <span>Green</span>
+          <span>Cyan</span>
+          <span>Blue</span>
+          <span>Pink</span>
+          <span>Red</span>
+        </div>
+      </div>
+
+      <!-- Drag Slider 2 & 3: Opacity & Stroke Width -->
+      <div class="grid grid-cols-2 gap-3">
+        <!-- Opacity Slider -->
+        <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 space-y-1.5">
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-slate-300 font-medium flex items-center gap-1">
+              <i class="fa-solid fa-droplet text-blue-400"></i>
+              <span>Fill Opacity:</span>
+            </span>
+            <span id="studio-opacity-val" class="font-mono text-blue-400 text-xs font-bold">45%</span>
+          </div>
+          <input type="range" id="studio-opacity-slider" min="0" max="100" value="45" class="w-full accent-blue-500 cursor-pointer">
+        </div>
+
+        <!-- Stroke Width Slider -->
+        <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 space-y-1.5">
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-slate-300 font-medium flex items-center gap-1">
+              <i class="fa-solid fa-pen-ruler text-amber-400"></i>
+              <span>Border Width:</span>
+            </span>
+            <span id="studio-stroke-val" class="font-mono text-amber-400 text-xs font-bold">2.5 px</span>
+          </div>
+          <input type="range" id="studio-stroke-slider" min="1" max="8" step="0.5" value="2.5" class="w-full accent-amber-500 cursor-pointer">
+        </div>
+      </div>
+
+      <!-- Fill Mode Toggle & Custom Hex Input -->
+      <div class="flex items-center justify-between bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
+        <div class="flex items-center space-x-2">
+          <label class="text-xs text-slate-300 font-medium">Style Mode:</label>
+          <div class="flex items-center space-x-1 bg-slate-800 p-0.5 rounded-lg border border-slate-700">
+            <button id="studio-btn-solid" class="px-2 py-1 rounded text-xs font-semibold bg-emerald-600 text-white">Solid Fill</button>
+            <button id="studio-btn-outline" class="px-2 py-1 rounded text-xs font-semibold text-slate-400 hover:text-white">Outline Only</button>
+          </div>
+        </div>
+
+        <!-- Exact Hex / Color Picker -->
+        <div class="flex items-center space-x-1.5">
+          <input type="color" id="studio-native-color" class="w-7 h-7 rounded border border-slate-600 bg-transparent cursor-pointer">
+          <input type="text" id="studio-hex-input" class="w-20 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs font-mono text-slate-200 outline-none text-center" value="#22c55e">
+        </div>
+      </div>
+
+      <!-- Quick 40+ Swatch Grid -->
+      <div class="space-y-1.5">
+        <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between">
+          <span>Quick 40+ Color Swatches</span>
+          <span class="text-[10px] text-slate-500 font-normal">Click any shade</span>
+        </div>
+        <div id="studio-swatches-grid" class="grid grid-cols-10 gap-1.5 p-2 bg-slate-950/80 rounded-xl border border-slate-800 max-h-36 overflow-y-auto">
+          <!-- Populated dynamically with 40+ colors -->
+        </div>
+      </div>
+
+      <!-- Footer Buttons -->
+      <div class="flex items-center justify-end space-x-2 pt-2 border-t border-slate-800">
+        <button id="btn-studio-done" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition shadow-lg shadow-emerald-600/30">
+          <i class="fa-solid fa-check mr-1"></i> Apply & Close
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MOVE TO REJECTED / DISPUTED FOLDER MODAL -->
+  <!-- ========================================== -->
+  <div id="move-rejected-modal" class="fixed inset-0 z-[9995] bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in duration-200">
+      
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center text-lg border border-rose-500/30">
+            <i class="fa-solid fa-folder-minus"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+              Move to Rejected / Disputed Folder
+            </h3>
+            <p class="text-[11px] text-slate-400">Choose which boundary to isolate and which to keep clean</p>
+          </div>
+        </div>
+        <button id="btn-close-move-rejected-modal" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Conflict Pair Details Card -->
+      <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3.5 space-y-2">
+        <div class="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Active Overlap Conflict:</div>
+        <div class="flex items-center justify-between gap-2 text-xs">
+          <!-- Feature A -->
+          <div class="flex items-center space-x-2 flex-1 min-w-0 bg-slate-900/90 p-2 rounded-lg border border-slate-800">
+            <span id="reject-modal-swatch-a" class="w-3 h-3 rounded-full flex-shrink-0"></span>
+            <div class="truncate">
+              <div class="font-bold text-white truncate" id="reject-modal-name-a">Feature 1</div>
+              <div class="text-[10px] text-emerald-400 font-mono" id="reject-modal-area-a">0.000 Ha</div>
+            </div>
+          </div>
+
+          <!-- Overlap Badge -->
+          <div class="text-center flex-shrink-0 px-2">
+            <span class="text-rose-400 font-bold text-sm block">⚔️</span>
+            <span class="text-[10px] font-mono text-rose-400 font-bold" id="reject-modal-overlap-area">0.000 Ha</span>
+          </div>
+
+          <!-- Feature B -->
+          <div class="flex items-center space-x-2 flex-1 min-w-0 bg-slate-900/90 p-2 rounded-lg border border-slate-800">
+            <span id="reject-modal-swatch-b" class="w-3 h-3 rounded-full flex-shrink-0"></span>
+            <div class="truncate">
+              <div class="font-bold text-white truncate" id="reject-modal-name-b">Feature 2</div>
+              <div class="text-[10px] text-amber-400 font-mono" id="reject-modal-area-b">0.000 Ha</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Select Option Radio Cards -->
+      <div class="space-y-2.5">
+        <div class="text-xs font-bold text-slate-300">Select action to take:</div>
+
+        <!-- Choice 1: Move Feature A only -->
+        <label class="reject-option-card flex items-start space-x-3 p-3 rounded-xl border border-slate-700/80 bg-slate-800/40 hover:bg-slate-800 hover:border-emerald-500/60 cursor-pointer transition select-none">
+          <input type="radio" name="reject-target-choice" value="A" checked class="mt-1 accent-emerald-500">
+          <div class="flex-1 min-w-0">
+            <div class="text-xs font-bold text-white flex items-center gap-1.5" id="reject-label-choice-a">
+              Move Feature 1 Only to Rejected
+            </div>
+            <p class="text-[11px] text-slate-400 mt-0.5" id="reject-desc-choice-a">
+              Isolate Feature 1 to Rejected Folder. Keep Feature 2 in Clean Boundaries.
+            </p>
+          </div>
+        </label>
+
+        <!-- Choice 2: Move Feature B only -->
+        <label class="reject-option-card flex items-start space-x-3 p-3 rounded-xl border border-slate-700/80 bg-slate-800/40 hover:bg-slate-800 hover:border-amber-500/60 cursor-pointer transition select-none">
+          <input type="radio" name="reject-target-choice" value="B" class="mt-1 accent-amber-500">
+          <div class="flex-1 min-w-0">
+            <div class="text-xs font-bold text-white flex items-center gap-1.5" id="reject-label-choice-b">
+              Move Feature 2 Only to Rejected
+            </div>
+            <p class="text-[11px] text-slate-400 mt-0.5" id="reject-desc-choice-b">
+              Isolate Feature 2 to Rejected Folder. Keep Feature 1 in Clean Boundaries.
+            </p>
+          </div>
+        </label>
+
+        <!-- Choice 3: Move Both -->
+        <label class="reject-option-card flex items-start space-x-3 p-3 rounded-xl border border-slate-700/80 bg-slate-800/40 hover:bg-slate-800 hover:border-rose-500/60 cursor-pointer transition select-none">
+          <input type="radio" name="reject-target-choice" value="both" class="mt-1 accent-rose-500">
+          <div class="flex-1 min-w-0">
+            <div class="text-xs font-bold text-rose-300 flex items-center gap-1.5">
+              <i class="fa-solid fa-folder-tree text-rose-400"></i>
+              <span>Move Both Boundaries to Rejected</span>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-0.5" id="reject-desc-choice-both">
+              Isolate both boundaries into the Rejected Folder for external surveyor resolution.
+            </p>
+          </div>
+        </label>
+      </div>
+
+      <!-- Footer Buttons -->
+      <div class="flex items-center justify-end space-x-3 pt-3 border-t border-slate-800">
+        <button id="btn-cancel-move-rejected" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition">
+          Cancel
+        </button>
+        <button id="btn-confirm-move-rejected" class="px-5 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold transition shadow-lg shadow-rose-600/30 flex items-center gap-1.5">
+          <i class="fa-solid fa-check"></i>
+          <span>Confirm & Move</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- REPLACE ALL CHOICES MODAL (FILES OR FOLDER) -->
+  <!-- ========================================== -->
+  <div id="replace-choice-modal" class="fixed inset-0 z-[9996] bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-200">
+      
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg border border-emerald-500/30">
+            <i class="fa-solid fa-rotate"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-white">Replace All Boundaries</h3>
+            <p class="text-[11px] text-slate-400">Choose how to import your fresh data</p>
+          </div>
+        </div>
+        <button id="btn-close-replace-modal" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3">
+        <!-- Option 1: Select Files -->
+        <button id="btn-replace-pick-files" class="w-full p-3.5 rounded-xl border border-slate-700 hover:border-emerald-500 bg-slate-800/60 hover:bg-slate-800 flex items-center space-x-3.5 text-left transition group">
+          <div class="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-lg group-hover:scale-110 transition flex-shrink-0">
+            <i class="fa-solid fa-file-lines"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="text-xs font-bold text-white group-hover:text-emerald-400 transition">Select KML / KMZ Files</div>
+            <div class="text-[11px] text-slate-400">Clear old data and pick individual boundary files</div>
+          </div>
+          <i class="fa-solid fa-chevron-right text-slate-500 group-hover:text-emerald-400 text-xs transition"></i>
+        </button>
+
+        <!-- Option 2: Select Entire Folder -->
+        <button id="btn-replace-pick-folder" class="w-full p-3.5 rounded-xl border border-slate-700 hover:border-cyan-500 bg-slate-800/60 hover:bg-slate-800 flex items-center space-x-3.5 text-left transition group">
+          <div class="w-10 h-10 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center text-lg group-hover:scale-110 transition flex-shrink-0">
+            <i class="fa-solid fa-folder-tree"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="text-xs font-bold text-white group-hover:text-cyan-400 transition">Select Entire Folder (with Subfolders)</div>
+            <div class="text-[11px] text-slate-400">Clear old data and recursively scan all nested folders</div>
+          </div>
+          <i class="fa-solid fa-chevron-right text-slate-500 group-hover:text-cyan-400 text-xs transition"></i>
+        </button>
+      </div>
+
+      <div class="flex items-center justify-end pt-2 border-t border-slate-800">
+        <button id="btn-cancel-replace-modal" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition">
+          Cancel
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container"></div>
+
+  <!-- Application Scripts -->
+  <script src="js/sampleData.js"></script>
+  <script src="js/spatialEngine.js"></script>
+  <script src="js/kmlParser.js"></script>
+  <script src="js/kmlExporter.js"></script>
+  <script src="js/mapManager.js"></script>
+  <script src="js/resolver.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>

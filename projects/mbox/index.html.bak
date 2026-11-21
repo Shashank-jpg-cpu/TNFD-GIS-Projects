@@ -1,0 +1,1524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flash Reports Monitoring (from 01.01.2026) - Tamil Nadu Forest Department</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Leaflet CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- PDF.js for client-side PDF text parsing (Local first, with CDN fallback) -->
+    <script src="pdf.min.js"></script>
+    <script src="pdf.worker.min.js"></script>
+    <script>
+        if (typeof pdfjsLib === 'undefined') {
+            document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"><\/script>');
+            document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js"><\/script>');
+        }
+    </script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #090d16;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #334155;
+        }
+
+        .leaflet-popup-content-wrapper {
+            background: #0f172a !important;
+            color: #f8fafc !important;
+            border: 1px solid #334155 !important;
+            border-radius: 12px !important;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5) !important;
+            padding: 0 !important;
+            overflow: hidden;
+        }
+        .leaflet-popup-content {
+            margin: 0 !important;
+            width: 310px !important;
+        }
+        .leaflet-popup-tip {
+            background: #0f172a !important;
+            border: 1px solid #334155 !important;
+        }
+
+        @keyframes pulse-red {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(225, 29, 72, 0.7); }
+            70% { transform: scale(1.15); box-shadow: 0 0 0 10px rgba(225, 29, 72, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(225, 29, 72, 0); }
+        }
+
+        @keyframes pulse-purple {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.7); }
+            70% { transform: scale(1.15); box-shadow: 0 0 0 10px rgba(168, 85, 247, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(168, 85, 247, 0); }
+        }
+
+        .custom-marker-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+            transition: transform 0.2s ease;
+        }
+        .custom-marker-icon:hover {
+            transform: scale(1.25);
+            z-index: 1000 !important;
+        }
+
+        .marker-human-death {
+            background: linear-gradient(135deg, #e11d48, #be123c);
+            border: 2px solid #fff;
+            animation: pulse-red 2s infinite;
+        }
+        .marker-human-injury {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            border: 2px solid #fff;
+        }
+        .marker-animal-death {
+            background: linear-gradient(135deg, #9333ea, #7e22ce);
+            border: 2px solid #fff;
+            animation: pulse-purple 2s infinite;
+        }
+        .marker-animal-injury {
+            background: linear-gradient(135deg, #06b6d4, #0891b2);
+            border: 2px solid #fff;
+        }
+
+        .marker-badge {
+            position: absolute;
+            top: -6px;
+            right: -8px;
+            font-size: 8px;
+            padding: 1px 4px;
+            border-radius: 4px;
+            font-weight: bold;
+            line-height: 1;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+        .badge-gps { background: #10b981; color: #022c22; }
+        .badge-fix { background: #f59e0b; color: #451a03; }
+
+        /* Responsive Mobile Styles */
+        @media (max-width: 768px) {
+            body {
+                height: 100vh;
+                height: 100dvh;
+            }
+            header {
+                padding: 10px 12px !important;
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 8px !important;
+            }
+            header h1 {
+                font-size: 14px !important;
+            }
+            .header-buttons-row {
+                display: flex !important;
+                gap: 6px !important;
+                width: 100% !important;
+            }
+            .header-buttons-row button {
+                flex: 1 !important;
+                padding: 6px 8px !important;
+                font-size: 11px !important;
+                justify-content: center !important;
+            }
+            #stats-bar {
+                display: flex !important;
+                flex-wrap: nowrap !important;
+                overflow-x: auto !important;
+                padding: 6px 10px !important;
+                gap: 8px !important;
+                -webkit-overflow-scrolling: touch;
+            }
+            #stats-bar > div {
+                min-width: 130px !important;
+                flex-shrink: 0 !important;
+                padding: 6px 8px !important;
+            }
+            #main-split-container {
+                position: relative !important;
+                flex: 1 !important;
+                overflow: hidden !important;
+            }
+            #sidebar {
+                position: absolute !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100% !important;
+                height: 100% !important;
+                z-index: 20 !important;
+                transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            }
+            #sidebar.mobile-map-active {
+                transform: translateX(-100%) !important;
+                pointer-events: none !important;
+            }
+            #map-container {
+                position: absolute !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100% !important;
+                height: 100% !important;
+                z-index: 10 !important;
+            }
+            .map-legend-box {
+                bottom: 12px !important;
+                right: 8px !important;
+                padding: 6px 8px !important;
+                font-size: 10px !important;
+                max-width: 150px !important;
+            }
+            .modal-content-box {
+                width: 95vw !important;
+                max-width: 95vw !important;
+                max-height: 90vh !important;
+                margin: 8px !important;
+                padding: 16px !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans antialiased h-screen flex flex-col overflow-hidden">
+
+    <!-- TOP NAVIGATION HEADER -->
+    <header class="bg-slate-950 border-b border-slate-800 px-6 py-3 flex items-center justify-between shrink-0 shadow-lg">
+        <div class="flex items-center space-x-3">
+            <div class="w-9 h-9 rounded-full bg-emerald-600/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 font-bold text-lg shadow-inner shrink-0">
+                <i class="fa-solid fa-tree text-emerald-400"></i>
+            </div>
+            <div>
+                <h1 class="text-base md:text-lg font-bold text-white tracking-wide flex items-center gap-2 flex-wrap">
+                    Flash Reports Monitoring
+                    <span class="bg-emerald-950 text-emerald-400 border border-emerald-700/60 text-[10px] md:text-xs px-2 py-0.5 rounded-full font-semibold">TN Forest GIS</span>
+                </h1>
+                <p class="text-[11px] md:text-xs text-slate-400">Tamil Nadu Forest Department Incident GIS Tracking System</p>
+            </div>
+        </div>
+
+        <div class="header-buttons-row flex items-center space-x-2 md:space-x-3 mt-1 md:mt-0">
+            <button id="btn-open-import" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 md:px-4 py-1.5 md:py-2 rounded-lg text-xs md:text-sm font-medium transition flex items-center gap-1.5 shadow-md">
+                <i class="fa-solid fa-file-import"></i>
+                <span>Import</span>
+            </button>
+            <button id="btn-open-manual" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-2.5 md:px-3 py-1.5 md:py-2 rounded-lg text-xs md:text-sm font-medium transition flex items-center gap-1.5">
+                <i class="fa-solid fa-plus text-emerald-400"></i>
+                <span>Add Entry</span>
+            </button>
+            <button id="btn-show-all-data" class="bg-indigo-600/30 hover:bg-indigo-600 text-indigo-200 border border-indigo-500/40 px-2.5 md:px-3 py-1.5 md:py-2 rounded-lg text-xs md:text-sm font-medium transition flex items-center gap-1.5" title="Show all reports">
+                <i class="fa-solid fa-eye text-indigo-400"></i>
+                <span>All Data</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- MOBILE VIEW TABS (List vs Live Map) -->
+    <div id="mobile-view-tabs" class="md:hidden flex bg-slate-950 border-b border-slate-800 p-1.5 gap-2 shrink-0 z-30">
+        <button type="button" id="tab-btn-list" class="flex-1 py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 bg-emerald-600 text-white shadow">
+            <i class="fa-solid fa-list-check"></i> Reports (<span id="mobile-count-badge">0</span>)
+        </button>
+        <button type="button" id="tab-btn-map" class="flex-1 py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 bg-slate-900 text-slate-300 hover:text-white border border-slate-800">
+            <i class="fa-solid fa-map-location-dot text-emerald-400"></i> Live Map
+        </button>
+    </div>
+
+    <!-- STATS COUNTER BAR -->
+    <section id="stats-bar" class="bg-slate-900 border-b border-slate-800/80 px-6 py-2 grid grid-cols-2 md:grid-cols-5 gap-4 shrink-0 text-sm">
+        <div class="flex items-center space-x-3 bg-slate-800/50 px-3 py-1.5 rounded-lg border border-slate-800">
+            <div class="p-2 rounded bg-indigo-500/10 text-indigo-400"><i class="fa-solid fa-list-check text-base"></i></div>
+            <div>
+                <div class="text-xs text-slate-400 uppercase font-semibold tracking-wider">Total Reports</div>
+                <div id="stat-total" class="text-lg font-bold text-white">0</div>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-3 bg-slate-800/50 px-3 py-1.5 rounded-lg border border-slate-800">
+            <div class="p-2 rounded bg-rose-500/10 text-rose-400"><i class="fa-solid fa-skull text-base"></i></div>
+            <div>
+                <div class="text-xs text-slate-400 uppercase font-semibold tracking-wider">Human Deaths</div>
+                <div id="stat-human-deaths" class="text-lg font-bold text-rose-400">0</div>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-3 bg-slate-800/50 px-3 py-1.5 rounded-lg border border-slate-800">
+            <div class="p-2 rounded bg-amber-500/10 text-amber-400"><i class="fa-solid fa-user-injured text-base"></i></div>
+            <div>
+                <div class="text-xs text-slate-400 uppercase font-semibold tracking-wider">Human Injuries</div>
+                <div id="stat-human-injuries" class="text-lg font-bold text-amber-400">0</div>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-3 bg-slate-800/50 px-3 py-1.5 rounded-lg border border-slate-800">
+            <div class="p-2 rounded bg-purple-500/10 text-purple-400"><i class="fa-solid fa-paw text-base"></i></div>
+            <div>
+                <div class="text-xs text-slate-400 uppercase font-semibold tracking-wider">Animal Deaths</div>
+                <div id="stat-animal-deaths" class="text-lg font-bold text-purple-400">0</div>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-3 bg-slate-800/50 px-3 py-1.5 rounded-lg border border-slate-800">
+            <div class="p-2 rounded bg-cyan-500/10 text-cyan-400"><i class="fa-solid fa-kit-medical text-base"></i></div>
+            <div>
+                <div class="text-xs text-slate-400 uppercase font-semibold tracking-wider">Animal Injuries</div>
+                <div id="stat-animal-injuries" class="text-lg font-bold text-cyan-400">0</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- MAIN SPLIT CONTENT -->
+    <div id="main-split-container" class="flex-1 flex overflow-hidden relative">
+
+        <!-- SIDEBAR -->
+        <aside id="sidebar" class="w-full md:w-96 bg-slate-950 border-r border-slate-800 flex flex-col z-10 shrink-0">
+            <!-- SEARCH & DATE-WISE FILTERS -->
+            <form id="filter-controls-form" autocomplete="off" onsubmit="return false;" class="p-3.5 border-b border-slate-800 space-y-2.5 bg-slate-900/50">
+                <div class="relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-500 text-xs"></i>
+                    <input type="text" id="search-input" autocomplete="off" placeholder="Search by location, keyword..." 
+                           class="w-full bg-slate-950 border border-slate-800 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500 transition">
+                </div>
+
+                <!-- DATE RANGE FILTER -->
+                <div class="bg-slate-950/80 p-2 rounded-lg border border-slate-800 space-y-1.5">
+                    <div class="flex items-center justify-between text-[11px] text-slate-400 font-semibold">
+                        <span class="flex items-center gap-1"><i class="fa-regular fa-calendar-days text-emerald-400"></i> Date Range Filter</span>
+                        <button type="button" id="btn-reset-dates" class="text-[10px] text-emerald-400 hover:underline">Clear Dates</button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-[10px] text-slate-500 block mb-0.5">From Date</label>
+                            <input type="date" id="filter-date-from" min="2020-01-01" max="2030-12-31" autocomplete="off" value="" class="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-slate-500 block mb-0.5">To Date</label>
+                            <input type="date" id="filter-date-to" min="2020-01-01" max="2030-12-31" autocomplete="off" value="" class="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="text-[10px] font-semibold text-slate-400 block mb-0.5">Category</label>
+                        <select id="filter-category" autocomplete="off" class="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-slate-300 focus:outline-none">
+                            <option value="ALL">All Categories</option>
+                            <option value="Human Death">Human Death</option>
+                            <option value="Human Injury">Human Injury</option>
+                            <option value="Animal Death">Animal Death</option>
+                            <option value="Animal Injury">Animal Injury</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="text-[10px] font-semibold text-slate-400 block mb-0.5">Division / Location</label>
+                        <select id="filter-location" autocomplete="off" class="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-slate-300 focus:outline-none">
+                            <option value="ALL">All Locations</option>
+                            <option value="hasanur">Hasanur Range</option>
+                            <option value="sathyamangalam">Sathyamangalam</option>
+                            <option value="hosur">Hosur Division</option>
+                            <option value="masinagudi">Masinagudi Range</option>
+                            <option value="gudalur">Gudalur Division</option>
+                            <option value="nilgiri">Nilgiris Division</option>
+                            <option value="coimbatore">Coimbatore</option>
+                            <option value="erode">Erode Division</option>
+                            <option value="dindigul">Dindigul Division</option>
+                            <option value="dharmapuri">Dharmapuri</option>
+                            <option value="tiruppur">Tiruppur / Udumalpet</option>
+                            <option value="kalakad">Kalakad Range</option>
+                            <option value="pollachi">Pollachi Division</option>
+                        </select>
+                    </div>
+                </div>
+            </form>
+
+            <!-- INCIDENT LIST HEADER -->
+            <div class="px-4 py-2 bg-slate-950 border-b border-slate-800 flex justify-between items-center text-xs text-slate-400 font-semibold">
+                <span>INCIDENT REPORTS (<span id="visible-count">0</span>)</span>
+                <span class="text-slate-500">Date & PDF View</span>
+            </div>
+
+            <!-- INCIDENT SCROLL LIST -->
+            <div id="reports-list" class="flex-1 overflow-y-auto divide-y divide-slate-800/60 custom-scrollbar"></div>
+        </aside>
+
+        <!-- MAP CONTAINER -->
+        <main id="map-container" class="flex-1 h-full relative bg-slate-950">
+            <!-- Floating Mobile Back-to-List Button -->
+            <button id="btn-mobile-back-to-list" class="hidden md:hidden absolute top-3 left-3 z-[1000] bg-slate-950/90 border border-emerald-500/50 text-white px-3 py-2 rounded-xl text-xs font-bold shadow-xl items-center gap-1.5 backdrop-blur hover:bg-slate-900 transition">
+                <i class="fa-solid fa-list-check text-emerald-400"></i> Back to Reports
+            </button>
+
+            <div id="map" class="w-full h-full"></div>
+
+            <!-- MAP LEGEND -->
+            <div class="map-legend-box absolute bottom-6 right-6 bg-slate-950/90 backdrop-blur border border-slate-800 p-3 rounded-lg shadow-xl text-xs z-[1000] space-y-2 text-slate-300">
+                <div class="font-bold text-slate-200 border-b border-slate-800 pb-1 flex items-center justify-between gap-4">
+                    <span>INCIDENT LEGEND</span>
+                    <span class="text-[10px] text-emerald-400 font-normal">TN Forest GIS</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="w-3 h-3 rounded-full bg-rose-600 inline-block shadow"></span>
+                    <span>Human Death</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="w-3 h-3 rounded-full bg-amber-500 inline-block shadow"></span>
+                    <span>Human Injury</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="w-3 h-3 rounded-full bg-purple-600 inline-block shadow"></span>
+                    <span>Animal Death</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="w-3 h-3 rounded-full bg-cyan-500 inline-block shadow"></span>
+                    <span>Animal Injury</span>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- IMPORT MODAL -->
+    <div id="modal-import" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[2000] flex items-center justify-center hidden p-3">
+        <div class="modal-content-box bg-slate-900 border border-slate-800 rounded-xl w-full max-w-lg shadow-2xl p-6 relative max-h-[92vh] overflow-y-auto">
+            <button class="btn-close-modal absolute top-4 right-4 text-slate-400 hover:text-white text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <h2 class="text-lg font-bold text-white mb-1 flex items-center gap-2">
+                <i class="fa-solid fa-file-arrow-up text-emerald-400"></i>
+                Import Flash Report Mail / PDF
+            </h2>
+            <p class="text-xs text-slate-400 mb-2">Upload email file (.eml / .mbox / .pdf) or paste text.</p>
+            <div class="bg-indigo-950/40 border border-indigo-800/60 p-2.5 rounded-lg text-[11px] text-indigo-300 mb-4 space-y-1">
+                <div><i class="fa-solid fa-rotate mr-1 text-emerald-400"></i> <strong>Auto-Overwrite:</strong> Re-importing an existing email subject will <strong>overwrite</strong> the existing report.</div>
+                <div><i class="fa-solid fa-circle-check mr-1 text-emerald-400"></i> <strong>Incident Filter:</strong> Accepts Human Death, Human Injury, Animal Death, and Animal Injury reports.</div>
+            </div>
+
+            <form id="form-import" autocomplete="off" class="space-y-4">
+                <div>
+                    <label class="text-xs font-semibold text-slate-300 block mb-1">Select File (.pdf, .eml, .txt, .mbox)</label>
+                    <input type="file" id="import-file-input" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-emerald-600 file:text-white hover:file:bg-emerald-500 cursor-pointer">
+                </div>
+
+                <div>
+                    <label class="text-xs font-semibold text-slate-300 block mb-1">Subject (Optional override)</label>
+                    <input type="text" id="import-subject" placeholder="e.g. Human death on 10.07.2026 in Hassanur Division" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+                </div>
+
+                <div>
+                    <label class="text-xs font-semibold text-slate-300 block mb-1">Or Paste Mail / PDF Content</label>
+                    <textarea id="import-text" rows="4" placeholder="Paste mail text, location details (Hasanur), coordinates (e.g. 11.6667, 77.2000)..." class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500"></textarea>
+                </div>
+
+                <div class="flex justify-end space-x-3 pt-2">
+                    <button type="button" class="btn-close-modal bg-slate-800 text-slate-300 px-4 py-2 rounded-lg text-xs font-semibold hover:bg-slate-700">Cancel</button>
+                    <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2 rounded-lg text-xs font-semibold shadow-md flex items-center gap-2">
+                        <i class="fa-solid fa-bolt"></i> Detect & Import
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MANUAL ADD MODAL -->
+    <div id="modal-manual" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[2000] flex items-center justify-center hidden p-3">
+        <div class="modal-content-box bg-slate-900 border border-slate-800 rounded-xl w-full max-w-md shadow-2xl p-6 relative max-h-[92vh] overflow-y-auto">
+            <button class="btn-close-modal absolute top-4 right-4 text-slate-400 hover:text-white text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <h2 class="text-lg font-bold text-white mb-1 flex items-center gap-2">
+                <i class="fa-solid fa-plus-circle text-emerald-400"></i>
+                Add Manual Flash Report
+            </h2>
+            <p class="text-xs text-slate-400 mb-4">Enter incident details and coordinates manually.</p>
+
+            <form id="form-manual" autocomplete="off" class="space-y-3">
+                <div>
+                    <label class="text-xs font-semibold text-slate-300 block mb-1">Subject</label>
+                    <input type="text" id="manual-subject" required placeholder="Human death on 10.07.2026 at Hasanur" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-slate-200">
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="text-xs font-semibold text-slate-300 block mb-1">Incident Type</label>
+                        <select id="manual-category" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-slate-200">
+                            <option value="Human Death">Human Death</option>
+                            <option value="Human Injury">Human Injury</option>
+                            <option value="Animal Death">Animal Death</option>
+                            <option value="Animal Injury">Animal Injury</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="text-xs font-semibold text-slate-300 block mb-1">Location Name</label>
+                        <input type="text" id="manual-location" required placeholder="Hasanur Range (STR)" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-slate-200">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="text-xs font-semibold text-slate-300 block mb-1">Latitude</label>
+                        <input type="number" step="any" id="manual-lat" required value="11.6667" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-slate-200">
+                    </div>
+
+                    <div>
+                        <label class="text-xs font-semibold text-slate-300 block mb-1">Longitude</label>
+                        <input type="number" step="any" id="manual-lng" required value="77.2000" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-slate-200">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="text-xs font-semibold text-slate-300 block mb-1">Incident Date</label>
+                        <input type="text" id="manual-inc-date" placeholder="DD/MM/YYYY (e.g. 10/07/2026)" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-slate-200">
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-slate-300 block mb-1">Reported Date</label>
+                        <input type="text" id="manual-rep-date" placeholder="Today" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-slate-200">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="text-xs font-semibold text-slate-300 block mb-1">Report Details</label>
+                    <textarea id="manual-details" rows="3" placeholder="Incident summary details..." class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-slate-200"></textarea>
+                </div>
+
+                <div class="flex justify-end space-x-3 pt-2">
+                    <button type="button" class="btn-close-modal bg-slate-800 text-slate-300 px-4 py-2 rounded-lg text-xs font-semibold hover:bg-slate-700">Cancel</button>
+                    <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2 rounded-lg text-xs font-semibold shadow-md">Add Entry</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- EMBEDDED JAVASCRIPT & DATASET -->
+    <script>
+        const DEFAULT_REPORTS = [{"id": "REP-007", "mbox_id": 2, "subject": "Human death on 09.09.2026 in Erode Division - Reg", "category": "Human Death", "icon_type": "human_death", "incident_date": "09/09/2026", "reported_date": "Fri, 11 Sep 2026 05:12:46 +0000 (UTC)", "location_name": "Erode Forest Division", "location_key": "erode", "has_exact_coords": false, "coord_source": "Central Location Fallback (Erode Forest Division)", "latitude": 11.362, "longitude": 77.6932, "pdf_attached": true, "pdf_filenames": ["document (94).pdf"], "body_snippet": "Sir/Madam,\nPlease find the attachments. \n\n\nWildlife Wing,\nO/o. the Principal Chief Conservator of Forests (Head of Forests Force),Guindy - Velachery Main Road,Chennai-32.", "pdf_snippet": "HOTNFD/7670/2026-WLA - JA 2 I/901887/2026\nத(cid:2)(cid:3)நா(cid:6) வன(cid:10)(cid:11)ைற\nஅ(cid:15)(cid:16)(cid:17)ந(cid:18) ெப(cid:21)ந(cid:18)\n(cid:22)(cid:23). ராேக(cid:28) (cid:29)மா(cid:18) ேடா(cid:32)ரா, இ.வ.ப., அர(cid:55) (cid:56)(cid:6)த(cid:57) தைலைம ெசயலாள(cid:18),\n(cid:35)த(cid:36)ைம தைலைம வன(cid:16)பா(cid:11)காவல(cid:18) (ம) (cid:55)(cid:58)(cid:21)(cid:59)(cid:60)ழ(cid:57), கால(cid:62)ைல மா(cid:58)ற(cid:45)\nதைலைம வன உ(cid:41)(cid:42)ன(cid:32)கா(cid:16)பாள(cid:18), ம(cid:58)(cid:21)(ci", "pdf_path": "pdfs/REP-007_document (94).pdf", "pdf_filename": "document (94).pdf"}, {"id": "REP-076", "subject": "Human Death: Mrs. Pavithra (23 yrs) due to Deer collision at Perundurai, Erode Division", "category": "Human Death", "icon_type": "human_death", "incident_date": "05/09/2026", "reported_date": "Recently Imported from Flash Report", "location_name": "Perundurai, Erode Range, Erode Division", "location_key": "erode", "has_exact_coords": true, "coord_source": "Exact GPS Coordinates (N11.284743, E77.562224)", "latitude": 11.284743, "longitude": 77.562224, "pdf_attached": false, "pdf_filenames": ["Flash_Report_Erode_Pavithra_05.09.2026.pdf"], "body_snippet": "Official Flash Report (Erode Division): Incident on 05.09.2026. Mrs. Pavithra (23 yrs), w/o Ramasamy, succumbed to fatal head injuries following a motorcycle collision involving deer at Perundurai, Erode Division. Underwent treatment at GEMCH hospital before succumbing at 11:30 PM. Exact GPS: N11.284743, E77.562224.", "pdf_snippet": "", "pdf_path": null, "pdf_filename": null}, {"id": "REP-063", "mbox_id": 64, "subject": "=?UTF-8?Q?Re=3A_Forest_=E2=80=93_Preparation_of_Management_Plan_for_Ka?=\n\t=?UTF-8?Q?davur_Slender_Loris_Sanctuary_=E2=80=93_Details_requested_=2D_regard?=\n\t=?UTF-8?Q?ing?=", "category": "Human Injury", "icon_type": "human_injury", "incident_date": "01/08/2026", "reported_date": "Sat, 1 Aug 2026 17:20:53 +0530", "location_name": "Dindigul Forest Division", "location_key": "dindigul", "has_exact_coords": false, "coord_source": "Central Location Fallback (Dindigul Forest Division)", "latitude": 10.3988, "longitude": 78.0223, "pdf_attached": true, "pdf_filenames": ["PATROLLING PATH.pdf", "SOIL CONSERVATION MAP.pdf"], "body_snippet": "Sir/Madam,\n\nPlease download the attachment.\n\nGeomatics Centre,\nO/o.Principal Chief Conservator of Forests,\n(HoFF), Velacherry,\nChennai\n\n\nOn Sat, Aug 1, 2026 at 5:19 PM GIS TNFD <gistnfd@gmail.com> wrote:\n\n> Sir/Madam,\n>\n> Please download the attachment.\n>\n> Geomatics Centre,\n> O/o.Principal Chief Conservator of Forests,\n> (HoFF), Velacherry,\n> Chennai\n>\n>\n> On Sat, Aug 1, 2026 at 5:18 PM GIS TNFD <gistnfd@gmail.com> wrote:\n>\n>> Sir/Madam,\n>>\n>> Please download the attachment.\n>>\n>> Geomatics Cen", "pdf_snippet": "±\nS L E N D E R L O R I S W I L D L I F E S A N C T U A R Y\nPATROLLING PATH MAP (KARUR AND AYYALUR RANGE)\nKARUR\nTIRUCHIRAPPALLI\nDINDIGUL\nLEGEND\nPATROLLING PATH\nEsri, NASA, NGA, USGS\nDIVISION BOUNDARY\nKM\n0 1 2 4 6 8 SANCTUARY BOUNDARY ±\nS L E N D E R L O R I S W I L D L I F E S A N C T U A R Y\nSOIL CONSERVATION MAP\nKARUR\nTIRUCHIRAPPALLI\nDINDIGUL\nLEGEND\nPERCOLATION POND\nCHECK DAM\nEsri, NASA, NGA, USGS\nDIVISION BOUNDARY\nKM\nSANCTUARY BOUNDARY\n0 1 2 4 6 8", "pdf_path": "pdfs/REP-063_PATROLLING PATH.pdf", "pdf_filename": "PATROLLING PATH.pdf"}, {"id": "REP-064", "mbox_id": 65, "subject": "=?UTF-8?Q?Re=3A_Forest_=E2=80=93_Preparation_of_Management_Plan_for_Ka?=\n\t=?UTF-8?Q?davur_Slender_Loris_Sanctuary_=E2=80=93_Details_requested_=2D_regard?=\n\t=?UTF-8?Q?ing?=", "category": "Human Injury", "icon_type": "human_injury", "incident_date": "01/08/2026", "reported_date": "Sat, 1 Aug 2026 17:19:25 +0530", "location_name": "Dindigul Forest Division", "location_key": "dindigul", "has_exact_coords": false, "coord_source": "Central Location Fallback (Dindigul Forest Division)", "latitude": 10.3708, "longitude": 78.0153, "pdf_attached": true, "pdf_filenames": ["LULC_2005.pdf", "LULC_2015.pdf", "INVASIVE SPECIES REMOVAL.pdf", "INFRASTRUCTURE MAP.pdf", "LULC_2024.pdf"], "body_snippet": "Sir/Madam,\n\nPlease download the attachment.\n\nGeomatics Centre,\nO/o.Principal Chief Conservator of Forests,\n(HoFF), Velacherry,\nChennai\n\n\nOn Sat, Aug 1, 2026 at 5:18 PM GIS TNFD <gistnfd@gmail.com> wrote:\n\n> Sir/Madam,\n>\n> Please download the attachment.\n>\n> Geomatics Centre,\n> O/o.Principal Chief Conservator of Forests,\n> (HoFF), Velacherry,\n> Chennai\n>", "pdf_snippet": "±\nS L E N D E R L O R I S W I L D L I F E S A N C T U A R Y\nLAND USE AND LAND COVER - 2005\nKARUR\nTIRUCHIRAPPALLI\nDINDIGUL\nLEGEND\nDIVISION BOUNDARY\nSANCTUARY BOUNDARY\nAGRICULTURE - 3.25 SQ.KM\nBARREN LAND - 30.60 SQ.KM\nEsri, NASA, NGA, USGS\nFOREST - 84.02 SQ.KM\nKM\nWATERBODIES - 0.19 SQ.KM\n0 1 2 4 6 8 ±\nS L E N D E R L O R I S W I L D L I F E S A N C T U A R Y\nLAND USE AND LAND COVER - 2015\nKARUR\nTIRUCHIRAPPALLI\nDINDIGUL\nLEGEND\nDIVISION BOUNDARY\nSANCTUARY BOUNDARY\nAGRICULTURE - 5.64 SQ.KM\nBARREN LA", "pdf_path": "pdfs/REP-064_LULC_2005.pdf", "pdf_filename": "LULC_2005.pdf"}, {"id": "REP-065", "mbox_id": 66, "subject": "=?UTF-8?Q?Forest_=E2=80=93_Preparation_of_Management_Plan_for_Kadavu?=\n\t=?UTF-8?Q?r_Slender_Loris_Sanctuary_=E2=80=93_Details_requested_=2D_regarding?=", "category": "Human Injury", "icon_type": "human_injury", "incident_date": "01/08/2026", "reported_date": "Sat, 1 Aug 2026 17:18:35 +0530", "location_name": "Dindigul Forest Division", "location_key": "dindigul", "has_exact_coords": false, "coord_source": "Central Location Fallback (Dindigul Forest Division)", "latitude": 10.3428, "longitude": 78.0083, "pdf_attached": true, "pdf_filenames": ["Kadavur Slender Loris- Maps - Sending - Reg.pdf", "CROP DAMAGE AND CONFLICT.pdf", "FIRE VULNERABILITY.pdf", "FIRE WATCH TOWER.pdf"], "body_snippet": "Sir/Madam,\n\nPlease download the attachment.\n\nGeomatics Centre,\nO/o.Principal Chief Conservator of Forests,\n(HoFF), Velacherry,\nChennai", "pdf_snippet": "HOTNFD/2283/2025-GIS1 I/826440/2026\nRef. No. HOTNFD/2283/2025-GIS1 Office of the Principal Chief\nConservator of Forests (Head of Forest\nForce),\nState Forest Headquarters,\nGuindy, Chennai- 600032\nDated:31-07-2026\nSub: Forest – Preparation of Management Plan for Kadavur Slender Loris Sanctuary –\nDetails requested - regarding\nRef: 1. The District Forest Officer, Dindigul Forest Division, C.No.4929/2022/D1 (2),\nDated:18.06.2026.\n2. The District Forest Officer, Karur Forest Division, C.No.1615/2022/D", "pdf_path": "pdfs/REP-065_Kadavur Slender Loris- Maps - Sending - Reg.pdf", "pdf_filename": "Kadavur Slender Loris- Maps - Sending - Reg.pdf"}, {"id": "REP-072", "subject": "Elephant death Pollachi", "category": "Animal Death", "icon_type": "animal_death", "incident_date": "23/07/2026", "reported_date": "Recently Imported from Downloads", "location_name": "Coimbatore Division", "location_key": "coimbatore", "has_exact_coords": false, "coord_source": "Central Location Fallback (Coimbatore Division)", "latitude": 11.0368, "longitude": 76.9558, "pdf_attached": false, "pdf_filenames": ["Elephant death Pollachi.pdf"], "body_snippet": "HOTNFD/6146/2026-WLA - JA 2 I/811865/2026\nTAMILNADU FOREST DEPARTMENT\nFrom To\nThiru. Rakesh Kumar Dogra, I.F.S., The Additional Chief Secretary to\nPrincipal Chief Conservator of Forests & Government,\nChief Wildlife Warden, Environment, Climate Change and\nHead Quarters, Forest Department,\nVelachery-G", "pdf_snippet": "", "pdf_path": null, "pdf_filename": null}, {"id": "REP-069", "subject": "Elephant death on 17.07.2026 in Dindigul Division - Report sent -\n Reg.", "category": "Animal Death", "icon_type": "animal_death", "incident_date": "17/07/2026", "reported_date": "Recently Imported from Downloads", "location_name": "Dindigul Forest Division", "location_key": "dindigul", "has_exact_coords": false, "coord_source": "Central Location Fallback (Dindigul Forest Division)", "latitude": 10.3913, "longitude": 77.9963, "pdf_attached": false, "pdf_filenames": ["Elephant death on 17.07.2026 in Dindigul Division - Report sent - Reg..eml"], "body_snippet": "Sir/Madam,\nPlease find the attachments. \n\n\nWildlife Wing,\nO/o. the Principal Chief Conservator of Forests (Head of Forests Force),Guindy - Velachery Main Road,Chennai-32.", "pdf_snippet": "", "pdf_path": null, "pdf_filename": null}, {"id": "REP-067", "subject": "Elephant death on 16.07.2026 in Sathyamangalam Division - Report\n sent - Reg.", "category": "Animal Death", "icon_type": "animal_death", "incident_date": "16/07/2026", "reported_date": "Recently Imported from Downloads", "location_name": "Sathyamangalam Division", "location_key": "sathyamangalam", "has_exact_coords": false, "coord_source": "Central Location Fallback (Sathyamangalam Division)", "latitude": 11.5199, "longitude": 77.2524, "pdf_attached": false, "pdf_filenames": ["Elephant death on 16.07.2026 in Sathyamangalam Division - Report sent - Reg..eml"], "body_snippet": "Sir/Madam,\nPlease find the attachments. \n\n\nWildlife Wing,\nO/o. the Principal Chief Conservator of Forests (Head of Forests Force),Guindy - Velachery Main Road,Chennai-32.", "pdf_snippet": "", "pdf_path": null, "pdf_filename": null}, {"id": "REP-071", "subject": "Coimbatore _ Elepant death", "category": "Animal Death", "icon_type": "animal_death", "incident_date": "15/07/2026", "reported_date": "Recently Imported from Downloads", "location_name": "Coimbatore Division", "location_key": "coimbatore", "has_exact_coords": true, "coord_source": "Exact GPS Coordinates", "latitude": 10.07, "longitude": 76.990491, "pdf_attached": false, "pdf_filenames": ["Coimbatore _ Elepant death.pdf"], "body_snippet": "HOTNFD/5816/2026-WLA - JA 2 I/796874/2026\nTAMILNADU FOREST DEPARTMENT\nFrom To\nThiru. Rakesh Kumar Dogra, I.F.S., The Additional Chief Secretary to\nPrincipal Chief Conservator of Forests & Government,\nChief Wildlife Warden, Environment, Climate Change and\nHead Quarters, Forest Department,\nVelachery-G", "pdf_snippet": "", "pdf_path": null, "pdf_filename": null}, {"id": "REP-001", "mbox_id": 69, "subject": "Fwd: Elephant death on 15.07.2026 in Pollachi Division - Report sent - Reg.", "category": "Animal Death", "icon_type": "animal_death", "incident_date": "15/07/2026", "reported_date": "Recently Received", "location_name": "Pollachi Forest Division", "location_key": "pollachi", "has_exact_coords": false, "coord_source": "Central Location Fallback (Pollachi Forest Division)", "latitude": 10.6618, "longitude": 76.9933, "pdf_attached": false, "pdf_filenames": ["Elephant death Pollachi 15.07.2026.pdf"], "body_snippet": "Official Flash Report received regarding Fwd: Elephant death on 15.07.2026 in Pollachi Division - Report sent - Reg. in Pollachi Forest Division.", "pdf_snippet": "Attached PDF report details for Fwd: Elephant death on 15.07.2026 in Pollachi Division - Report sent - Reg..", "pdf_path": null, "pdf_filename": null}, {"id": "REP-059", "mbox_id": 60, "subject": "Fwd: Tamil Nadu Forest Department - Proposal submission.", "category": "Human Injury", "icon_type": "human_injury", "incident_date": "15/07/2026", "reported_date": "Wed, 15 Jul 2026 14:23:54 +0530", "location_name": "Coimbatore Division", "location_key": "coimbatore", "has_exact_coords": false, "coord_source": "Central Location Fallback (Coimbatore Division)", "latitude": 10.9853, "longitude": 76.9383, "pdf_attached": true, "pdf_filenames": ["Amrita University - ForestGuard.pdf"], "body_snippet": "============ Forwarded message ============\nFrom: Bagavathi C - [CSE] <c_bagavathi@cb.amrita.edu>\nTo: \"tnforest@nic.in\"<tnforest@nic.in>\nCc: \"baranidharan.k@tnau.ac.in\"<baranidharan.k@tnau.ac.in>, \"Dr. Senthilkumar M (CSE)\"<m_senthil@cb.amrita.edu>, \"Uma J - [CSE]\"<j_uma@cb.amrita.edu>\nDate: Wed, 15 Jul 2026 13:30:53 +0530\nSubject: Tamil Nadu Forest Department - Proposal submission.\n============ Forwarded message ============\n\n\n\nDear sir.\n\n            As a group of researchers working in the are", "pdf_snippet": "Amrita Vishwa Vidyapeetham— ForestGuard | Tamil Nadu Forest Department - Innovative Project Proposal\n2026\nINNOVATIVE PROJECT PROPOSAL\nSubmitted by\nDr. M Senthilkumar, Professor, Amrita Vishwa Vidyapeetham, Coimbatore\nDr. K. Baranidharan, Professor, TNAU Forest College & Research Institute, Coimbatore\nDr C Bagavathi, Assistant Professor, Amrita Vishwa Vidyapeetham, Coimbatore\nDr J Uma, Assistant Professor, Amrita Vishwa Vidyapeetham, Coimbatore\nForestGuard: AI-Enabled Multi-Scale Forest\nDisturban", "pdf_path": "pdfs/REP-059_Amrita University - ForestGuard.pdf", "pdf_filename": "Amrita University - ForestGuard.pdf"}, {"id": "REP-074", "subject": "Elephant death _ Sathy", "category": "Animal Death", "icon_type": "animal_death", "incident_date": "13/07/2026", "reported_date": "Recently Imported from Downloads", "location_name": "Sathyamangalam Division", "location_key": "sathyamangalam", "has_exact_coords": false, "coord_source": "Central Location Fallback (Sathyamangalam Division)", "latitude": 11.5039, "longitude": 77.2524, "pdf_attached": false, "pdf_filenames": ["Elephant death _ Sathy.pdf"], "body_snippet": "HOTNFD/5750/2026-WLA - JA 2 I/792951/2026\nTAMILNADU FOREST DEPARTMENT\nFrom To\nThiru. Rakesh Kumar Dogra, I.F.S., The Additional Chief Secretary to\nPrincipal Chief Conservator of Forests & Government,\nChief Wildlife Warden, Environment, Climate Change and\nHead Quarters, Forest Department,\nVelachery-G", "pdf_snippet": "", "pdf_path": null, "pdf_filename": null}, {"id": "REP-073", "subject": "Elephant death _ Hassanur", "category": "Animal Death", "icon_type": "animal_death", "incident_date": "13/07/2026", "reported_date": "Recently Imported from Downloads", "location_name": "Hasanur Range (STR)", "location_key": "hassanur", "has_exact_coords": false, "coord_source": "Central Location Fallback (Hasanur Range (STR))", "latitude": 11.6907, "longitude": 77.204, "pdf_attached": false, "pdf_filenames": ["Elephant death _ Hassanur.pdf"], "body_snippet": "HOTNFD/5742/2026-WLA - JA 2 I/793032/2026\nTAMILNADU FOREST DEPARTMENT\nFrom To\nThiru. Rakesh Kumar Dogra, I.F.S., The Additional Chief Secretary to\nPrincipal Chief Conservator of Forests & Government,\nChief Wildlife Warden, Environment, Climate Change and\nHead Quarters, Forest Department,\nVelachery-G", "pdf_snippet": "", "pdf_path": null, "pdf_filename": null}, {"id": "REP-003", "mbox_id": 65, "subject": "Fwd: Elephant death on 11.07.2026 in Sathyamangalam Division - Report sent - Reg.", "category": "Animal Death", "icon_type": "animal_death", "incident_date": "11/07/2026", "reported_date": "Recently Received", "location_name": "Sathyamangalam Division", "location_key": "sathyamangalam", "has_exact_coords": false, "coord_source": "Central Location Fallback (Sathyamangalam Division)", "latitude": 11.4949, "longitude": 77.2264, "pdf_attached": true, "pdf_filenames": ["Elephant death Sathyamangalam 11.07.2026.pdf"], "body_snippet": "Official Flash Report received regarding Fwd: Elephant death on 11.07.2026 in Sathyamangalam Division - Report sent - Reg. in Sathyamangalam Division.", "pdf_snippet": "Attached PDF report details for Fwd: Elephant death on 11.07.2026 in Sathyamangalam Division - Report sent - Reg..", "pdf_path": "pdfs/REP-003_LULC_2005.pdf", "pdf_filename": "LULC_2005.pdf"}, {"id": "REP-002", "mbox_id": 67, "subject": "Fwd: Elephant death on 10.07.2026 in Coimbatore Division -Reg.", "category": "Animal Death", "icon_type": "animal_death", "incident_date": "10/07/2026", "reported_date": "Recently Received", "location_name": "Coimbatore Division", "location_key": "coimbatore", "has_exact_coords": false, "coord_source": "Central Location Fallback (Coimbatore Division)", "latitude": 11.0138, "longitude": 76.9618, "pdf_attached": false, "pdf_filenames": ["Coimbatore Elephant death 10.07.2026.pdf"], "body_snippet": "Official Flash Report received regarding Fwd: Elephant death on 10.07.2026 in Coimbatore Division -Reg. in Coimbatore Division.", "pdf_snippet": "Attached PDF report details for Fwd: Elephant death on 10.07.2026 in Coimbatore Division -Reg..", "pdf_path": null, "pdf_filename": null}, {"id": "REP-004", "mbox_id": 63, "subject": "Fwd: Elephant death on 10.07.2026 in Hassanur Division - Report sent - Reg.", "category": "Animal Death", "icon_type": "animal_death", "incident_date": "10/07/2026", "reported_date": "Recently Received", "location_name": "Hasanur Range (STR)", "location_key": "hasanur", "has_exact_coords": false, "coord_source": "Central Location Fallback (Hasanur Range (STR))", "latitude": 11.6517, "longitude": 77.203, "pdf_attached": true, "pdf_filenames": ["Elephant death in Hassanur 10.07.2026.pdf"], "body_snippet": "Official Flash Report received regarding Fwd: Elephant death on 10.07.2026 in Hassanur Division - Report sent - Reg. in Hasanur Range (STR).", "pdf_snippet": "Attached PDF report details for Fwd: Elephant death on 10.07.2026 in Hassanur Division - Report sent - Reg..", "pdf_path": "pdfs/REP-004_document (80).pdf", "pdf_filename": "document (80).pdf"}, {"id": "REP-043", "mbox_id": 42, "subject": "Forests - Wildlife - Human Death on 05.07.2026 at Nilgiris Division\n due to Indian Gaur attach - Thiru. Damai Lulo - Report sent - Reg.", "category": "Human Death", "icon_type": "human_death", "incident_date": "05/07/2026", "reported_date": "Tue, 7 Jul 2026 14:10:53 +0000 (UTC)", "location_name": "Nilgiris Division", "location_key": "nilgiris", "has_exact_coords": false, "coord_source": "Central Location Fallback (Nilgiris Division)", "latitude": 11.4452, "longitude": 76.716, "pdf_attached": true, "pdf_filenames": [], "body_snippet": "Sir/Madam,\nPlease find the attachments. \n\n\nWildlife Wing,\nO/o. the Principal Chief Conservator of Forests (Head of Forests Force),Guindy - Velachery Main Road,Chennai-32.", "pdf_snippet": "", "pdf_path": "pdfs/REP-043_WL2-5568-2026, dt. 06.07.2026.pdf", "pdf_filename": "WL2-5568-2026, dt. 06.07.2026.pdf"}, {"id": "REP-052", "mbox_id": 51, "subject": "Fwd: Kundrathur Fire Report -Kpm Division -reg.", "category": "Human Injury", "icon_type": "human_injury", "incident_date": "30/06/2026", "reported_date": "Tue, 30 Jun 2026 13:55:43 +0530", "location_name": "Kundrathur / Kanchipuram", "location_key": "kundrathur", "has_exact_coords": false, "coord_source": "Central Location Fallback (Kundrathur / Kanchipuram)", "latitude": 12.9557, "longitude": 80.0552, "pdf_attached": true, "pdf_filenames": ["Fire Report Kundrathur.pdf"], "body_snippet": "Sir,\n\nKindly download the attachment.\n\nThanking you,\n\nTechnical Section,\n\nO/o. PCCF, Chennai-32.\n\n\n\n---------- Forwarded message ---------\nFrom: District Forest Officer Kancheepuram <dfokpm@gmail.com>\nDate: Tue, 30 Jun 2026 at 13:33\nSubject: Kundrathur Fire Report -Kpm Division -reg.\nTo: chennaicircle <chennaicircle@gmail.com>, tnfdts <tnfdts@gmail.com>\n\n\n\nSir/Madam,\nPlease download the attachments.\nThank you.\n\n*Regards...*\n*District Forest Officer,*\n*Kancheepuram Division,*\n*5/9, Varadharaja Pa", "pdf_snippet": "\n\n", "pdf_path": "pdfs/REP-052_Fire Report Kundrathur.pdf", "pdf_filename": "Fire Report Kundrathur.pdf"}, {"id": "REP-026", "mbox_id": 22, "subject": "Forests - Wild Life - Human death on 27.06.2026 in Tiruppur\n Division - Reg.", "category": "Human Death", "icon_type": "human_death", "incident_date": "27/06/2026", "reported_date": "Mon, 6 Jul 2026 09:34:40 +0000 (UTC)", "location_name": "Tiruppur Division", "location_key": "tiruppur", "has_exact_coords": false, "coord_source": "Central Location Fallback (Tiruppur Division)", "latitude": 10.5672, "longitude": 77.2346, "pdf_attached": true, "pdf_filenames": [], "body_snippet": "Sir/Madam,\nPlease find the attachments. \n\n\nWildlife Wing,\nO/o. the Principal Chief Conservator of Forests (Head of Forests Force),Guindy - Velachery Main Road,Chennai-32.", "pdf_snippet": "", "pdf_path": "pdfs/REP-026_Human death in Tirupur Division.pdf", "pdf_filename": "Human death in Tirupur Division.pdf"}, {"id": "REP-066", "subject": "Elephant death on 16.06.2026 in Masinagudi Division - Report sent -\n Reg.", "category": "Animal Death", "icon_type": "animal_death", "incident_date": "16/06/2026", "reported_date": "Recently Imported from Downloads", "location_name": "Masinagudi Range (MTR)", "location_key": "masinagudi", "has_exact_coords": false, "coord_source": "Central Location Fallback (Masinagudi Range (MTR))", "latitude": 11.5804, "longitude": 76.6433, "pdf_attached": false, "pdf_filenames": ["Elephant death on 16.06.2026 in Masinagudi Division - Report sent - Reg. (1).eml"], "body_snippet": "Sir/Madam,\nPlease find the attachments. \n\n\nWildlife Wing,\nO/o. the Principal Chief Conservator of Forests (Head of Forests Force),Guindy - Velachery Main Road,Chennai-32.", "pdf_snippet": "", "pdf_path": null, "pdf_filename": null}, {"id": "REP-070", "subject": "Forests - Wild Life - One female elephant death on 12.06.2026 in\n Hassanur Division - Report sent - Reg.", "category": "Animal Death", "icon_type": "animal_death", "incident_date": "12/06/2026", "reported_date": "Recently Imported from Downloads", "location_name": "Hasanur Range (STR)", "location_key": "hassanur", "has_exact_coords": false, "coord_source": "Central Location Fallback (Hasanur Range (STR))", "latitude": 11.6707, "longitude": 77.204, "pdf_attached": false, "pdf_filenames": ["Forests - Wild Life - One female elephant death on 12.06.2026 in Hassanur Division - Report sent - Reg..eml"], "body_snippet": "Sir/Madam,\nPlease find the attachments. \n\n\nWildlife Wing,\nO/o. the Principal Chief Conservator of Forests (Head of Forests Force),Guindy - Velachery Main Road,Chennai-32.", "pdf_snippet": "", "pdf_path": null, "pdf_filename": null}, {"id": "REP-014", "mbox_id": 9, "subject": "Human Death on 05.06.2026 at Sathyamangalam - REG", "category": "Human Death", "icon_type": "human_death", "incident_date": "05/06/2026", "reported_date": "Mon, 8 Jun 2026 07:40:53 +0000 (UTC)", "location_name": "Sathyamangalam Division", "location_key": "sathyamangalam", "has_exact_coords": false, "coord_source": "Central Location Fallback (Sathyamangalam Division)", "latitude": 11.5004, "longitude": 77.2339, "pdf_attached": true, "pdf_filenames": ["document (80).pdf"], "body_snippet": "Sir/Madam,\nPlease find the attachments. \n\n\nWildlife Wing,\nO/o. the Principal Chief Conservator of Forests (Head of Forests Force),Guindy - Velachery Main Road,Chennai-32.", "pdf_snippet": "HOTNFD/4837/2026-WLA - JA 2 I/727909/2026\nத(cid:2)(cid:3)நா(cid:6)வன(cid:9)(cid:10)ைற\nஅ(cid:15)(cid:16)(cid:17)ந(cid:18) ெப(cid:21)ந(cid:18)\n(cid:22)(cid:23). ராேக(cid:28) (cid:29)மா(cid:18)ேடா(cid:32)ரா, இ.வ.ப., அர(cid:55)(cid:56)(cid:6)த(cid:57) தைலைமெசயலாள(cid:18),\n(cid:35)த(cid:36)ைம தைலைமவன(cid:16)பா(cid:10)காவல(cid:18) (ம) (cid:55)(cid:58)(cid:21)(cid:59)(cid:60)ழ(cid:57), கால(cid:62)ைல மா(cid:58)ற(cid:45)\nதைலைமவன உ(cid:41)(cid:42)ன(cid:32)கா(cid:16)பாள(cid:18), ம(cid:58)(cid:21)(cid:45)வன", "pdf_path": "pdfs/REP-014_document (80).pdf", "pdf_filename": "document (80).pdf"}, {"id": "REP-049", "mbox_id": 48, "subject": "Human Death on 05.06.2026 at Sathyamangalam", "category": "Human Death", "icon_type": "human_death", "incident_date": "05/06/2026", "reported_date": "Sat, 6 Jun 2026 07:11:09 +0000 (UTC)", "location_name": "Sathyamangalam Division", "location_key": "sathyamangalam", "has_exact_coords": false, "coord_source": "Central Location Fallback (Sathyamangalam Division)", "latitude": 11.5459, "longitude": 77.2234, "pdf_attached": true, "pdf_filenames": ["document -\n 2026-06-06T124654.063.pdf"], "body_snippet": "Sir/Madam,\nPlease find the attachments. \n\n\nWildlife Wing,\nO/o. the Principal Chief Conservator of Forests (Head of Forests Force),Guindy - Velachery Main Road,Chennai-32.", "pdf_snippet": "HOTNFD/4837/2026-WLA - JA 2 I/727909/2026\nத(cid:2)(cid:3)நா(cid:6)வன(cid:9)(cid:10)ைற\nஅ(cid:15)(cid:16)(cid:17)ந(cid:18) ெப(cid:21)ந(cid:18)\n(cid:22)(cid:23). ராேக(cid:28) (cid:29)மா(cid:18)ேடா(cid:32)ரா, இ.வ.ப., அர(cid:55)(cid:56)(cid:6)த(cid:57) தைலைமெசயலாள(cid:18),\n(cid:35)த(cid:36)ைம தைலைமவன(cid:16)பா(cid:10)காவல(cid:18) (ம) (cid:55)(cid:58)(cid:21)(cid:59)(cid:60)ழ(cid:57), கால(cid:62)ைல மா(cid:58)ற(cid:45)\nதைலைமவன உ(cid:41)(cid:42)ன(cid:32)கா(cid:16)பாள(cid:18), ம(cid:58)(cid:21)(cid:45)வன", "pdf_path": "pdfs/REP-049_document -  2026-06-06T124654.063.pdf", "pdf_filename": "document -  2026-06-06T124654.063.pdf"}, {"id": "REP-017", "mbox_id": 12, "subject": "Human Death on 03.06.2026 at Gudalur", "category": "Human Death", "icon_type": "human_death", "incident_date": "03/06/2026", "reported_date": "Sat, 6 Jun 2026 07:13:38 +0000 (UTC)", "location_name": "Gudalur Forest Division (TN)", "location_key": "gudalur", "has_exact_coords": false, "coord_source": "Central Location Fallback (Gudalur Forest Division (TN))", "latitude": 11.5064, "longitude": 76.5162, "pdf_attached": true, "pdf_filenames": ["document -\n 2026-06-06T125100.270.pdf"], "body_snippet": "Sir/Madam,\nPlease find the attachments. \n\n\nWildlife Wing,\nO/o. the Principal Chief Conservator of Forests (Head of Forests Force),Guindy - Velachery Main Road,Chennai-32.", "pdf_snippet": "HOTNFD/4774/2026-WLA - JA 2 I/727992/2026\nத(cid:2)(cid:3)நா(cid:6)வன(cid:9)(cid:10)ைற\nஅ(cid:15)(cid:16)(cid:17)ந(cid:18) ெப(cid:21)ந(cid:18)\n(cid:22)(cid:23). ராேக(cid:28) (cid:29)மா(cid:18)ேடா(cid:32)ரா, இ.வ.ப., அர(cid:55)(cid:56)(cid:6)த(cid:57) தைலைமெசயலாள(cid:18),\n(cid:35)த(cid:36)ைம தைலைமவன(cid:16)பா(cid:10)காவல(cid:18) (ம) (cid:55)(cid:58)(cid:21)(cid:59)(cid:60)ழ(cid:57), கால(cid:62)ைல மா(cid:58)ற(cid:45)\nதைலைமவன உ(cid:41)(cid:42)ன(cid:32)கா(cid:16)பாள(cid:18), ம(cid:58)(cid:21)(cid:45)வன", "pdf_path": "pdfs/REP-017_document -  2026-06-06T125100.270.pdf", "pdf_filename": "document -  2026-06-06T125100.270.pdf"}, {"id": "REP-024", "mbox_id": 19, "subject": "Human Death on 03.06.2026 at Sathyamangalam - Reg", "category": "Human Death", "icon_type": "human_death", "incident_date": "03/06/2026", "reported_date": "Fri, 5 Jun 2026 09:59:54 +0000 (UTC)", "location_name": "Sathyamangalam Division", "location_key": "sathyamangalam", "has_exact_coords": false, "coord_source": "Central Location Fallback (Sathyamangalam Division)", "latitude": 11.4829, "longitude": 77.2514, "pdf_attached": true, "pdf_filenames": [], "body_snippet": "Sir/Madam,\nPlease find the attachments. \n\n\nWildlife Wing,\nO/o. the Principal Chief Conservator of Forests (Head of Forests Force),Guindy - Velachery Main Road,Chennai-32.", "pdf_snippet": "", "pdf_path": "pdfs/REP-024_document (82).pdf", "pdf_filename": "document (82).pdf"}, {"id": "REP-044", "mbox_id": 43, "subject": "Human Death on 03.06.2026 at Gudalur - Reg", "category": "Human Death", "icon_type": "human_death", "incident_date": "03/06/2026", "reported_date": "Mon, 8 Jun 2026 08:08:40 +0000 (UTC)", "location_name": "Gudalur Forest Division (TN)", "location_key": "gudalur", "has_exact_coords": false, "coord_source": "Central Location Fallback (Gudalur Forest Division (TN))", "latitude": 11.5004, "longitude": 76.4832, "pdf_attached": true, "pdf_filenames": ["document (83).pdf"], "body_snippet": "Sir/Madam,\nPlease find the attachments. \n\n\nWildlife Wing,\nO/o. the Principal Chief Conservator of Forests (Head of Forests Force),Guindy - Velachery Main Road,Chennai-32.", "pdf_snippet": "HOTNFD/4774/2026-WLA - JA 2 I/727992/2026\nத(cid:2)(cid:3)நா(cid:6)வன(cid:9)(cid:10)ைற\nஅ(cid:15)(cid:16)(cid:17)ந(cid:18) ெப(cid:21)ந(cid:18)\n(cid:22)(cid:23). ராேக(cid:28) (cid:29)மா(cid:18)ேடா(cid:32)ரா, இ.வ.ப., அர(cid:55)(cid:56)(cid:6)த(cid:57) தைலைமெசயலாள(cid:18),\n(cid:35)த(cid:36)ைம தைலைமவன(cid:16)பா(cid:10)காவல(cid:18) (ம) (cid:55)(cid:58)(cid:21)(cid:59)(cid:60)ழ(cid:57), கால(cid:62)ைல மா(cid:58)ற(cid:45)\nதைலைமவன உ(cid:41)(cid:42)ன(cid:32)கா(cid:16)பாள(cid:18), ம(cid:58)(cid:21)(cid:45)வன", "pdf_path": "pdfs/REP-044_document (83).pdf", "pdf_filename": "document (83).pdf"}, {"id": "REP-056", "mbox_id": 55, "subject": "Human Death on 02.06.2026 at Kanyakumari - Reg", "category": "Human Death", "icon_type": "human_death", "incident_date": "02/06/2026", "reported_date": "Wed, 3 Jun 2026 08:15:51 +0000 (UTC)", "location_name": "Kanyakumari Wildlife Division", "location_key": "kanyakumari", "has_exact_coords": false, "coord_source": "Central Location Fallback (Kanyakumari Wildlife Division)", "latitude": 8.1033, "longitude": 77.5175, "pdf_attached": true, "pdf_filenames": ["document (83).pdf"], "body_snippet": "Sir/Madam,\nPlease find the attachments. \n\n\nWildlife Wing,\nO/o. the Principal Chief Conservator of Forests (Head of Forests Force),Guindy - Velachery Main Road,Chennai-32.", "pdf_snippet": "HOTNFD/4748/2026-WLA - JA 2 I/721429/2026\nத(cid:2)(cid:3)நா(cid:6)வன(cid:9)(cid:10)ைற\nஅ(cid:15)(cid:16)(cid:17)ந(cid:18) ெப(cid:21)ந(cid:18)\n(cid:22)(cid:23). ராேக(cid:28) (cid:29)மா(cid:18)ேடா(cid:32)ரா, இ.வ.ப., அர(cid:55)(cid:56)(cid:6)த(cid:57) தைலைமெசயலாள(cid:18),\n(cid:35)த(cid:36)ைம தைலைமவன(cid:16)பா(cid:10)காவல(cid:18) (ம) (cid:55)(cid:58)(cid:21)(cid:59)(cid:60)ழ(cid:57), கால(cid:62)ைல மா(cid:58)ற(cid:45)\nதைலைமவன உ(cid:41)(cid:42)ன(cid:32)கா(cid:16)பாள(cid:18), ம(cid:58)(cid:21)(cid:45)வன", "pdf_path": "pdfs/REP-056_document (83).pdf", "pdf_filename": "document (83).pdf"}, {"id": "REP-011", "mbox_id": 6, "subject": "Human Death on 29.05.2026 at Nilgiri - Reg", "category": "Human Death", "icon_type": "human_death", "incident_date": "29/05/2026", "reported_date": "Tue, 2 Jun 2026 07:42:48 +0000 (UTC)", "location_name": "Nilgiris Division", "location_key": "nilgiri", "has_exact_coords": false, "coord_source": "Central Location Fallback (Nilgiris Division)", "latitude": 11.4032, "longitude": 76.7055, "pdf_attached": true, "pdf_filenames": [], "body_snippet": "Sir/Madam,\nPlease find the attachments. \n\n\nWildlife Wing,\nO/o. the Principal Chief Conservator of Forests (Head of Forests Force),Guindy - Velachery Main Road,Chennai-32.", "pdf_snippet": "", "pdf_path": "pdfs/REP-011_document (82).pdf", "pdf_filename": "document (82).pdf"}, {"id": "REP-019", "mbox_id": 14, "subject": "Human death on 29.05.2026 at Erode - Reg", "category": "Human Death", "icon_type": "human_death", "incident_date": "29/05/2026", "reported_date": "Fri, 29 May 2026 12:21:34 +0000 (UTC)", "location_name": "Erode Forest Division", "location_key": "erode", "has_exact_coords": false, "coord_source": "Central Location Fallback (Erode Forest Division)", "latitude": 11.344, "longitude": 77.7022, "pdf_attached": true, "pdf_filenames": ["document (81).pdf"], "body_snippet": "Sir/Madam,\nPlease find the attachments. \n\n\nWildlife Wing,\nO/o. the Principal Chief Conservator of Forests (Head of Forests Force),Guindy - Velachery Main Road,Chennai-32.", "pdf_snippet": "HOTNFD/4657/2026-WLA - JA 2 I/714726/2026\nத(cid:2)(cid:3)நா(cid:6)வன(cid:9)(cid:10)ைற\nஅ(cid:15)(cid:16)(cid:17)ந(cid:18) ெப(cid:21)ந(cid:18)\n(cid:22)(cid:23). ராேக(cid:28) (cid:29)மா(cid:18)ேடா(cid:32)ரா, இ.வ.ப., அர(cid:55)(cid:56)(cid:6)த(cid:57) தைலைமெசயலாள(cid:18),\n(cid:35)த(cid:36)ைம தைலைமவன(cid:16)பா(cid:10)காவல(cid:18) (ம) (cid:55)(cid:58)(cid:21)(cid:59)(cid:60)ழ(cid:57), கால(cid:62)ைல மா(cid:58)ற(cid:45)\nதைலைமவன உ(cid:41)(cid:42)ன(cid:32)கா(cid:16)பாள(cid:18), ம(cid:58)(cid:21)(cid:45)வன", "pdf_path": "pdfs/REP-019_document (81).pdf", "pdf_filename": "document (81).pdf"}, {"id": "REP-040", "mbox_id": 37, "subject": "Human death on 26.05.2026 at Gudalur - Reg", "category": "Human Death", "icon_type": "human_death", "incident_date": "26/05/2026", "reported_date": "Wed, 27 May 2026 10:44:48 +0000 (UTC)", "location_name": "Gudalur Forest Division", "location_key": "gudalur", "has_exact_coords": false, "coord_source": "Central Location Fallback (Gudalur Forest Division)", "latitude": 11.5034, "longitude": 76.4637, "pdf_attached": true, "pdf_filenames": [], "body_snippet": "Sir/Madam,\nPlease find the attachments. \n\n\nWildlife Wing,\nO/o. the Principal Chief Conservator of Forests (Head of Forests Force),Guindy - Velachery Main Road,Chennai-32.", "pdf_snippet": "", "pdf_path": "pdfs/REP-040_document (80).pdf", "pdf_filename": "document (80).pdf"}, {"id": "REP-045", "mbox_id": 44, "subject": "Human death on 26.05.2026 at Gudalur - Reg", "category": "Human Death", "icon_type": "human_death", "incident_date": "26/05/2026", "reported_date": "Wed, 27 May 2026 16:18:13 +0530", "location_name": "Gudalur Forest Division (TN)", "location_key": "gudalur", "has_exact_coords": false, "coord_source": "Central Location Fallback (Gudalur Forest Division (TN))", "latitude": 11.4944, "longitude": 76.4952, "pdf_attached": true, "pdf_filenames": ["document (80).pdf"], "body_snippet": "-- \n\nSir/Madam,\n\nPlease find the attachments.\n\nWild Life A Section,\nO/o. the Principal Chief Conservator of Forests\n(Head of Forests Force),\nState Forest Headquarters Building,\nNear Kannigapuram Check Post,\nGuindy - Velachery Main Road,\nGuindy, Chennai-32.", "pdf_snippet": "HOTNFD/4596/2026-WLA - JA 2 I/712301/2026\nத(cid:2)(cid:3)நா(cid:6)வன(cid:9)(cid:10)ைற\nஅ(cid:15)(cid:16)(cid:17)ந(cid:18) ெப(cid:21)ந(cid:18)\n(cid:22)(cid:23). ராேக(cid:28) (cid:29)மா(cid:18)ேடா(cid:32)ரா, இ.வ.ப., அர(cid:55)(cid:56)(cid:6)த(cid:57) தைலைமெசயலாள(cid:18),\n(cid:35)த(cid:36)ைம தைலைமவன(cid:16)பா(cid:10)காவல(cid:18) (ம) (cid:55)(cid:58)(cid:21)(cid:59)(cid:60)ழ(cid:57), கால(cid:62)ைல மா(cid:58)ற(cid:45)\nதைலைமவன உ(cid:41)(cid:42)ன(cid:32)கா(cid:16)பாள(cid:18), ம(cid:58)(cid:21)(cid:45)வன", "pdf_path": "pdfs/REP-045_document (80).pdf", "pdf_filename": "document (80).pdf"}, {"id": "REP-023", "mbox_id": 18, "subject": "Human death on 24.05.2026 in kalakad - Reg", "category": "Human Death", "icon_type": "human_death", "incident_date": "24/05/2026", "reported_date": "Tue, 26 May 2026 12:37:35 +0000 (UTC)", "location_name": "Kalakad Range (KMTR)", "location_key": "kalakad", "has_exact_coords": false, "coord_source": "Central Location Fallback (Kalakad Range (KMTR))", "latitude": 8.5217, "longitude": 77.5658, "pdf_attached": true, "pdf_filenames": [], "body_snippet": "Sir/Madam,\nPlease find the attachments. \n\n\nWildlife Wing,\nO/o. the Principal Chief Conservator of Forests (Head of Forests Force),Guindy - Velachery Main Road,Chennai-32.", "pdf_snippet": "", "pdf_path": "pdfs/REP-023_document (80) (1).pdf", "pdf_filename": "document (80) (1).pdf"}, {"id": "REP-035", "mbox_id": 32, "subject": "Human death on 24.05.2026 in Kalakad - Reg", "category": "Human Death", "icon_type": "human_death", "incident_date": "24/05/2026", "reported_date": "Tue, 26 May 2026 18:06:24 +0530", "location_name": "Kalakad Range (KMTR)", "location_key": "kalakad", "has_exact_coords": true, "coord_source": "Exact PDF GPS Coordinate (Partial Refined)", "latitude": 8.5147, "longitude": 77.537903, "pdf_attached": true, "pdf_filenames": ["document (80).pdf"], "body_snippet": "-- \n\nSir/Madam,\n\nPlease find the attachments.\n\nWild Life A Section,\nO/o. the Principal Chief Conservator of Forests\n(Head of Forests Force),\nState Forest Headquarters Building,\nNear Kannigapuram Check Post,\nGuindy - Velachery Main Road,\nGuindy, Chennai-32.", "pdf_snippet": "HOTNFD/4570/2026-WLA - JA 2 I/710487/2026\nத(cid:2)(cid:3)நா(cid:6) வன(cid:10)(cid:11)ைற\nஅ(cid:15)(cid:16)(cid:17)ந(cid:18) ெப(cid:21)ந(cid:18)\n(cid:22)(cid:23). ராேக(cid:28) (cid:29)மா(cid:18) ேடா(cid:32)ரா, இ.வ.ப., அர(cid:55) (cid:56)(cid:6)த(cid:57) தைலைம ெசயலாள(cid:18),\n(cid:35)த(cid:36)ைம தைலைம வன(cid:16)பா(cid:11)காவல(cid:18) (ம) (cid:55)(cid:58)(cid:21)(cid:59)(cid:60)ழ(cid:57), கால(cid:62)ைல மா(cid:58)ற(cid:45)\nதைலைம வன உ(cid:41)(cid:42)ன(cid:32)கா(cid:16)பாள(cid:18), ம(cid:58)(cid:21)(ci", "pdf_path": "pdfs/REP-035_document (80).pdf", "pdf_filename": "document (80).pdf"}, {"id": "REP-020", "mbox_id": 15, "subject": "Forests - Wild Life - Human death on 21.05.2026 in Gudalur Division -\n Report sent - Regarding.", "category": "Human Death", "icon_type": "human_death", "incident_date": "21/05/2026", "reported_date": "Fri, 22 May 2026 15:21:58 +0530", "location_name": "Gudalur Forest Division", "location_key": "gudalur", "has_exact_coords": true, "coord_source": "Exact PDF GPS Coordinate (Partial Refined)", "latitude": 11.460112, "longitude": 76.4952, "pdf_attached": true, "pdf_filenames": ["Human death in Gudalur div _ 21.05.2026.pdf"], "body_snippet": "-- \n\nSir/Madam,\n\nPlease find the attachments.\n\nWild Life A Section,\nO/o. the Principal Chief Conservator of Forests\n(Head of Forests Force),\nState Forest Headquarters Building,\nNear Kannigapuram Check Post,\nGuindy - Velachery Main Road,\nGuindy, Chennai-32.", "pdf_snippet": "HOTNFD/4490/2026-WLA - JA 2 I/705513/2026\nத(cid:2)(cid:3)நா(cid:6) வன(cid:10)(cid:11)ைற\nஅ(cid:15)(cid:16)(cid:17)ந(cid:18) ெப(cid:21)ந(cid:18)\n(cid:22)(cid:23). ராேக(cid:28) (cid:29)மா(cid:18) ேடா(cid:32)ரா, இ.வ.ப., அர(cid:55) (cid:56)(cid:6)த(cid:57) தைலைம ெசயலாள(cid:18),\n(cid:35)த(cid:36)ைம தைலைம வன(cid:16)பா(cid:11)காவல(cid:18) (ம) (cid:55)(cid:58)(cid:21)(cid:59)(cid:60)ழ(cid:57), கால(cid:62)ைல மா(cid:58)ற(cid:45)\nதைலைம வன உ(cid:41)(cid:42)ன(cid:32)கா(cid:16)பாள(cid:18), ம(cid:58)(cid:21)(ci", "pdf_path": "pdfs/REP-020_Human death in Gudalur div _ 21.05.2026.pdf", "pdf_filename": "Human death in Gudalur div _ 21.05.2026.pdf"}, {"id": "REP-036", "mbox_id": 33, "subject": "Forests - Wild Life - One Human death on 21.05.2026 in Gudalur\n Division - Report sent - Regarding.", "category": "Human Death", "icon_type": "human_death", "incident_date": "21/05/2026", "reported_date": "Fri, 22 May 2026 09:48:31 +0000 (UTC)", "location_name": "Gudalur Forest Division", "location_key": "gudalur", "has_exact_coords": false, "coord_source": "Central Location Fallback (Gudalur Forest Division)", "latitude": 11.5279, "longitude": 76.4917, "pdf_attached": true, "pdf_filenames": [], "body_snippet": "Sir/Madam,\nPlease find the attachments. \n\n\nWildlife Wing,\nO/o. the Principal Chief Conservator of Forests (Head of Forests Force),Guindy - Velachery Main Road,Chennai-32.", "pdf_snippet": "", "pdf_path": "pdfs/REP-036_Human death in Gudalur div _ 21.05.2026.pdf", "pdf_filename": "Human death in Gudalur div _ 21.05.2026.pdf"}, {"id": "REP-034", "mbox_id": 31, "subject": "Human Death on 12.05.2026 at Nilgiri - Reg", "category": "Human Death", "icon_type": "human_death", "incident_date": "12/05/2026", "reported_date": "Wed, 13 May 2026 08:21:46 +0000 (UTC)", "location_name": "Nilgiris Division", "location_key": "nilgiri", "has_exact_coords": true, "coord_source": "Exact PDF GPS Coordinate (Partial Refined)", "latitude": 11.399297, "longitude": 76.695, "pdf_attached": true, "pdf_filenames": ["Human Death on 12.05.2026 at\n Nilgiri.pdf"], "body_snippet": "Sir/Madam,\nPlease find the attachments. \n\n\nWildlife Wing,\nO/o. the Principal Chief Conservator of Forests (Head of Forests Force),Guindy - Velachery Main Road,Chennai-32.", "pdf_snippet": "HOTNFD/4247/2026-WLA - JA 2 I/688845/2026\nத(cid:2)(cid:3)நா(cid:6)வன(cid:9)(cid:10)ைற\nஅ(cid:15)(cid:16)(cid:17)ந(cid:18) ெப(cid:21)ந(cid:18)\n(cid:22)(cid:23). ராேக(cid:28) (cid:29)மா(cid:18)ேடா(cid:32)ரா, இ.வ.ப., அர(cid:55)(cid:56)(cid:6)த(cid:57) தைலைமெசயலாள(cid:18),\n(cid:35)த(cid:36)ைம தைலைமவன(cid:16)பா(cid:10)காவல(cid:18) (ம) (cid:55)(cid:58)(cid:21)(cid:59)(cid:60)ழ(cid:57), கால(cid:62)ைல மா(cid:58)ற(cid:45)\nதைலைமவன உ(cid:41)(cid:42)ன(cid:32)கா(cid:16)பாள(cid:18), ம(cid:58)(cid:21)(cid:45)வன", "pdf_path": "pdfs/REP-034_Human Death on 12.05.2026 at  Nilgiri.pdf", "pdf_filename": "Human Death on 12.05.2026 at  Nilgiri.pdf"}, {"id": "REP-062", "mbox_id": 63, "subject": "Human Death on 11.05.2026 at Masinagudi - Reg", "category": "Human Death", "icon_type": "human_death", "incident_date": "11/05/2026", "reported_date": "Wed, 13 May 2026 08:29:44 +0000 (UTC)", "location_name": "Masinagudi Range (MTR)", "location_key": "masinagudi", "has_exact_coords": false, "coord_source": "Central Location Fallback (Masinagudi Range (MTR))", "latitude": 11.5444, "longitude": 76.6048, "pdf_attached": true, "pdf_filenames": ["document (80).pdf"], "body_snippet": "Sir/Madam,\nPlease find the attachments. \n\n\nWildlife Wing,\nO/o. the Principal Chief Conservator of Forests (Head of Forests Force),Guindy - Velachery Main Road,Chennai-32.", "pdf_snippet": "HOTNFD/4248/2026-WLA - JA 2 I/688858/2026\nத(cid:2)(cid:3)நா(cid:6)வன(cid:9)(cid:10)ைற\nஅ(cid:15)(cid:16)(cid:17)ந(cid:18) ெப(cid:21)ந(cid:18)\n(cid:22)(cid:23). ராேக(cid:28) (cid:29)மா(cid:18)ேடா(cid:32)ரா, இ.வ.ப., அர(cid:55)(cid:56)(cid:6)த(cid:57) தைலைமெசயலாள(cid:18),\n(cid:35)த(cid:36)ைம தைலைமவன(cid:16)பா(cid:10)காவல(cid:18) (ம) (cid:55)(cid:58)(cid:21)(cid:59)(cid:60)ழ(cid:57), கால(cid:62)ைல மா(cid:58)ற(cid:45)\nதைலைமவன உ(cid:41)(cid:42)ன(cid:32)கா(cid:16)பாள(cid:18), ம(cid:58)(cid:21)(cid:45)வன", "pdf_path": "pdfs/REP-062_document (80).pdf", "pdf_filename": "document (80).pdf"}, {"id": "REP-006", "mbox_id": 1, "subject": "Human death on 09.05.2026 in Hosur - Reg", "category": "Human Death", "icon_type": "human_death", "incident_date": "09/05/2026", "reported_date": "Mon, 11 May 2026 11:45:19 +0530", "location_name": "Hosur Forest Division (Denkanikottai/Thally TN)", "location_key": "hosur", "has_exact_coords": false, "coord_source": "Central Location Fallback (Hosur Forest Division (Denkanikottai/Thally TN))", "latitude": 12.5107, "longitude": 77.764, "pdf_attached": true, "pdf_filenames": ["document (82).pdf"], "body_snippet": "-- \n\nSir/Madam,\n\nPlease find the attachments.\n\nWild Life A Section,\nO/o. the Principal Chief Conservator of Forests\n(Head of Forests Force),\nState Forest Headquarters Building,\nNear Kannigapuram Check Post,\nGuindy - Velachery Main Road,\nGuindy, Chennai-32.", "pdf_snippet": "HOTNFD/4156/2026-WLA - JA 2 I/684020/2026\nத(cid:2)(cid:3)நா(cid:6) வன(cid:10)(cid:11)ைற\nஅ(cid:15)(cid:16)(cid:17)ந(cid:18) ெப(cid:21)ந(cid:18)\n(cid:22)(cid:23). ராேக(cid:28) (cid:29)மா(cid:18) ேடா(cid:32)ரா, இ.வ.ப., அர(cid:55) (cid:56)(cid:6)த(cid:57) தைலைம ெசயலாள(cid:18),\n(cid:35)த(cid:36)ைம தைலைம வன(cid:16)பா(cid:11)காவல(cid:18) (ம) (cid:55)(cid:58)(cid:21)(cid:59)(cid:60)ழ(cid:57), கால(cid:62)ைல மா(cid:58)ற(cid:45)\nதைலைம வன உ(cid:41)(cid:42)ன(cid:32)கா(cid:16)பாள(cid:18), ம(cid:58)(cid:21)(ci", "pdf_path": "pdfs/REP-006_document (82).pdf", "pdf_filename": "document (82).pdf"}, {"id": "REP-038", "mbox_id": 35, "subject": "Human death on 09.05.2026 in Hosur - Reg", "category": "Human Death", "icon_type": "human_death", "incident_date": "09/05/2026", "reported_date": "Mon, 11 May 2026 06:16:04 +0000 (UTC)", "location_name": "Hosur Forest Division (Denkanikottai/Thally TN)", "location_key": "hosur", "has_exact_coords": false, "coord_source": "Central Location Fallback (Hosur Forest Division (Denkanikottai/Thally TN))", "latitude": 12.5317, "longitude": 77.767, "pdf_attached": true, "pdf_filenames": [], "body_snippet": "Sir/Madam,\nPlease find the attachments. \n\n\nWildlife Wing,\nO/o. the Principal Chief Conservator of Forests (Head of Forests Force),Guindy - Velachery Main Road,Chennai-32.", "pdf_snippet": "", "pdf_path": "pdfs/REP-038_document (82).pdf", "pdf_filename": "document (82).pdf"}, {"id": "REP-050", "mbox_id": 49, "subject": "Human Death and Injury on 08.05.2026 at Gudalur - Reg", "category": "Human Death", "icon_type": "human_death", "incident_date": "08/05/2026", "reported_date": "Mon, 11 May 2026 05:43:26 +0000 (UTC)", "location_name": "Gudalur Forest Division", "location_key": "gudalur", "has_exact_coords": false, "coord_source": "Central Location Fallback (Gudalur Forest Division)", "latitude": 11.5274, "longitude": 76.5012, "pdf_attached": true, "pdf_filenames": ["document (80).pdf"], "body_snippet": "Sir/Madam,\nPlease find the attachments. \n\n\nWildlife Wing,\nO/o. the Principal Chief Conservator of Forests (Head of Forests Force),Guindy - Velachery Main Road,Chennai-32.", "pdf_snippet": "HOTNFD/4147/2026-WLA - JA 2 I/683696/2026\nத(cid:2)(cid:3)நா(cid:6)வன(cid:9)(cid:10)ைற\nஅ(cid:15)(cid:16)(cid:17)ந(cid:18) ெப(cid:21)ந(cid:18)\n(cid:22)(cid:23). ராேக(cid:28) (cid:29)மா(cid:18)ேடா(cid:32)ரா, இ.வ.ப., அர(cid:55)(cid:56)(cid:6)த(cid:57) தைலைமெசயலாள(cid:18),\n(cid:35)த(cid:36)ைம தைலைமவன(cid:16)பா(cid:10)காவல(cid:18) (ம) (cid:55)(cid:58)(cid:21)(cid:59)(cid:60)ழ(cid:57), கால(cid:62)ைல மா(cid:58)ற(cid:45)\nதைலைமவன உ(cid:41)(cid:42)ன(cid:32)கா(cid:16)பாள(cid:18), ம(cid:58)(cid:21)(cid:45)வன", "pdf_path": "pdfs/REP-050_document (80).pdf", "pdf_filename": "document (80).pdf"}, {"id": "REP-055", "mbox_id": 54, "subject": "Human Death and Injury on 08.05.2026 at Gudalur - Reg", "category": "Human Death", "icon_type": "human_death", "incident_date": "08/05/2026", "reported_date": "Mon, 11 May 2026 11:15:54 +0530", "location_name": "Gudalur Forest Division", "location_key": "gudalur", "has_exact_coords": false, "coord_source": "Central Location Fallback (Gudalur Forest Division)", "latitude": 11.5304, "longitude": 76.4682, "pdf_attached": true, "pdf_filenames": ["document (80).pdf"], "body_snippet": "-- \n\nSir/Madam,\n\nPlease find the attachments.\n\nWild Life A Section,\nO/o. the Principal Chief Conservator of Forests\n(Head of Forests Force),\nState Forest Headquarters Building,\nNear Kannigapuram Check Post,\nGuindy - Velachery Main Road,\nGuindy, Chennai-32.", "pdf_snippet": "HOTNFD/4147/2026-WLA - JA 2 I/683696/2026\nத(cid:2)(cid:3)நா(cid:6)வன(cid:9)(cid:10)ைற\nஅ(cid:15)(cid:16)(cid:17)ந(cid:18) ெப(cid:21)ந(cid:18)\n(cid:22)(cid:23). ராேக(cid:28) (cid:29)மா(cid:18)ேடா(cid:32)ரா, இ.வ.ப., அர(cid:55)(cid:56)(cid:6)த(cid:57) தைலைமெசயலாள(cid:18),\n(cid:35)த(cid:36)ைம தைலைமவன(cid:16)பா(cid:10)காவல(cid:18) (ம) (cid:55)(cid:58)(cid:21)(cid:59)(cid:60)ழ(cid:57), கால(cid:62)ைல மா(cid:58)ற(cid:45)\nதைலைமவன உ(cid:41)(cid:42)ன(cid:32)கா(cid:16)பாள(cid:18), ம(cid:58)(cid:21)(cid:45)வன", "pdf_path": "pdfs/REP-055_document (80).pdf", "pdf_filename": "document (80).pdf"}, {"id": "REP-018", "mbox_id": 13, "subject": "Human Death on 07.05.2026 at Dindigul - Reg", "category": "Human Death", "icon_type": "human_death", "incident_date": "07/05/2026", "reported_date": "Fri, 08 May 2026 13:37:17 +0530", "location_name": "Dindigul Forest Division", "location_key": "dindigul", "has_exact_coords": true, "coord_source": "Exact PDF GPS Coordinates", "latitude": 10.292278, "longitude": 77.732285, "pdf_attached": true, "pdf_filenames": ["document (82).pdf"], "body_snippet": "-- \n\nSir/Madam,\n\nPlease find the attachments.\n\nWild Life A Section,\nO/o. the Principal Chief Conservator of Forests\n(Head of Forests Force),\nState Forest Headquarters Building,\nNear Kannigapuram Check Post,\nGuindy - Velachery Main Road,\nGuindy, Chennai-32.", "pdf_snippet": "HOTNFD/4102/2026-WLA - JA 2 I/680697/2026\nத(cid:2)(cid:3)நா(cid:6)வன(cid:9)(cid:10)ைற\nஅ(cid:15)(cid:16)(cid:17)ந(cid:18) ெப(cid:21)ந(cid:18)\n(cid:22)(cid:23). ராேக(cid:28) (cid:29)மா(cid:18)ேடா(cid:32)ரா, இ.வ.ப., அர(cid:55)(cid:56)(cid:6)த(cid:57) தைலைமெசயலாள(cid:18),\n(cid:35)த(cid:36)ைம தைலைமவன(cid:16)பா(cid:10)காவல(cid:18) (ம) (cid:55)(cid:58)(cid:21)(cid:59)(cid:60)ழ(cid:57), கால(cid:62)ைல மா(cid:58)ற(cid:45)\nதைலைமவன உ(cid:41)(cid:42)ன(cid:32)கா(cid:16)பாள(cid:18), ம(cid:58)(cid:21)(cid:45)வன", "pdf_path": "pdfs/REP-018_document (82).pdf", "pdf_filename": "document (82).pdf"}, {"id": "REP-028", "mbox_id": 24, "subject": "Human Death on 07.05.2026 at Dindigul - Reg", "category": "Human Death", "icon_type": "human_death", "incident_date": "07/05/2026", "reported_date": "Fri, 8 May 2026 08:05:31 +0000 (UTC)", "location_name": "Dindigul Forest Division", "location_key": "dindigul", "has_exact_coords": true, "coord_source": "Exact PDF GPS Coordinates", "latitude": 10.292278, "longitude": 77.732285, "pdf_attached": true, "pdf_filenames": ["document (82).pdf"], "body_snippet": "Sir/Madam,\nPlease find the attachments. \n\n\nWildlife Wing,\nO/o. the Principal Chief Conservator of Forests (Head of Forests Force),Guindy - Velachery Main Road,Chennai-32.", "pdf_snippet": "HOTNFD/4102/2026-WLA - JA 2 I/680697/2026\nத(cid:2)(cid:3)நா(cid:6)வன(cid:9)(cid:10)ைற\nஅ(cid:15)(cid:16)(cid:17)ந(cid:18) ெப(cid:21)ந(cid:18)\n(cid:22)(cid:23). ராேக(cid:28) (cid:29)மா(cid:18)ேடா(cid:32)ரா, இ.வ.ப., அர(cid:55)(cid:56)(cid:6)த(cid:57) தைலைமெசயலாள(cid:18),\n(cid:35)த(cid:36)ைம தைலைமவன(cid:16)பா(cid:10)காவல(cid:18) (ம) (cid:55)(cid:58)(cid:21)(cid:59)(cid:60)ழ(cid:57), கால(cid:62)ைல மா(cid:58)ற(cid:45)\nதைலைமவன உ(cid:41)(cid:42)ன(cid:32)கா(cid:16)பாள(cid:18), ம(cid:58)(cid:21)(cid:45)வன", "pdf_path": "pdfs/REP-028_document (82).pdf", "pdf_filename": "document (82).pdf"}, {"id": "REP-075", "subject": "Male Elephant death in Nilgiris", "category": "Animal Death", "icon_type": "animal_death", "incident_date": "28/04/2026", "reported_date": "Recently Imported from Downloads", "location_name": "Masinagudi Range (MTR)", "location_key": "masinagudi", "has_exact_coords": false, "coord_source": "Central Location Fallback (Masinagudi Range (MTR))", "latitude": 11.5764, "longitude": 76.6553, "pdf_attached": false, "pdf_filenames": ["Male Elephant death in Nilgiris.pdf"], "body_snippet": "HOTNFD/3859/2026-WLA - JA 2 I/664285/2026\nTAMILNADU FOREST DEPARTMENT\nFrom To\nThiru. Srinivas R. Reddy, I.F.S., Additional Chief Secretary to\nPrincipal Chief Conservator of Forests & Government,\nChief Wild Life Warden, (FAC) Environment, Climate Change and\nHead Quarters, Forest Department,\nVelachery", "pdf_snippet": "", "pdf_path": null, "pdf_filename": null}, {"id": "REP-054", "mbox_id": 53, "subject": "Human death on 28.04.2026 in Coimbatore - Reg", "category": "Human Death", "icon_type": "human_death", "incident_date": "28/04/2026", "reported_date": "Thu, 30 Apr 2026 04:57:38 +0000 (UTC)", "location_name": "Coimbatore Division", "location_key": "coimbatore", "has_exact_coords": false, "coord_source": "Central Location Fallback (Coimbatore Division)", "latitude": 10.9928, "longitude": 76.9858, "pdf_attached": true, "pdf_filenames": ["document (80).pdf"], "body_snippet": "Sir/Madam,\nPlease find the attachments. \n\n\nWildlife Wing,\nO/o. the Principal Chief Conservator of Forests (Head of Forests Force),Guindy - Velachery Main Road,Chennai-32.", "pdf_snippet": "HOTNFD/3922/2026-WLA - JA 2 I/667007/2026\nத(cid:2)(cid:3)நா(cid:6) வன(cid:10)(cid:11)ைற\nஅ(cid:15)(cid:16)(cid:17)ந(cid:18) ெப(cid:21)ந(cid:18)\n(cid:22)(cid:23). (cid:25)(cid:26)வா(cid:27) ரா. ெர(cid:29)(cid:30), இ.வ.ப., அர(cid:56) (cid:45)(cid:6)த(cid:57) தைலைம ெசயலாள(cid:18),\n(cid:33)த(cid:34)ைம தைலைம வன(cid:16)பா(cid:11)காவல(cid:18) (ம) (cid:56)(cid:58)(cid:21)(cid:59)(cid:60)ழ(cid:57), கால(cid:62)ைல மா(cid:58)ற(cid:47)\nதைலைம வன உ(cid:41)(cid:42)ன(cid:43)கா(cid:16)பாள(cid:18), ((cid:33).(cid:4", "pdf_path": "pdfs/REP-054_document (80).pdf", "pdf_filename": "document (80).pdf"}, {"id": "REP-005", "mbox_id": 61, "subject": "Fwd: Forests - Wild Life - Male elephant death on 26.04.2026 in Nilgiris Division - Reg.", "category": "Animal Death", "icon_type": "animal_death", "incident_date": "26/04/2026", "reported_date": "Recently Received", "location_name": "Nilgiris Division", "location_key": "nilgiris", "has_exact_coords": false, "coord_source": "Central Location Fallback (Nilgiris Division)", "latitude": 11.3892, "longitude": 76.674, "pdf_attached": true, "pdf_filenames": ["Male Elephant death on 26.04.2026 in Nilgiris.pdf"], "body_snippet": "Official Flash Report received regarding Fwd: Forests - Wild Life - Male elephant death on 26.04.2026 in Nilgiris Division - Reg. in Nilgiris Division.", "pdf_snippet": "Attached PDF report details for Fwd: Forests - Wild Life - Male elephant death on 26.04.2026 in Nilgiris Division - Reg..", "pdf_path": "pdfs/REP-005_WL1-5648-2025 dt. 01.01.2026.pdf", "pdf_filename": "WL1-5648-2025 dt. 01.01.2026.pdf"}, {"id": "REP-046", "mbox_id": 45, "subject": "Human Death on 25.04.2026 at Gudalur - Reg", "category": "Human Death", "icon_type": "human_death", "incident_date": "25/04/2026", "reported_date": "Tue, 28 Apr 2026 11:29:03 +0000 (UTC)", "location_name": "Gudalur Forest Division", "location_key": "gudalur", "has_exact_coords": true, "coord_source": "Exact PDF GPS Coordinate (Partial Refined)", "latitude": 11.436573, "longitude": 76.4952, "pdf_attached": true, "pdf_filenames": ["document (81).pdf"], "body_snippet": "Sir/Madam,\nPlease find the attachments. \n\n\nWildlife Wing,\nO/o. the Principal Chief Conservator of Forests (Head of Forests Force),Guindy - Velachery Main Road,Chennai-32.", "pdf_snippet": "HOTNFD/3863/2026-WLA - JA 2 I/664495/2026\nத(cid:2)(cid:3)நா(cid:6)வன(cid:9)(cid:10)ைற\nஅ(cid:15)(cid:16)(cid:17)ந(cid:18) ெப(cid:21)ந(cid:18)\n(cid:22)(cid:23). (cid:25)(cid:26)வா(cid:27) ரா. ெர(cid:29)(cid:30), இ.வ.ப., அர(cid:56)(cid:45)(cid:6)த(cid:57)தைலைமெசயலாள(cid:18),\n(cid:33)த(cid:34)ைமதைலைமவன(cid:16)பா(cid:10)காவல(cid:18) (ம) (cid:56)(cid:58)(cid:21)(cid:59)(cid:60)ழ(cid:57), கால(cid:26)ைல மா(cid:58)ற(cid:47)\nதைலைமவன உ(cid:41)(cid:42)ன(cid:43)கா(cid:16)பாள(cid:18), ((cid:33).(cid:45).ெபா) ", "pdf_path": "pdfs/REP-046_document (81).pdf", "pdf_filename": "document (81).pdf"}, {"id": "REP-047", "mbox_id": 46, "subject": "Reg : Flash Reports Workflow Modified and Changes Completed | TNFD\n End to End portal", "category": "Human Injury", "icon_type": "human_injury", "incident_date": "20/04/2026", "reported_date": "Tue, 12 May 2026 13:07:19 +0530", "location_name": "Nilgiris Division", "location_key": "nilgiri", "has_exact_coords": false, "coord_source": "Central Location Fallback (Nilgiris Division)", "latitude": 11.4207, "longitude": 76.688, "pdf_attached": true, "pdf_filenames": ["TNFD - End to End portal  - Workflow for Flash\n reports.pdf"], "body_snippet": "Dear Sir,\n\n\n\n\n\nAs per the meeting held with CCF Wildlife and the Wildlife Section, we have modified the workflow of the “Flash Reports” module in the TNFD End-to-End Portal and deployed the updated changes to the production environment.\n\nPlease find the attached updated workflow document for your reference.\n\n\n\nKindly intimate the Wildlife Section, Division, and Range users to commence usage of the Flash Reports module.\n\n\n\nThanks and Regards\n\nGopalakrishnan\n\nmailto:tech.g@in22labs.com \n\n\n\n\n\n\n\n\n\n\n", "pdf_snippet": "Flash Reports Workflow changes\nWe need to do the following changes in flash reports\nForm Changes:\n1. Need to add a new field “Inside / Outside RF”\n2. If user choose inside RF, then we need to collect “Reserve Forest Name”\nHuman Injury / Death:\n1. In Human death and injury we need to follow the below work flow\nFRO – Data entry and submit, system will forward that to DFO. DFO will get notification.\nDFO – After DFO approval, Flash report will be sent to\na. PCCF HOFF – by mail and portal notificatio", "pdf_path": "pdfs/REP-047_TNFD - End to End portal  - Workflow for Flash  reports.pdf", "pdf_filename": "TNFD - End to End portal  - Workflow for Flash  reports.pdf"}, {"id": "REP-032", "mbox_id": 29, "subject": "Human Death on 19.04.2026 at Pollachi - Reg", "category": "Human Death", "icon_type": "human_death", "incident_date": "19/04/2026", "reported_date": "Mon, 20 Apr 2026 12:17:57 +0000 (UTC)", "location_name": "Pollachi Forest Division", "location_key": "pollachi", "has_exact_coords": false, "coord_source": "Central Location Fallback (Pollachi Forest Division)", "latitude": 10.6203, "longitude": 77.0328, "pdf_attached": true, "pdf_filenames": [], "body_snippet": "Sir/Madam,\nPlease find the attachments. \n\n\nWildlife Wing,\nO/o. the Principal Chief Conservator of Forests (Head of Forests Force),Guindy - Velachery Main Road,Chennai-32.", "pdf_snippet": "", "pdf_path": "pdfs/REP-032_Human Death on 19.04.2026 at Pollachi.pdf", "pdf_filename": "Human Death on 19.04.2026 at Pollachi.pdf"}, {"id": "REP-022", "mbox_id": 17, "subject": "Human Death on 04.04.2026 at Coimbatore - Reg", "category": "Human Death", "icon_type": "human_death", "incident_date": "04/04/2026", "reported_date": "Tue, 7 Apr 2026 07:10:27 +0000 (UTC)", "location_name": "Coimbatore Division", "location_key": "coimbatore", "has_exact_coords": false, "coord_source": "Central Location Fallback (Coimbatore Division)", "latitude": 11.0518, "longitude": 76.9768, "pdf_attached": true, "pdf_filenames": [], "body_snippet": "Sir/Madam,\nPlease find the attachments. \n\n\nWildlife Wing,\nO/o. the Principal Chief Conservator of Forests (Head of Forests Force),Guindy - Velachery Main Road,Chennai-32.", "pdf_snippet": "", "pdf_path": "pdfs/REP-022_Human Death on 04.04.2026 at Coimbatore.pdf", "pdf_filename": "Human Death on 04.04.2026 at Coimbatore.pdf"}, {"id": "REP-030", "mbox_id": 26, "subject": "Forests - Wildlife - Human death on 30.03.2026 in Nilgiris Division -\n Reg", "category": "Human Death", "icon_type": "human_death", "incident_date": "30/03/2026", "reported_date": "Wed, 01 Apr 2026 13:13:16 +0530", "location_name": "Nilgiris Division", "location_key": "nilgiris", "has_exact_coords": true, "coord_source": "Exact PDF GPS Coordinate (Partial Refined)", "latitude": 11.49518, "longitude": 76.695, "pdf_attached": true, "pdf_filenames": ["Human death in Nilgiris Division.pdf"], "body_snippet": "Sir/Madam,\n\nPlease find the attachments.\n\nWildlife A Section,\nO/o. the Principal Chief Conservator of Forests\n(Head of Forests Force),\nGuindy - Velachery Main Road,\nChennai-32.", "pdf_snippet": "HOTNFD/3373/2026-WLA - JA 2 I/627789/2026\nத(cid:2)(cid:3)நா(cid:6) வன(cid:10)(cid:11)ைற\nஅ(cid:15)(cid:16)(cid:17)ந(cid:18) ெப(cid:21)ந(cid:18)\n(cid:22)(cid:23). ராேக(cid:28) (cid:29)மா(cid:18) ேடா(cid:32)ரா, இ.வ.ப., அர(cid:55) (cid:56)(cid:6)த(cid:57) தைலைம ெசயலாள(cid:18),\n(cid:35)த(cid:36)ைம தைலைம வன(cid:16)பா(cid:11)காவல(cid:18) (ம) (cid:55)(cid:58)(cid:21)(cid:59)(cid:60)ழ(cid:57), கால(cid:62)ைல மா(cid:58)ற(cid:45)\nதைலைம வன உ(cid:41)(cid:42)ன(cid:32)கா(cid:16)பாள(cid:18), ம(cid:58)(cid:21)(ci", "pdf_path": "pdfs/REP-030_Human death in Nilgiris Division.pdf", "pdf_filename": "Human death in Nilgiris Division.pdf"}, {"id": "REP-041", "mbox_id": 40, "subject": "Human Death on 20.03.2026 at Nellai - Reg", "category": "Human Death", "icon_type": "human_death", "incident_date": "20/03/2026", "reported_date": "Tue, 24 Mar 2026 12:13:22 +0530", "location_name": "Tirunelveli / Nellai Division", "location_key": "nellai", "has_exact_coords": false, "coord_source": "Central Location Fallback (Tirunelveli / Nellai Division)", "latitude": 8.7174, "longitude": 77.7917, "pdf_attached": true, "pdf_filenames": ["Human Death on 20.03.2026 at Nellai.pdf"], "body_snippet": "Sir/Madam,\n\nPlease find the attachments.", "pdf_snippet": "HOTNFD/3178/2026-WLA - JA 2 I/615479/2026\nத(cid:2)(cid:3)நா(cid:6)வன(cid:9)(cid:10)ைற\nஅ(cid:15)(cid:16)(cid:17)ந(cid:18) ெப(cid:21)ந(cid:18)\n(cid:22)(cid:23). . ராேக(cid:28) (cid:29)மா(cid:18)ேடா(cid:32)ரா, இ.வ.ப., அர(cid:55)(cid:56)(cid:6)த(cid:57) தைலைமெசயலாள(cid:18),\n(cid:35)த(cid:36)ைம தைலைமவன(cid:16)பா(cid:10)காவல(cid:18) (ம) (cid:55)(cid:58)(cid:21)(cid:59)(cid:60)ழ(cid:57), கால(cid:62)ைல மா(cid:58)ற(cid:45)\nதைலைமவன உ(cid:41)(cid:42)ன(cid:32)கா(cid:16)பாள(cid:18), ம(cid:58)(cid:21)(cid:45)", "pdf_path": "pdfs/REP-041_Human Death on 20.03.2026 at Nellai.pdf", "pdf_filename": "Human Death on 20.03.2026 at Nellai.pdf"}, {"id": "REP-057", "mbox_id": 58, "subject": "Human Death on 20.03.2026 at Nellai - Reg", "category": "Human Death", "icon_type": "human_death", "incident_date": "20/03/2026", "reported_date": "Tue, 24 Mar 2026 06:43:27 +0000 (UTC)", "location_name": "Tirunelveli / Nellai Division", "location_key": "nellai", "has_exact_coords": false, "coord_source": "Central Location Fallback (Tirunelveli / Nellai Division)", "latitude": 8.7384, "longitude": 77.7532, "pdf_attached": true, "pdf_filenames": ["Human Death on 20.03.2026 at\n Nellai.pdf"], "body_snippet": "Sir/Madam,\nPlease find the attachments. \n\n\nWildlife Wing,\nO/o. the Principal Chief Conservator of Forests (Head of Forests Force),Guindy - Velachery Main Road,Chennai-32.", "pdf_snippet": "HOTNFD/3178/2026-WLA - JA 2 I/615479/2026\nத(cid:2)(cid:3)நா(cid:6)வன(cid:9)(cid:10)ைற\nஅ(cid:15)(cid:16)(cid:17)ந(cid:18) ெப(cid:21)ந(cid:18)\n(cid:22)(cid:23). . ராேக(cid:28) (cid:29)மா(cid:18)ேடா(cid:32)ரா, இ.வ.ப., அர(cid:55)(cid:56)(cid:6)த(cid:57) தைலைமெசயலாள(cid:18),\n(cid:35)த(cid:36)ைம தைலைமவன(cid:16)பா(cid:10)காவல(cid:18) (ம) (cid:55)(cid:58)(cid:21)(cid:59)(cid:60)ழ(cid:57), கால(cid:62)ைல மா(cid:58)ற(cid:45)\nதைலைமவன உ(cid:41)(cid:42)ன(cid:32)கா(cid:16)பாள(cid:18), ம(cid:58)(cid:21)(cid:45)", "pdf_path": "pdfs/REP-057_Human Death on 20.03.2026 at  Nellai.pdf", "pdf_filename": "Human Death on 20.03.2026 at  Nellai.pdf"}, {"id": "REP-068", "subject": "Elephant death on 17.03.2026 in Nilgiris Division - Report sent -\n Reg.", "category": "Animal Death", "icon_type": "animal_death", "incident_date": "17/03/2026", "reported_date": "Recently Imported from Downloads", "location_name": "Nilgiris Division", "location_key": "nilgiri", "has_exact_coords": false, "coord_source": "Central Location Fallback (Nilgiris Division)", "latitude": 11.4302, "longitude": 76.707, "pdf_attached": false, "pdf_filenames": ["Elephant death on 17.03.2026 in Nilgiris Division - Report sent - Reg..eml"], "body_snippet": "Sir/Madam,\nPlease find the attachments. \n\n\nWildlife Wing,\nO/o. the Principal Chief Conservator of Forests (Head of Forests Force),Guindy - Velachery Main Road,Chennai-32.", "pdf_snippet": "", "pdf_path": null, "pdf_filename": null}, {"id": "REP-048", "mbox_id": 47, "subject": "Human Death on 14.03.2026 at Dharmapuri - Reg", "category": "Human Death", "icon_type": "human_death", "incident_date": "14/03/2026", "reported_date": "Mon, 16 Mar 2026 08:13:38 +0000 (UTC)", "location_name": "Dharmapuri Division (TN)", "location_key": "dharmapuri", "has_exact_coords": false, "coord_source": "Central Location Fallback (Dharmapuri Division (TN))", "latitude": 12.1391, "longitude": 78.1492, "pdf_attached": true, "pdf_filenames": ["Human Death on 14.03.2026 at\n Dharmapuri.pdf"], "body_snippet": "Sir/Madam,\nPlease find the attachments. \n\n\nWildlife Wing,\nO/o. the Principal Chief Conservator of Forests (Head of Forests Force),Guindy - Velachery Main Road,Chennai-32.", "pdf_snippet": "HOTNFD/3036/2026-WLA - JA 2 I/603688/2026\nத(cid:2)(cid:3)நா(cid:6) வன(cid:10)(cid:11)ைற\nஅ(cid:15)(cid:16)(cid:17)ந(cid:18) ெப(cid:21)ந(cid:18)\n(cid:22)(cid:23). ராேக(cid:28) (cid:29)மா(cid:18) ேடா(cid:32)ரா, இ.வ.ப., அர(cid:55) (cid:56)(cid:6)த(cid:57) தைலைம ெசயலாள(cid:18),\n(cid:35)த(cid:36)ைம தைலைம வன(cid:16)பா(cid:11)காவல(cid:18) (ம) (cid:55)(cid:58)(cid:21)(cid:59)(cid:60)ழ(cid:57), கால(cid:62)ைல மா(cid:58)ற(cid:45)\nதைலைம வன உ(cid:41)(cid:42)ன(cid:32)கா(cid:16)பாள(cid:18), ம(cid:58)(cid:21)(ci", "pdf_path": "pdfs/REP-048_Human Death on 14.03.2026 at  Dharmapuri.pdf", "pdf_filename": "Human Death on 14.03.2026 at  Dharmapuri.pdf"}, {"id": "REP-058", "mbox_id": 59, "subject": "Human Death on 14.03.2026 at Tenkasi - Reg", "category": "Human Death", "icon_type": "human_death", "incident_date": "14/03/2026", "reported_date": "Wed, 18 Mar 2026 12:37:26 +0000 (UTC)", "location_name": "Tenkasi Forest Division", "location_key": "tenkasi", "has_exact_coords": false, "coord_source": "Central Location Fallback (Tenkasi Forest Division)", "latitude": 8.9897, "longitude": 77.3176, "pdf_attached": true, "pdf_filenames": ["Human Death on 14.03.2026 at\n Tenkasi.pdf"], "body_snippet": "Sir/Madam,\nPlease find the attachments. \n\n\nWildlife Wing,\nO/o. the Principal Chief Conservator of Forests (Head of Forests Force),Guindy - Velachery Main Road,Chennai-32.", "pdf_snippet": "HOTNFD/3026/2026-WLA - JA 2 I/609797/2026\nத(cid:2)(cid:3)நா(cid:6)வன(cid:9)(cid:10)ைற\nஅ(cid:15)(cid:16)(cid:17)ந(cid:18) ெப(cid:21)ந(cid:18)\n(cid:22)(cid:23). . ராேக(cid:28) (cid:29)மா(cid:18)ேடா(cid:32)ரா, இ.வ.ப., அர(cid:55)(cid:56)(cid:6)த(cid:57) தைலைமெசயலாள(cid:18),\n(cid:35)த(cid:36)ைம தைலைமவன(cid:16)பா(cid:10)காவல(cid:18) (ம) (cid:55)(cid:58)(cid:21)(cid:59)(cid:60)ழ(cid:57), கால(cid:62)ைல மா(cid:58)ற(cid:45)\nதைலைமவன உ(cid:41)(cid:42)ன(cid:32)கா(cid:16)பாள(cid:18), ம(cid:58)(cid:21)(cid:45)", "pdf_path": "pdfs/REP-058_Human Death on 14.03.2026 at  Tenkasi.pdf", "pdf_filename": "Human Death on 14.03.2026 at  Tenkasi.pdf"}, {"id": "REP-061", "mbox_id": 62, "subject": "Human Death on 14.03.2026 at Dharmapuri - Reg", "category": "Human Death", "icon_type": "human_death", "incident_date": "14/03/2026", "reported_date": "Mon, 16 Mar 2026 13:49:10 +0530", "location_name": "Dharmapuri Division (TN)", "location_key": "dharmapuri", "has_exact_coords": false, "coord_source": "Central Location Fallback (Dharmapuri Division (TN))", "latitude": 12.1391, "longitude": 78.1492, "pdf_attached": true, "pdf_filenames": ["Human Death on 14.03.2026 at Dharmapuri.pdf"], "body_snippet": "Sir/Madam,\n\nPlease find the attachments.", "pdf_snippet": "HOTNFD/3036/2026-WLA - JA 2 I/603688/2026\nத(cid:2)(cid:3)நா(cid:6) வன(cid:10)(cid:11)ைற\nஅ(cid:15)(cid:16)(cid:17)ந(cid:18) ெப(cid:21)ந(cid:18)\n(cid:22)(cid:23). ராேக(cid:28) (cid:29)மா(cid:18) ேடா(cid:32)ரா, இ.வ.ப., அர(cid:55) (cid:56)(cid:6)த(cid:57) தைலைம ெசயலாள(cid:18),\n(cid:35)த(cid:36)ைம தைலைம வன(cid:16)பா(cid:11)காவல(cid:18) (ம) (cid:55)(cid:58)(cid:21)(cid:59)(cid:60)ழ(cid:57), கால(cid:62)ைல மா(cid:58)ற(cid:45)\nதைலைம வன உ(cid:41)(cid:42)ன(cid:32)கா(cid:16)பாள(cid:18), ம(cid:58)(cid:21)(ci", "pdf_path": "pdfs/REP-061_Human Death on 14.03.2026 at Dharmapuri.pdf", "pdf_filename": "Human Death on 14.03.2026 at Dharmapuri.pdf"}, {"id": "REP-009", "mbox_id": 4, "subject": "Human Death on 10.03.2026 at Sathyamangalam - Reg", "category": "Human Death", "icon_type": "human_death", "incident_date": "10/03/2026", "reported_date": "Thu, 12 Mar 2026 15:02:17 +0530", "location_name": "Sathyamangalam Division", "location_key": "sathyamangalam", "has_exact_coords": true, "coord_source": "Exact PDF GPS Coordinate (Partial Refined)", "latitude": 11.586979, "longitude": 77.2444, "pdf_attached": true, "pdf_filenames": ["Human Death on 10.03.2026 at Sathyamangalam.pdf"], "body_snippet": "Sir/Madam,\n\nPlease find the attachments.", "pdf_snippet": "HOTNFD/2932/2026-WLA - JA 2 I/598351/2026\nத(cid:2)(cid:3)நா(cid:6) வன(cid:10)(cid:11)ைற\nஅ(cid:15)(cid:16)(cid:17)ந(cid:18) ெப(cid:21)ந(cid:18)\n(cid:22)(cid:23). ராேக(cid:28) (cid:29)மா(cid:18) ேடா(cid:32)ரா, இ.வ.ப., அர(cid:55) (cid:56)(cid:6)த(cid:57) தைலைம ெசயலாள(cid:18),\n(cid:35)த(cid:36)ைம தைலைம வன(cid:16)பா(cid:11)காவல(cid:18) (ம) (cid:55)(cid:58)(cid:21)(cid:59)(cid:60)ழ(cid:57), கால(cid:62)ைல மா(cid:58)ற(cid:45)\nதைலைம வன உ(cid:41)(cid:42)ன(cid:32)கா(cid:16)பாள(cid:18), ம(cid:58)(cid:21)(ci", "pdf_path": "pdfs/REP-009_Human Death on 10.03.2026 at Sathyamangalam.pdf", "pdf_filename": "Human Death on 10.03.2026 at Sathyamangalam.pdf"}, {"id": "REP-025", "mbox_id": 20, "subject": "Human Death on 10.03.2026 at Sathyamangalam - Reg", "category": "Human Death", "icon_type": "human_death", "incident_date": "10/03/2026", "reported_date": "Thu, 12 Mar 2026 09:27:59 +0000 (UTC)", "location_name": "Sathyamangalam Division", "location_key": "sathyamangalam", "has_exact_coords": true, "coord_source": "Exact PDF GPS Coordinate (Partial Refined)", "latitude": 11.586979, "longitude": 77.2444, "pdf_attached": true, "pdf_filenames": ["Human Death on 10.03.2026 at\n Sathyamangalam.pdf"], "body_snippet": "Sir/Madam,\nPlease find the attachments. \n\n\nWildlife Wing,\nO/o. the Principal Chief Conservator of Forests (Head of Forests Force),Guindy - Velachery Main Road,Chennai-32.", "pdf_snippet": "HOTNFD/2932/2026-WLA - JA 2 I/598351/2026\nத(cid:2)(cid:3)நா(cid:6) வன(cid:10)(cid:11)ைற\nஅ(cid:15)(cid:16)(cid:17)ந(cid:18) ெப(cid:21)ந(cid:18)\n(cid:22)(cid:23). ராேக(cid:28) (cid:29)மா(cid:18) ேடா(cid:32)ரா, இ.வ.ப., அர(cid:55) (cid:56)(cid:6)த(cid:57) தைலைம ெசயலாள(cid:18),\n(cid:35)த(cid:36)ைம தைலைம வன(cid:16)பா(cid:11)காவல(cid:18) (ம) (cid:55)(cid:58)(cid:21)(cid:59)(cid:60)ழ(cid:57), கால(cid:62)ைல மா(cid:58)ற(cid:45)\nதைலைம வன உ(cid:41)(cid:42)ன(cid:32)கா(cid:16)பாள(cid:18), ம(cid:58)(cid:21)(ci", "pdf_path": "pdfs/REP-025_Human Death on 10.03.2026 at  Sathyamangalam.pdf", "pdf_filename": "Human Death on 10.03.2026 at  Sathyamangalam.pdf"}, {"id": "REP-029", "mbox_id": 25, "subject": "Human Death on 09.03.2026 at Gudalur - Reg", "category": "Human Death", "icon_type": "human_death", "incident_date": "09/03/2026", "reported_date": "Tue, 10 Mar 2026 08:14:18 +0000 (UTC)", "location_name": "Gudalur Forest Division", "location_key": "gudalur", "has_exact_coords": false, "coord_source": "Central Location Fallback (Gudalur Forest Division)", "latitude": 11.4894, "longitude": 76.4602, "pdf_attached": true, "pdf_filenames": ["Draft page of file with number\n HOTNFD_2825_2026-WLA - JA 2 - eOffice.pdf"], "body_snippet": "Sir/Madam,\nPlease find the attachments. \n\n\nWildlife Wing,\nO/o. the Principal Chief Conservator of Forests (Head of Forests Force),Guindy - Velachery Main Road,Chennai-32.", "pdf_snippet": "", "pdf_path": "pdfs/REP-029_Draft page of file with number  HOTNFD_2825_2026-WLA - JA 2 - eOffice.pdf", "pdf_filename": "Draft page of file with number  HOTNFD_2825_2026-WLA - JA 2 - eOffice.pdf"}, {"id": "REP-013", "mbox_id": 8, "subject": "Human Death on 24.02.2026 at Hasanur - Reg", "category": "Human Death", "icon_type": "human_death", "incident_date": "24/02/2026", "reported_date": "Thu, 26 Feb 2026 04:54:49 +0000 (UTC)", "location_name": "Hasanur Range (STR)", "location_key": "hasanur", "has_exact_coords": false, "coord_source": "Central Location Fallback (Hasanur Range (STR))", "latitude": 11.6912, "longitude": 77.1965, "pdf_attached": true, "pdf_filenames": ["document -\n 2026-02-26T101926.468.pdf"], "body_snippet": "Sir/Madam,\nPlease find the attachments. \n\n\nWildlife Wing,\nO/o. the Principal Chief Conservator of Forests (Head of Forests Force),Guindy - Velachery Main Road,Chennai-32.", "pdf_snippet": "HOTNFD/2535/2026-WLA - JA 2 I/572242/2026\nத(cid:2)(cid:3)நா(cid:6)வன(cid:9)(cid:10)ைற\nஅ(cid:15)(cid:16)(cid:17)ந(cid:18) ெப(cid:21)ந(cid:18)\n(cid:22)(cid:23). . ராேக(cid:28) (cid:29)மா(cid:18)ேடா(cid:32)ரா, இ.வ.ப., அர(cid:55)(cid:56)(cid:6)த(cid:57) தைலைமெசயலாள(cid:18),\n(cid:35)த(cid:36)ைம தைலைமவன(cid:16)பா(cid:10)காவல(cid:18) (ம) (cid:55)(cid:58)(cid:21)(cid:59)(cid:60)ழ(cid:57), கால(cid:62)ைல மா(cid:58)ற(cid:45)\nதைலைமவன உ(cid:41)(cid:42)ன(cid:32)கா(cid:16)பாள(cid:18), ம(cid:58)(cid:21)(cid:45)", "pdf_path": "pdfs/REP-013_document -  2026-02-26T101926.468.pdf", "pdf_filename": "document -  2026-02-26T101926.468.pdf"}, {"id": "REP-053", "mbox_id": 52, "subject": "Forests - Wild Life - Human death on 22.02.2026 in Hasanur Division\n - Reg.", "category": "Human Death", "icon_type": "human_death", "incident_date": "22/02/2026", "reported_date": "Tue, 24 Feb 2026 10:11:58 +0000 (UTC)", "location_name": "Hasanur Range (STR)", "location_key": "hasanur", "has_exact_coords": true, "coord_source": "Exact PDF GPS Coordinate (Partial Refined)", "latitude": 11.745415, "longitude": 77.2, "pdf_attached": true, "pdf_filenames": ["Human death _ Matheysamy.pdf"], "body_snippet": "Sir/Madam,\nPlease find the attachments. \n\n\nWildlife Wing,\nO/o. the Principal Chief Conservator of Forests (Head of Forests Force),Guindy - Velachery Main Road,Chennai-32.", "pdf_snippet": "HOTNFD/2409/2026-WLA - JA 2 I/569008/2026\nத(cid:2)(cid:3)நா(cid:6) வன(cid:10)(cid:11)ைற\nஅ(cid:15)(cid:16)(cid:17)ந(cid:18) ெப(cid:21)ந(cid:18)\n(cid:22)(cid:23). ராேக(cid:28) (cid:29)மா(cid:18) ேடா(cid:32)ரா, இ.வ.ப., அர(cid:55) (cid:56)(cid:6)த(cid:57) தைலைம ெசயலாள(cid:18),\n(cid:35)த(cid:36)ைம தைலைம வன(cid:16)பா(cid:11)காவல(cid:18) (ம) (cid:55)(cid:58)(cid:21)(cid:59)(cid:60)ழ(cid:57), கால(cid:62)ைல மா(cid:58)ற(cid:45)\nதைலைம வன உ(cid:41)(cid:42)ன(cid:32)கா(cid:16)பாள(cid:18), ம(cid:58)(cid:21)(ci", "pdf_path": "pdfs/REP-053_Human death _ Matheysamy.pdf", "pdf_filename": "Human death _ Matheysamy.pdf"}, {"id": "REP-021", "mbox_id": 16, "subject": "Forests - Wild Life - Human death on 21.02.2026 in Udumalpet Range\n of Tiruppur Division - Reg.", "category": "Human Death", "icon_type": "human_death", "incident_date": "21/02/2026", "reported_date": "Tue, 24 Feb 2026 10:08:25 +0000 (UTC)", "location_name": "Tiruppur Division", "location_key": "tiruppur", "has_exact_coords": false, "coord_source": "Central Location Fallback (Tiruppur Division)", "latitude": 10.5637, "longitude": 77.2456, "pdf_attached": true, "pdf_filenames": ["Human death _ Varun _ ATR,\n Udumalpet.pdf"], "body_snippet": "Sir/Madam,\nPlease find the attachments. \n\n\nWildlife Wing,\nO/o. the Principal Chief Conservator of Forests (Head of Forests Force),Guindy - Velachery Main Road,Chennai-32.", "pdf_snippet": "த(cid:2)(cid:3)நா(cid:6) வன(cid:10)(cid:11)ைற\nஅ(cid:15)(cid:16)(cid:17)ந(cid:18) ெப(cid:21)ந(cid:18)\n(cid:22)(cid:23). ராேக(cid:28) (cid:29)மா(cid:18) ேடா(cid:32)ரா, இ.வ.ப., அர(cid:55) (cid:56)(cid:6)த(cid:57) தைலைம ெசயலாள(cid:18),\n(cid:35)த(cid:36)ைம தைலைம வன(cid:16)பா(cid:11)காவல(cid:18) (ம) (cid:55)(cid:58)(cid:21)(cid:59)(cid:60)ழ(cid:57), கால(cid:62)ைல மா(cid:58)ற(cid:45)\nதைலைம வன உ(cid:41)(cid:42)ன(cid:32)கா(cid:16)பாள(cid:18), ம(cid:58)(cid:21)(cid:45) வன(cid:10)(cid:11)ைற,\nவன(cid:10)(cid", "pdf_path": "pdfs/REP-021_Human death _ Varun _ ATR,  Udumalpet.pdf", "pdf_filename": "Human death _ Varun _ ATR,  Udumalpet.pdf"}, {"id": "REP-008", "mbox_id": 3, "subject": "Forests - Wild Life - Human Death on 12.02.2026 in Coimbatore\n Division - Report Sent - Reg", "category": "Human Death", "icon_type": "human_death", "incident_date": "12/02/2026", "reported_date": "Mon, 16 Feb 2026 04:25:45 +0000 (UTC)", "location_name": "Coimbatore Division", "location_key": "coimbatore", "has_exact_coords": false, "coord_source": "Central Location Fallback (Coimbatore Division)", "latitude": 11.0063, "longitude": 76.9873, "pdf_attached": true, "pdf_filenames": [], "body_snippet": "Sir/Madam,\nPlease find the attachments. \n\n\nWildlife Wing,\nO/o. the Principal Chief Conservator of Forests (Head of Forests Force),Guindy - Velachery Main Road,Chennai-32.", "pdf_snippet": "", "pdf_path": "pdfs/REP-008_WL2-1901-2026.pdf", "pdf_filename": "WL2-1901-2026.pdf"}, {"id": "REP-031", "mbox_id": 28, "subject": "Human Death on 12.02.2026 at Coimbatore - Reg", "category": "Human Death", "icon_type": "human_death", "incident_date": "12/02/2026", "reported_date": "Mon, 16 Feb 2026 04:37:40 +0000 (UTC)", "location_name": "Coimbatore Division (TN)", "location_key": "coimbatore", "has_exact_coords": false, "coord_source": "Central Location Fallback (Coimbatore Division (TN))", "latitude": 11.0138, "longitude": 76.9438, "pdf_attached": true, "pdf_filenames": ["document (89).pdf"], "body_snippet": "Sir/Madam,\nPlease find the attachments. \n\n\nWildlife Wing,\nO/o. the Principal Chief Conservator of Forests (Head of Forests Force),Guindy - Velachery Main Road,Chennai-32.", "pdf_snippet": "HOTNFD/1901/2026-WLA - JA 2 I/555464/2026\nதத(cid:2)(cid:2)(cid:3)(cid:3)நநாா(cid:6)(cid:6)வவனன(cid:9)(cid:9)(cid:10)(cid:10)ைைறற\nஅஅ(cid:15)(cid:15)(cid:16)(cid:16)(cid:17)(cid:17)நந(cid:18)(cid:18) ெெபப(cid:21)(cid:21)நந(cid:18)(cid:18)\n(cid:22)(cid:23). ராேக(cid:28) (cid:29)மா(cid:18)ேடா(cid:32)ரா, இ.வ.ப., அர(cid:55)(cid:56)(cid:6)த(cid:57) தைலைமெசயலாள(cid:18),\n(cid:35)த(cid:36)ைம தைலைமவன(cid:16)பா(cid:10)காவல(cid:18) (ம) (cid:55)(cid:58)(cid:21)(cid:59)(cid:60)ழ(cid:57), கால(cid:62)ைல மா(cid:5", "pdf_path": "pdfs/REP-031_document (89).pdf", "pdf_filename": "document (89).pdf"}, {"id": "REP-012", "mbox_id": 7, "subject": "Human Death on 08.02.2026 at Hasanur - Reg", "category": "Human Death", "icon_type": "human_death", "incident_date": "08/02/2026", "reported_date": "Mon, 9 Feb 2026 13:25:12 +0000 (UTC)", "location_name": "Hasanur Range (STR)", "location_key": "hasanur", "has_exact_coords": false, "coord_source": "Central Location Fallback (Hasanur Range (STR))", "latitude": 11.6317, "longitude": 77.2035, "pdf_attached": true, "pdf_filenames": ["document (84).pdf"], "body_snippet": "Sir/Madam,\nPlease find the attachments. \n\n\nWildlife Wing,\nO/o. the Principal Chief Conservator of Forests (Head of Forests Force),Guindy - Velachery Main Road,Chennai-32.", "pdf_snippet": "HOTNFD/1511/2026-WLA - JA 2 I/546062/2026\nத(cid:2)(cid:3)நா(cid:6)வன(cid:9)(cid:10)ைற\nஅ(cid:15)(cid:16)(cid:17)ந(cid:18) ெப(cid:21)ந(cid:18)\n(cid:22)(cid:23). . ராேக(cid:28) (cid:29)மா(cid:18)ேடா(cid:32)ரா, இ.வ.ப., அர(cid:55)(cid:56)(cid:6)த(cid:57) தைலைமெசயலாள(cid:18),\n(cid:35)த(cid:36)ைம தைலைமவன(cid:16)பா(cid:10)காவல(cid:18) (ம) (cid:55)(cid:58)(cid:21)(cid:59)(cid:60)ழ(cid:57), கால(cid:62)ைல மா(cid:58)ற(cid:45)\nதைலைமவன உ(cid:41)(cid:42)ன(cid:32)கா(cid:16)பாள(cid:18), ம(cid:58)(cid:21)(cid:45)", "pdf_path": "pdfs/REP-012_document (84).pdf", "pdf_filename": "document (84).pdf"}, {"id": "REP-016", "mbox_id": 11, "subject": "Human Death on 07.02.2026 at Hosur - Reg", "category": "Human Death", "icon_type": "human_death", "incident_date": "07/02/2026", "reported_date": "Mon, 9 Feb 2026 08:29:55 +0000 (UTC)", "location_name": "Hosur Forest Division (Denkanikottai/Thally TN)", "location_key": "hosur", "has_exact_coords": false, "coord_source": "Central Location Fallback (Hosur Forest Division (Denkanikottai/Thally TN))", "latitude": 12.5407, "longitude": 77.794, "pdf_attached": true, "pdf_filenames": ["document (82).pdf"], "body_snippet": "Sir/Madam,\nPlease find the attachments. \n\n\nWildlife Wing,\nO/o. the Principal Chief Conservator of Forests (Head of Forests Force),Guindy - Velachery Main Road,Chennai-32.", "pdf_snippet": "HOTNFD/1360/2026-WLA - JA 2 I/544428/2026\nத(cid:2)(cid:3)நா(cid:6) வன(cid:10)(cid:11)ைற\nஅ(cid:15)(cid:16)(cid:17)ந(cid:18) ெப(cid:21)ந(cid:18)\n(cid:22)(cid:23). ராேக(cid:28) (cid:29)மா(cid:18) ேடா(cid:32)ரா, இ.வ.ப., அர(cid:55) (cid:56)(cid:6)த(cid:57) தைலைம ெசயலாள(cid:18),\n(cid:35)த(cid:36)ைம தைலைம வன(cid:16)பா(cid:11)காவல(cid:18) (ம) (cid:55)(cid:58)(cid:21)(cid:59)(cid:60)ழ(cid:57), கால(cid:62)ைல மா(cid:58)ற(cid:45)\nதைலைம வன உ(cid:41)(cid:42)ன(cid:32)கா(cid:16)பாள(cid:18), ம(cid:58)(cid:21)(ci", "pdf_path": "pdfs/REP-016_document (82).pdf", "pdf_filename": "document (82).pdf"}, {"id": "REP-051", "mbox_id": 50, "subject": "Human Death on 03.02.2026 at Coimbatore - Reg", "category": "Human Death", "icon_type": "human_death", "incident_date": "03/02/2026", "reported_date": "Wed, 4 Feb 2026 14:06:26 +0000 (UTC)", "location_name": "Coimbatore Division", "location_key": "coimbatore", "has_exact_coords": false, "coord_source": "Central Location Fallback (Coimbatore Division)", "latitude": 11.0288, "longitude": 76.9678, "pdf_attached": true, "pdf_filenames": ["document (75).pdf"], "body_snippet": "Sir/Madam,\nPlease find the attachments. \n\n\nWildlife Wing,\nO/o. the Principal Chief Conservator of Forests (Head of Forests Force),Guindy - Velachery Main Road,Chennai-32.", "pdf_snippet": "HOTNFD/1091/2026-WLA - JA 2 I/537469/2026\nதத(cid:2)(cid:2)(cid:3)(cid:3)நநாா(cid:6)(cid:6)வவனன(cid:9)(cid:9)(cid:10)(cid:10)ைைறற\nஅஅ(cid:15)(cid:15)(cid:16)(cid:16)(cid:17)(cid:17)நந(cid:18)(cid:18) ெெபப(cid:21)(cid:21)நந(cid:18)(cid:18)\n(cid:22)(cid:23). ராேக(cid:28) (cid:29)மா(cid:18)ேடா(cid:32)ரா, இ.வ.ப., அர(cid:55)(cid:56)(cid:6)த(cid:57) தைலைமெசயலாள(cid:18),\n(cid:35)த(cid:36)ைம தைலைமவன(cid:16)பா(cid:10)காவல(cid:18) (cid:55)(cid:58)(cid:21)(cid:59)(cid:60)ழ(cid:57), கால(cid:62)ைல மா(cid:58)ற(", "pdf_path": "pdfs/REP-051_document (75).pdf", "pdf_filename": "document (75).pdf"}, {"id": "REP-039", "mbox_id": 36, "subject": "Human Death on 02.02.2026 at Nilgiris - Reg", "category": "Human Death", "icon_type": "human_death", "incident_date": "02/02/2026", "reported_date": "Wed, 4 Feb 2026 14:03:17 +0000 (UTC)", "location_name": "Nilgiris Division", "location_key": "nilgiris", "has_exact_coords": false, "coord_source": "Central Location Fallback (Nilgiris Division)", "latitude": 11.4382, "longitude": 76.6705, "pdf_attached": true, "pdf_filenames": [], "body_snippet": "Sir/Madam,\nPlease find the attachments. \n\n\nWildlife Wing,\nO/o. the Principal Chief Conservator of Forests (Head of Forests Force),Guindy - Velachery Main Road,Chennai-32.", "pdf_snippet": "", "pdf_path": "pdfs/REP-039_document (73).pdf", "pdf_filename": "document (73).pdf"}, {"id": "REP-037", "mbox_id": 34, "subject": "Human Death on 19.01.2026 at Hosur - Reg", "category": "Human Death", "icon_type": "human_death", "incident_date": "19/01/2026", "reported_date": "Mon, 19 Jan 2026 12:06:30 +0000 (UTC)", "location_name": "Hosur Forest Division", "location_key": "hosur", "has_exact_coords": true, "coord_source": "Exact PDF GPS Coordinates", "latitude": 12.635683, "longitude": 77.911863, "pdf_attached": true, "pdf_filenames": ["document (59).pdf"], "body_snippet": "Sir/Madam,\nPlease find the attachments. \n\n\nWildlife Wing,\nO/o. the Principal Chief Conservator of Forests (Head of Forests Force),Guindy - Velachery Main Road,Chennai-32.", "pdf_snippet": "HOTNFD/345/2026-WLA - JA 2 I/512628/2026\nத(cid:2)(cid:3)நா(cid:6) வன(cid:10)(cid:11)ைற\nஅ(cid:15)(cid:16)(cid:17)ந(cid:18) ெப(cid:21)ந(cid:18)\n(cid:22)(cid:23). ராேக(cid:28) (cid:29)மா(cid:18) ேடா(cid:32)ரா, இ.வ.ப., அர(cid:55) (cid:56)(cid:6)த(cid:57) தைலைம ெசயலாள(cid:18),\n(cid:35)த(cid:36)ைம தைலைம வன(cid:16)பா(cid:11)காவல(cid:18) (ம) (cid:55)(cid:58)(cid:21)(cid:59)(cid:60)ழ(cid:57), கால(cid:62)ைல மா(cid:58)ற(cid:45)\nதைலைம வன உ(cid:41)(cid:42)ன(cid:32)கா(cid:16)பாள(cid:18), ம(cid:58)(cid:21)(cid", "pdf_path": "pdfs/REP-037_document (59).pdf", "pdf_filename": "document (59).pdf"}, {"id": "REP-027", "mbox_id": 23, "subject": "Human Death on 18.01.2026 at Dharmapuri - Reg", "category": "Human Death", "icon_type": "human_death", "incident_date": "18/01/2026", "reported_date": "Mon, 19 Jan 2026 06:18:01 +0000 (UTC)", "location_name": "Dharmapuri Division", "location_key": "dharmapuri", "has_exact_coords": true, "coord_source": "Exact PDF GPS Coordinate (Partial Refined)", "latitude": 12.09474, "longitude": 78.1582, "pdf_attached": true, "pdf_filenames": ["document (57).pdf"], "body_snippet": "Sir/Madam,\nPlease find the attachments. \n\n\nWildlife Wing,\nO/o. the Principal Chief Conservator of Forests (Head of Forests Force),Guindy - Velachery Main Road,Chennai-32.", "pdf_snippet": "HOTNFD/316/2026-WLA - JA 2 I/511491/2026\nத(cid:2)(cid:3)நா(cid:6) வன(cid:10)(cid:11)ைற\nஅ(cid:15)(cid:16)(cid:17)ந(cid:18) ெப(cid:21)ந(cid:18)\n(cid:22)(cid:23). ராேக(cid:28) (cid:29)மா(cid:18) ேடா(cid:32)ரா, இ.வ.ப., அர(cid:55) (cid:56)(cid:6)த(cid:57) தைலைம ெசயலாள(cid:18),\n(cid:35)த(cid:36)ைம தைலைம வன(cid:16)பா(cid:11)காவல(cid:18) (ம) (cid:55)(cid:58)(cid:21)(cid:59)(cid:60)ழ(cid:57), கால(cid:62)ைல மா(cid:58)ற(cid:45)\nதைலைம வன உ(cid:41)(cid:42)ன(cid:32)கா(cid:16)பாள(cid:18), ம(cid:58)(cid:21)(cid", "pdf_path": "pdfs/REP-027_document (57).pdf", "pdf_filename": "document (57).pdf"}, {"id": "REP-015", "mbox_id": 10, "subject": "Human Death on 14.01.2026 at Sathyamangalam - Regarding", "category": "Human Death", "icon_type": "human_death", "incident_date": "14/01/2026", "reported_date": "Mon, 19 Jan 2026 11:16:48 +0000 (UTC)", "location_name": "Sathyamangalam Division (TN)", "location_key": "sathyamangalam", "has_exact_coords": false, "coord_source": "Central Location Fallback (Sathyamangalam Division (TN))", "latitude": 11.5189, "longitude": 77.2414, "pdf_attached": true, "pdf_filenames": ["document (57).pdf"], "body_snippet": "Sir/Madam,\nPlease find the attachments. \n\n\nWildlife Wing,\nO/o. the Principal Chief Conservator of Forests (Head of Forests Force),Guindy - Velachery Main Road,Chennai-32.", "pdf_snippet": "HOTNFD/315/2026-WLA - JA 2 I/512304/2026\nத(cid:2)(cid:3)நா(cid:6) வன(cid:10)(cid:11)ைற\nஅ(cid:15)(cid:16)(cid:17)ந(cid:18) ெப(cid:21)ந(cid:18)\n(cid:22)(cid:23). ராேக(cid:28) (cid:29)மா(cid:18) ேடா(cid:32)ரா, இ.வ.ப., அர(cid:55) (cid:56)(cid:6)த(cid:57) தைலைம ெசயலாள(cid:18),\n(cid:35)த(cid:36)ைம தைலைம வன(cid:16)பா(cid:11)காவல(cid:18) (ம) (cid:55)(cid:58)(cid:21)(cid:59)(cid:60)ழ(cid:57), கால(cid:62)ைல மா(cid:58)ற(cid:45)\nதைலைம வன உ(cid:41)(cid:42)ன(cid:32)கா(cid:16)பாள(cid:18), ம(cid:58)(cid:21)(cid", "pdf_path": "pdfs/REP-015_document (57).pdf", "pdf_filename": "document (57).pdf"}, {"id": "REP-033", "mbox_id": 30, "subject": "Human Death on 10.01.2026 at Nilgiris - Reg", "category": "Human Death", "icon_type": "human_death", "incident_date": "10/01/2026", "reported_date": "Mon, 12 Jan 2026 11:05:50 +0000 (UTC)", "location_name": "Nilgiris Division", "location_key": "nilgiris", "has_exact_coords": true, "coord_source": "Exact PDF GPS Coordinate (Partial Refined)", "latitude": 11.46546, "longitude": 76.695, "pdf_attached": true, "pdf_filenames": ["document (72).pdf"], "body_snippet": "Sir/Madam,\nPlease find the attachments. \n\n\nWildlife Wing,\nO/o. the Principal Chief Conservator of Forests (Head of Forests Force),Guindy - Velachery Main Road,Chennai-32.", "pdf_snippet": "HOTNFD/251/2026-WLA - JA 2 I/506251/2026\nத(cid:2)(cid:3)நா(cid:6)வன(cid:9)(cid:10)ைற\nஅ(cid:15)(cid:16)(cid:17)ந(cid:18) ெப(cid:21)ந(cid:18)\n(cid:22)(cid:23). . ராேக(cid:28) (cid:29)மா(cid:18)ேடா(cid:32)ரா, இ.வ.ப., அர(cid:55)(cid:56)(cid:6)த(cid:57) தைலைமெசயலாள(cid:18),\n(cid:35)த(cid:36)ைம தைலைமவன(cid:16)பா(cid:10)காவல(cid:18) (cid:55)(cid:58)(cid:21)(cid:59)(cid:60)ழ(cid:57), கால(cid:62)ைல மா(cid:58)ற(cid:45)\n(ம) தைலைமவன உ(cid:41)(cid:42)ன(cid:32)கா(cid:16)பாள(cid:18), ம(cid:58)(cid:21)(cid:45)வ", "pdf_path": "pdfs/REP-033_document (72).pdf", "pdf_filename": "document (72).pdf"}, {"id": "REP-010", "mbox_id": 5, "subject": "Human Death on 02.01.2026 at Masinagudi - Reg", "category": "Human Death", "icon_type": "human_death", "incident_date": "02/01/2026", "reported_date": "Fri, 2 Jan 2026 12:03:54 +0000 (UTC)", "location_name": "Masinagudi Range (MTR)", "location_key": "masinagudi", "has_exact_coords": false, "coord_source": "Central Location Fallback (Masinagudi Range (MTR))", "latitude": 11.5934, "longitude": 76.6608, "pdf_attached": true, "pdf_filenames": [], "body_snippet": "Sir/Madam,\nPlease find the attachments. \n\n\nWildlife Wing,\nO/o. the Principal Chief Conservator of Forests (Head of Forests Force),Guindy - Velachery Main Road,Chennai-32.", "pdf_snippet": "", "pdf_path": "pdfs/REP-010_document (59).pdf", "pdf_filename": "document (59).pdf"}, {"id": "REP-042", "mbox_id": 41, "subject": "Human Death on 31.12.2025 at Coimbatore - Reg", "category": "Human Death", "icon_type": "human_death", "incident_date": "31/12/2025", "reported_date": "Mon, 5 Jan 2026 05:01:31 +0000 (UTC)", "location_name": "Coimbatore Division", "location_key": "coimbatore", "has_exact_coords": false, "coord_source": "Central Location Fallback (Coimbatore Division)", "latitude": 10.9923, "longitude": 76.9838, "pdf_attached": true, "pdf_filenames": [], "body_snippet": "Sir/Madam,\nPlease find the attachments. \n\n\nWildlife Wing,\nO/o. the Principal Chief Conservator of Forests (Head of Forests Force),Guindy - Velachery Main Road,Chennai-32.", "pdf_snippet": "", "pdf_path": "pdfs/REP-042_document (63).pdf", "pdf_filename": "document (63).pdf"}, {"id": "REP-060", "mbox_id": 61, "subject": "Forests - Wildlife - Human Death in Erode Division on 30.12.2025\n due Wild Elephant attack - Flash Report sent - Reg", "category": "Human Death", "icon_type": "human_death", "incident_date": "30/12/2025", "reported_date": "Fri, 2 Jan 2026 04:12:52 +0000 (UTC)", "location_name": "Erode Forest Division", "location_key": "erode", "has_exact_coords": false, "coord_source": "Central Location Fallback (Erode Forest Division)", "latitude": 11.347, "longitude": 77.7322, "pdf_attached": true, "pdf_filenames": ["WL1-5648-2025 dt. 01.01.2026.pdf"], "body_snippet": "Sir/Madam,\nPlease find the attachments. \n\n\nWildlife Wing,\nO/o. the Principal Chief Conservator of Forests (Head of Forests Force),Guindy - Velachery Main Road,Chennai-32.", "pdf_snippet": "HOTNFD/5648/2025-WLA - JA 2 I/488752/2026\nதத(cid:2)(cid:2)(cid:3)(cid:3)நநாா(cid:6)(cid:6)வவனன(cid:9)(cid:9)(cid:10)(cid:10)ைைறற\nஅஅ(cid:15)(cid:15)(cid:16)(cid:16)(cid:17)(cid:17)நந(cid:18)(cid:18) ெெபப(cid:21)(cid:21)நந(cid:18)(cid:18)\n(cid:22)(cid:23). ராேக(cid:28) (cid:29)மா(cid:18)ேடா(cid:32)ரா, இ.வ.ப., அர(cid:55)(cid:56)(cid:6)த(cid:57) தைலைமெசயலாள(cid:18),\n(cid:35)த(cid:36)ைம தைலைமவன(cid:16)பா(cid:10)காவல(cid:18) (cid:55)(cid:58)(cid:21)(cid:59)(cid:60)ழ(cid:57), கால(cid:62)ைல மா(cid:58)ற(", "pdf_path": "pdfs/REP-060_WL1-5648-2025 dt. 01.01.2026.pdf", "pdf_filename": "WL1-5648-2025 dt. 01.01.2026.pdf"}];
+
+        const CENTRAL_COORDS = {
+            'hasanur': { lat: 11.6667, lng: 77.2000, name: 'Hasanur Range (STR)' },
+            'hassanur': { lat: 11.6667, lng: 77.2000, name: 'Hasanur Range (STR)' },
+            'sathyamangalam': { lat: 11.5039, lng: 77.2444, name: 'Sathyamangalam Division' },
+            'hosur': { lat: 12.5317, lng: 77.7850, name: 'Hosur Forest Division' },
+            'erode': { lat: 11.3410, lng: 77.7172, name: 'Erode Forest Division' },
+            'masinagudi': { lat: 11.5724, lng: 76.6433, name: 'Masinagudi Range (MTR)' },
+            'nilgiri': { lat: 11.4102, lng: 76.6950, name: 'Nilgiris Division' },
+            'nilgiris': { lat: 11.4102, lng: 76.6950, name: 'Nilgiris Division' },
+            'gudalur': { lat: 11.5034, lng: 76.4952, name: 'Gudalur Forest Division' },
+            'dindigul': { lat: 10.3673, lng: 77.9803, name: 'Dindigul Forest Division' },
+            'kalakad': { lat: 8.5147, lng: 77.5518, name: 'Kalakad Range (KMTR)' },
+            'dharmapuri': { lat: 12.1211, lng: 78.1582, name: 'Dharmapuri Division' },
+            'coimbatore': { lat: 11.0168, lng: 76.9558, name: 'Coimbatore Division' },
+            'tiruppur': { lat: 10.5847, lng: 77.2486, name: 'Tiruppur Division' },
+            'udumalpet': { lat: 10.5847, lng: 77.2486, name: 'Udumalpet Range' },
+            'pollachi': { lat: 10.6588, lng: 77.0083, name: 'Pollachi Forest Division' },
+            'nellai': { lat: 8.7139, lng: 77.7567, name: 'Tirunelveli / Nellai Division' },
+            'tenkasi': { lat: 8.9597, lng: 77.3146, name: 'Tenkasi Forest Division' },
+            'kanyakumari': { lat: 8.0883, lng: 77.5385, name: 'Kanyakumari Wildlife Division' },
+            'kundrathur': { lat: 12.9977, lng: 80.0972, name: 'Kundrathur / Kanchipuram' }
+        };
+
+        const TAMIL_GEO_MAP = {
+            'ஈரோடு': { division: 'Erode Division', range: 'Erode Range', key: 'erode' },
+            'ஈேரா': { division: 'Erode Division', range: 'Erode Range', key: 'erode' },
+            'ERDDIV': { division: 'Erode Division', range: 'Erode Range', key: 'erode' },
+            'GEMCH': { location: 'Perundurai (GEMCH)', division: 'Erode Division', range: 'Erode Range', key: 'erode' },
+            'பெருந்துறை': { location: 'Perundurai', division: 'Erode Division', range: 'Erode Range', key: 'erode' },
+            'சத்தியமங்கலம்': { division: 'Sathyamangalam Division', range: 'Sathyamangalam Range', key: 'sathyamangalam' },
+            'சத்தி': { division: 'Sathyamangalam Division', range: 'Sathyamangalam Range', key: 'sathyamangalam' },
+            'ஹசனூர்': { division: 'Hasanur Division', range: 'Hasanur Range (STR)', key: 'hasanur' },
+            'ஆசனூர்': { division: 'Hasanur Division', range: 'Hasanur Range (STR)', key: 'hasanur' },
+            'தாளவாடி': { location: 'Thalavadi', division: 'Hasanur Division', key: 'hasanur' },
+            'பவானிசாகர்': { location: 'Bhavanisagar', division: 'Sathyamangalam Division', key: 'sathyamangalam' },
+            'அந்தியூர்': { location: 'Anthiyur', division: 'Erode Division', key: 'erode' },
+            'பர்கூர்': { location: 'Bargur', division: 'Erode Division', key: 'erode' },
+            'கோயம்புத்தூர்': { division: 'Coimbatore Division', range: 'Coimbatore Range', key: 'coimbatore' },
+            'கோவை': { division: 'Coimbatore Division', range: 'Coimbatore Range', key: 'coimbatore' },
+            'பொள்ளாச்சி': { division: 'Pollachi Forest Division', range: 'Pollachi Range', key: 'pollachi' },
+            'ஆனைமலை': { division: 'Anamalai Tiger Reserve', range: 'Anamalai Range', key: 'pollachi' },
+            'உடுமலைப்பேட்டை': { division: 'Tiruppur Division', range: 'Udumalpet Range', key: 'udumalpet' },
+            'உடுமலை': { division: 'Tiruppur Division', range: 'Udumalpet Range', key: 'udumalpet' },
+            'திருப்பூர்': { division: 'Tiruppur Division', key: 'tiruppur' },
+            'நீலகிரி': { division: 'Nilgiris Division', range: 'Nilgiris Range', key: 'nilgiri' },
+            'கூடலூர்': { division: 'Gudalur Forest Division', range: 'Gudalur Range', key: 'gudalur' },
+            'மசினகுடி': { division: 'Mudumalai Tiger Reserve', range: 'Masinagudi Range (MTR)', key: 'masinagudi' },
+            'முதுமலை': { division: 'Mudumalai Tiger Reserve', key: 'masinagudi' },
+            'திண்டுக்கல்': { division: 'Dindigul Forest Division', key: 'dindigul' },
+            'கொடைக்கானல்': { division: 'Kodaikanal Division', range: 'Kodaikanal Range', key: 'dindigul' },
+            'தருமபுரி': { division: 'Dharmapuri Division', key: 'dharmapuri' },
+            'தர்மபுரி': { division: 'Dharmapuri Division', key: 'dharmapuri' },
+            'கிருஷ்ணகிரி': { division: 'Krishnagiri Division', key: 'hosur' },
+            'ஒசூர்': { division: 'Hosur Forest Division', key: 'hosur' },
+            'ஹோசூர்': { division: 'Hosur Forest Division', key: 'hosur' },
+            'தேன்கனிக்கோட்டை': { location: 'Denkanikottai', division: 'Hosur Forest Division', key: 'hosur' },
+            'தளி': { location: 'Thally', division: 'Hosur Forest Division', key: 'hosur' },
+            'சேலம்': { division: 'Salem Division', key: 'salem' },
+            'ஆத்தூர்': { division: 'Attur Division', key: 'salem' },
+            'நாமக்கல்': { division: 'Namakkal Division', key: 'erode' },
+            'திருநெல்வேலி': { division: 'Tirunelveli Division', key: 'nellai' },
+            'நெல்லை': { division: 'Nellai Division', key: 'nellai' },
+            'தென்காசி': { division: 'Tenkasi Forest Division', key: 'tenkasi' },
+            'களக்காடு': { division: 'Kalakad Range (KMTR)', key: 'kalakad' },
+            'முண்டந்துறை': { division: 'Mundanthurai Range (KMTR)', key: 'kalakad' },
+            'கன்னியாகுமரி': { division: 'Kanyakumari Wildlife Division', key: 'kanyakumari' },
+            'மதுரை': { division: 'Madurai Division', key: 'dindigul' },
+            'தேனி': { division: 'Theni Division', key: 'dindigul' },
+            'மேகமலை': { division: 'Megamalai Division', key: 'dindigul' },
+            'திருப்பத்தூர்': { division: 'Tirupathur Division', key: 'dharmapuri' },
+            'வேலூர்': { division: 'Vellore Division', key: 'dharmapuri' },
+            'திருவண்ணாமலை': { division: 'Tiruvannamalai Division', key: 'dharmapuri' },
+            'விழுப்புரம்': { division: 'Villupuram Division', key: 'erode' },
+            'திருச்சிராப்பள்ளி': { division: 'Trichy Division', key: 'erode' },
+            'திருச்சி': { division: 'Trichy Division', key: 'erode' }
+        };
+
+        const ANIMAL_PATTERNS = [
+            { regex: /மான்|மான்கள்|deer|spotted deer|sambar|மா\$/i, name: 'Deer' },
+            { regex: /யானை|காட்டுயானை|மக்னா|elephant|tusker|makna|யாைன/i, name: 'Wild Elephant' },
+            { regex: /புலி|tiger/i, name: 'Tiger' },
+            { regex: /சிறுத்தை|leopard/i, name: 'Leopard' },
+            { regex: /காட்டு\s*மாடு|காட்டெருமை|கௌர்|gaur|bison/i, name: 'Wild Gaur (Bison)' },
+            { regex: /காட்டுப்பன்றி|பன்றி|wild boar/i, name: 'Wild Boar' },
+            { regex: /கரடி|bear|sloth bear/i, name: 'Sloth Bear' },
+            { regex: /முதலை|crocodile/i, name: 'Crocodile' },
+            { regex: /பாம்பு|snake|viper|cobra/i, name: 'Snake' }
+        ];
+
+        function transliterateTamil(tamText) {
+            if (!tamText) return '';
+            const vowels = {
+                'அ': 'a', 'ஆ': 'aa', 'இ': 'i', 'ஈ': 'ee', 'உ': 'u', 'ஊ': 'oo',
+                'எ': 'e', 'ஏ': 'ae', 'ஐ': 'ai', 'ஒ': 'o', 'ஓ': 'oe', 'ஔ': 'au'
+            };
+            const consonants = {
+                'க': 'k', 'ங': 'ng', 'ச': 'ch', 'ஞ': 'nj', 'ட': 't', 'ண': 'n',
+                'த': 'th', 'ந': 'n', 'ப': 'p', 'ம': 'm', 'ய': 'y', 'ர': 'r',
+                'ல': 'l', 'வ': 'v', 'ழ': 'zh', 'ள': 'l', 'ற': 'r', 'ன': 'n',
+                'ஜ': 'j', 'ஷ': 'sh', 'ஸ': 's', 'ஹ': 'h'
+            };
+            const matras = {
+                'ா': 'a', 'ி': 'i', 'ீ': 'ee', 'ு': 'u', 'ூ': 'oo',
+                'ெ': 'e', 'ே': 'ae', 'ை': 'ai', 'ொ': 'o', 'ோ': 'oe', 'ௌ': 'au',
+                '்': ''
+            };
+
+            let result = '';
+            for (let i = 0; i < tamText.length; i++) {
+                const char = tamText[i];
+                const nextChar = tamText[i + 1];
+
+                if (vowels[char]) {
+                    result += vowels[char];
+                } else if (consonants[char]) {
+                    const base = consonants[char];
+                    if (nextChar && matras[nextChar] !== undefined) {
+                        result += base + matras[nextChar];
+                        i++;
+                    } else {
+                        result += base + 'a';
+                    }
+                } else {
+                    result += char;
+                }
+            }
+            return result.charAt(0).toUpperCase() + result.slice(1);
+        }
+
+        function parseReportDate(dateStr) {
+            if (!dateStr || typeof dateStr !== 'string') return null;
+            const str = dateStr.trim();
+            if (!str || str.toLowerCase() === 'not specified' || str.toLowerCase() === 'null') return null;
+            
+            // Format 1: ISO YYYY-MM-DD
+            const isoMatch = str.match(/^(\d{4})[-\/\.](\d{1,2})[-\/\.](\d{1,2})/);
+            if (isoMatch) {
+                const y = isoMatch[1];
+                const m = isoMatch[2].padStart(2, '0');
+                const d = isoMatch[3].padStart(2, '0');
+                return `${y}-${m}-${d}`;
+            }
+            
+            // Format 2: DD/MM/YYYY, DD.MM.YYYY, DD-MM-YYYY
+            const dmyMatch = str.match(/^(\d{1,2})[-\/\.](\d{1,2})[-\/\.](\d{4})/);
+            if (dmyMatch) {
+                const d = dmyMatch[1].padStart(2, '0');
+                const m = dmyMatch[2].padStart(2, '0');
+                const y = dmyMatch[3];
+                return `${y}-${m}-${d}`;
+            }
+
+            // Fallback: JS Date
+            const dt = new Date(str);
+            if (!isNaN(dt.getTime())) {
+                const y = dt.getFullYear();
+                const m = String(dt.getMonth() + 1).padStart(2, '0');
+                const d = String(dt.getDate()).padStart(2, '0');
+                return `${y}-${m}-${d}`;
+            }
+            return null;
+        }
+
+        function formatToDDMMYYYY(dateStr) {
+            if (!dateStr) return 'N/A';
+            const iso = parseReportDate(dateStr);
+            if (!iso) return dateStr;
+            const parts = iso.split('-');
+            return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+
+        function sortReportsDesc(reports) {
+            if (!Array.isArray(reports)) return [];
+            return [...reports].sort((a, b) => {
+                const dateA = parseReportDate(a.incident_date) || '1970-01-01';
+                const dateB = parseReportDate(b.incident_date) || '1970-01-01';
+                if (dateB !== dateA) {
+                    return dateB.localeCompare(dateA); // Newest / most recent first
+                }
+                const idA = parseInt((a.id || '').replace(/\D/g, ''), 10) || 0;
+                const idB = parseInt((b.id || '').replace(/\D/g, ''), 10) || 0;
+                return idB - idA;
+            });
+        }
+
+        function sanitizeDateInput(input) {
+            if (!input) return;
+            if (input.validity && (input.validity.rangeOverflow || input.validity.badInput)) {
+                if (input.validity.rangeOverflow) {
+                    input.value = input.max || '2030-12-31';
+                } else if (input.validity.rangeUnderflow) {
+                    input.value = input.min || '2020-01-01';
+                }
+                return;
+            }
+            const val = (input.value || '').trim();
+            if (!val) return;
+            const parts = val.split('-');
+            if (parts.length === 3 && parts[0].length > 4) {
+                parts[0] = parts[0].slice(0, 4);
+                const yNum = parseInt(parts[0], 10);
+                if (yNum > 2030) parts[0] = '2030';
+                if (yNum < 2020) parts[0] = '2020';
+                input.value = parts.join('-');
+            }
+        }
+
+        let map = null;
+        let markersLayer = null;
+        let activeReports = [...DEFAULT_REPORTS];
+
+        function loadStorageData() {
+            try {
+                const stored = localStorage.getItem('tn_forest_incidents_v23') || 
+                               localStorage.getItem('tn_forest_incidents_v22') || 
+                               localStorage.getItem('tn_forest_incidents_v21');
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        const defMap = new Map(DEFAULT_REPORTS.map(r => [r.id, r]));
+                        const existingIds = new Set(parsed.map(r => r.id));
+                        const missingDefaults = DEFAULT_REPORTS.filter(r => !existingIds.has(r.id));
+                        const merged = [...missingDefaults, ...parsed.map(r => {
+                            const def = defMap.get(r.id);
+                            if (def) {
+                                r.pdf_path = def.pdf_path || r.pdf_path || null;
+                                r.pdf_filename = def.pdf_filename || r.pdf_filename || null;
+                                r.pdf_attached = !!(r.pdf_path || def.pdf_path);
+                            }
+                            if (r.incident_date) {
+                                r.incident_date = formatToDDMMYYYY(r.incident_date);
+                            }
+                            return r;
+                        })];
+                        const sorted = sortReportsDesc(merged);
+                        saveStorageData(sorted);
+                        return sorted;
+                    }
+                }
+            } catch(e) {}
+            const sortedDefaults = sortReportsDesc(DEFAULT_REPORTS);
+            saveStorageData(sortedDefaults);
+            return sortedDefaults;
+        }
+
+        function saveStorageData(data) {
+            try {
+                localStorage.setItem('tn_forest_incidents_v23', JSON.stringify(data));
+            } catch(e) {}
+        }
+
+        function initMap() {
+            if (map) return;
+            try {
+                map = L.map('map', {
+                    center: [11.25, 77.20],
+                    zoom: 8.5,
+                    zoomControl: true
+                });
+
+                const streetMap = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+                    maxZoom: 19,
+                    attribution: 'Tiles &copy; Esri &mdash; Street Map'
+                });
+
+                const satelliteMap = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                    maxZoom: 19,
+                    attribution: 'Tiles &copy; Esri &mdash; Satellite View'
+                });
+
+                const topoMap = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+                    maxZoom: 19,
+                    attribution: 'Tiles &copy; Esri &mdash; Topo Map'
+                });
+
+                streetMap.addTo(map);
+
+                L.control.layers({
+                    "Standard Street Map": streetMap,
+                    "Satellite View": satelliteMap,
+                    "Topographic Forest Map": topoMap
+                }, null, { position: 'topright' }).addTo(map);
+
+                markersLayer = L.featureGroup().addTo(map);
+            } catch(e) {
+                console.error("Map initialization error:", e);
+            }
+        }
+
+        function updateStats(reports) {
+            const list = reports || [];
+            const total = list.length;
+            const humanDeaths = list.filter(r => r.category === 'Human Death').length;
+            const humanInjuries = list.filter(r => r.category === 'Human Injury').length;
+            const animalDeaths = list.filter(r => r.category === 'Animal Death').length;
+            const animalInjuries = list.filter(r => r.category === 'Animal Injury').length;
+
+            const elTotal = document.getElementById('stat-total');
+            const elHD = document.getElementById('stat-human-deaths');
+            const elHI = document.getElementById('stat-human-injuries');
+            const elAD = document.getElementById('stat-animal-deaths');
+            const elAI = document.getElementById('stat-animal-injuries');
+
+            if (elTotal) elTotal.innerText = total;
+            if (elHD) elHD.innerText = humanDeaths;
+            if (elHI) elHI.innerText = humanInjuries;
+            if (elAD) elAD.innerText = animalDeaths;
+            if (elAI) elAI.innerText = animalInjuries;
+        }
+
+        function renderReports(reports) {
+            if (markersLayer) markersLayer.clearLayers();
+            const listContainer = document.getElementById('reports-list');
+            const countEl = document.getElementById('visible-count');
+            const mobileCountEl = document.getElementById('mobile-count-badge');
+            
+            if (listContainer) listContainer.innerHTML = '';
+            if (countEl) countEl.innerText = reports.length;
+            if (mobileCountEl) mobileCountEl.innerText = reports.length;
+
+            if (reports.length === 0) {
+                if (listContainer) {
+                    listContainer.innerHTML = `<div class="p-8 text-center text-slate-500 text-sm"><i class="fa-solid fa-folder-open text-2xl mb-2 text-slate-600 block"></i>No matching incident reports found.</div>`;
+                }
+                return;
+            }
+
+            reports.forEach(report => {
+                let marker = null;
+                if (markersLayer) {
+                    marker = createMarker(report);
+                    markersLayer.addLayer(marker);
+                }
+
+                if (listContainer) {
+                    const card = createSidebarCard(report, marker);
+                    listContainer.appendChild(card);
+                }
+            });
+
+            if (map && markersLayer && markersLayer.getLayers().length > 0) {
+                try {
+                    map.fitBounds(markersLayer.getBounds().pad(0.1));
+                } catch(e) {}
+            }
+        }
+
+        function createMarker(report) {
+            let iconClass = 'marker-human-death';
+            let iconFa = 'fa-skull-crossbones';
+
+            if (report.category === 'Human Death') {
+                iconClass = 'marker-human-death';
+                iconFa = 'fa-skull-crossbones';
+            } else if (report.category === 'Human Injury') {
+                iconClass = 'marker-human-injury';
+                iconFa = 'fa-user-injured';
+            } else if (report.category === 'Animal Death') {
+                iconClass = 'marker-animal-death';
+                iconFa = 'fa-paw';
+            } else if (report.category === 'Animal Injury') {
+                iconClass = 'marker-animal-injury';
+                iconFa = 'fa-kit-medical';
+            }
+
+            const badgeClass = report.has_exact_coords ? 'badge-gps' : 'badge-fix';
+            const badgeText = report.has_exact_coords ? 'GPS' : 'FIX';
+
+            const customIcon = L.divIcon({
+                className: '',
+                html: `
+                    <div class="custom-marker-icon ${iconClass} w-8 h-8 relative">
+                        <i class="fa-solid ${iconFa} text-xs"></i>
+                        <span class="marker-badge ${badgeClass}">${badgeText}</span>
+                    </div>
+                `,
+                iconSize: [32, 32],
+                iconAnchor: [16, 16]
+            });
+
+            const marker = L.marker([report.latitude, report.longitude], { icon: customIcon });
+
+            let badgeColor = 'bg-rose-950 text-rose-400 border-rose-800';
+            if (report.category === 'Human Injury') badgeColor = 'bg-amber-950 text-amber-400 border-amber-800';
+            if (report.category === 'Animal Death') badgeColor = 'bg-purple-950 text-purple-400 border-purple-800';
+            if (report.category === 'Animal Injury') badgeColor = 'bg-cyan-950 text-cyan-400 border-cyan-800';
+
+            const popupContent = `
+                <div class="p-3.5 space-y-2.5 font-sans">
+                    <div class="flex items-start justify-between gap-2 border-b border-slate-800 pb-2">
+                        <div>
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">${report.id}</span>
+                            <h3 class="text-xs font-bold text-white leading-snug">${escapeHtml(report.subject)}</h3>
+                        </div>
+                        <span class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase border shrink-0 ${badgeColor}">
+                            ${report.category}
+                        </span>
+                    </div>
+
+                    <div class="bg-slate-950 p-2 rounded border border-slate-800/80 flex items-center justify-between text-xs">
+                        <span class="text-slate-400 text-[11px]"><i class="fa-regular fa-calendar mr-1 text-emerald-400"></i>Date:</span>
+                        <span class="text-white font-semibold">${formatToDDMMYYYY(report.incident_date)}</span>
+                    </div>
+
+                    <div class="flex items-center gap-2 pt-1 border-t border-slate-800">
+                        ${report.pdf_path ? `
+                        <button onclick="downloadReportPdfById('${report.id}')" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-1.5 rounded text-xs font-semibold transition flex items-center justify-center gap-1.5 shadow">
+                            <i class="fa-solid fa-file-pdf"></i> Download PDF
+                        </button>` : ``}
+                        <button onclick="deleteReport('${report.id}')" class="bg-rose-600/20 hover:bg-rose-600 text-rose-400 hover:text-white border border-rose-600/40 px-2.5 py-1.5 rounded text-xs font-semibold transition" title="Delete Report">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            marker.bindPopup(popupContent, { maxWidth: 320 });
+            return marker;
+        }
+
+        function createSidebarCard(report, marker) {
+            const card = document.createElement('div');
+            card.className = 'p-3 hover:bg-slate-900/90 transition flex flex-col space-y-2 group border-b border-slate-800/50';
+
+            let categoryBadge = 'bg-rose-950/80 text-rose-400 border-rose-800/60';
+            if (report.category === 'Human Injury') categoryBadge = 'bg-amber-950/80 text-amber-400 border-amber-800/60';
+            if (report.category === 'Animal Death') categoryBadge = 'bg-purple-950/80 text-purple-400 border-purple-800/60';
+            if (report.category === 'Animal Injury') categoryBadge = 'bg-cyan-950/80 text-cyan-400 border-cyan-800/60';
+
+            card.innerHTML = `
+                <div class="flex items-center justify-between gap-2">
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${categoryBadge}">
+                        ${report.category}
+                    </span>
+                    <span class="text-[11px] font-semibold text-slate-300 flex items-center gap-1">
+                        <i class="fa-regular fa-calendar-check text-emerald-400 text-[11px]"></i>
+                        ${formatToDDMMYYYY(report.incident_date)}
+                    </span>
+                </div>
+
+                <h4 class="text-xs font-bold text-slate-200 group-hover:text-emerald-400 transition leading-snug line-clamp-2">
+                    ${escapeHtml(report.subject)}
+                </h4>
+
+                <div class="text-[11px] text-slate-400 flex items-center justify-between">
+                    <span class="truncate"><i class="fa-solid fa-location-dot text-slate-500 mr-1"></i>${escapeHtml(report.location_name)}</span>
+                </div>
+
+                <div class="flex items-center justify-between gap-2 pt-1 border-t border-slate-900/80">
+                    <button class="btn-locate bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded text-[11px] font-semibold transition flex items-center gap-1">
+                        <i class="fa-solid fa-crosshairs text-emerald-400"></i> Locate
+                    </button>
+                    ${report.pdf_path ? `
+                    <button onclick="event.stopPropagation(); downloadReportPdfById('${report.id}');" class="btn-download-pdf bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded text-xs font-semibold transition flex items-center gap-1.5 shadow">
+                        <i class="fa-solid fa-file-pdf"></i> Download PDF
+                    </button>` : ``}
+                </div>
+            `;
+
+            card.querySelector('.btn-locate').addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (window.innerWidth <= 768) setMobileTab('map');
+                if (map && marker) {
+                    map.setView([report.latitude, report.longitude], 12, { animate: true });
+                    marker.openPopup();
+                }
+            });
+
+            const pdfBtn = card.querySelector('.btn-download-pdf');
+            if (pdfBtn) {
+                pdfBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    downloadReportPdf(report);
+                });
+            }
+
+            card.addEventListener('click', (e) => {
+                if (e.target && (e.target.closest('.btn-download-pdf') || e.target.closest('.btn-locate'))) return;
+                if (window.innerWidth <= 768) setMobileTab('map');
+                if (map && marker) {
+                    map.setView([report.latitude, report.longitude], 12, { animate: true });
+                    marker.openPopup();
+                }
+            });
+
+            return card;
+        }
+
+        function downloadReportPdfById(id) {
+            const rep = activeReports.find(r => r.id === id);
+            if (rep) downloadReportPdf(rep);
+        }
+
+        function downloadReportPdf(report) {
+            // ONLY download official attached PDF from mail - do not generate any synthetic PDF
+            if (!report || !report.pdf_path) {
+                return;
+            }
+
+            const targetFilename = report.pdf_filename || `${report.id}.pdf`;
+
+            // If running inside Android App WebView Bridge
+            if (window.AndroidBlobDownloader && typeof window.AndroidBlobDownloader.downloadAssetFile === 'function') {
+                const assetPath = "projects/mbox/" + report.pdf_path;
+                window.AndroidBlobDownloader.downloadAssetFile(assetPath, targetFilename, "application/pdf");
+                return;
+            }
+
+            // Standard Web browser download
+            const a = document.createElement('a');
+            a.href = report.pdf_path;
+            a.download = targetFilename;
+            a.target = '_blank';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        function deleteReport(reportId) {
+            if (!confirm(`Are you sure you want to delete report ${reportId}?`)) return;
+            activeReports = activeReports.filter(r => r.id !== reportId);
+            saveStorageData(activeReports);
+            applyFilters();
+        }
+
+        function applyFilters() {
+            const searchInput = document.getElementById('search-input');
+            const filterCat = document.getElementById('filter-category');
+            const filterLoc = document.getElementById('filter-location');
+            const dateFromInput = document.getElementById('filter-date-from');
+            const dateToInput = document.getElementById('filter-date-to');
+
+            // Sanitize any 5-digit years typed in inputs
+            if (dateFromInput) sanitizeDateInput(dateFromInput);
+            if (dateToInput) sanitizeDateInput(dateToInput);
+
+            const query = (searchInput && searchInput.value || '').toLowerCase().trim();
+            const catVal = filterCat && filterCat.value || 'ALL';
+            const locVal = filterLoc && filterLoc.value || 'ALL';
+            let dateFrom = dateFromInput && dateFromInput.value || '';
+            let dateTo = dateToInput && dateToInput.value || '';
+
+            if (dateFrom && dateFrom.split('-')[0].length > 4) {
+                dateFrom = dateFrom.split('-')[0].slice(0, 4) + '-' + dateFrom.split('-').slice(1).join('-');
+            }
+            if (dateTo && dateTo.split('-')[0].length > 4) {
+                dateTo = dateTo.split('-')[0].slice(0, 4) + '-' + dateTo.split('-').slice(1).join('-');
+            }
+
+            const filtered = activeReports.filter(report => {
+                const matchesQuery = !query || 
+                    (report.subject && report.subject.toLowerCase().includes(query)) ||
+                    (report.location_name && report.location_name.toLowerCase().includes(query)) ||
+                    (report.id && report.id.toLowerCase().includes(query)) ||
+                    (report.body_snippet && report.body_snippet.toLowerCase().includes(query));
+
+                const matchesCat = catVal === 'ALL' || report.category === catVal;
+                const matchesLoc = locVal === 'ALL' || report.location_key === locVal || (report.location_name && report.location_name.toLowerCase().includes(locVal));
+
+                let matchesDate = true;
+                if (dateFrom || dateTo) {
+                    const parsed = parseReportDate(report.incident_date);
+                    if (parsed) {
+                        if (dateFrom && parsed < dateFrom) matchesDate = false;
+                        if (dateTo && parsed > dateTo) matchesDate = false;
+                    } else {
+                        matchesDate = false;
+                    }
+                }
+
+                return matchesQuery && matchesCat && matchesLoc && matchesDate;
+            });
+
+            const sortedFiltered = sortReportsDesc(filtered);
+            updateStats(sortedFiltered);
+            renderReports(sortedFiltered);
+        }
+
+        function resetAllFilters() {
+            const searchInput = document.getElementById('search-input');
+            const filterCat = document.getElementById('filter-category');
+            const filterLoc = document.getElementById('filter-location');
+            const dateFromInput = document.getElementById('filter-date-from');
+            const dateToInput = document.getElementById('filter-date-to');
+
+            if (searchInput) searchInput.value = '';
+            if (filterCat) filterCat.value = 'ALL';
+            if (filterLoc) filterLoc.value = 'ALL';
+            if (dateFromInput) dateFromInput.value = '';
+            if (dateToInput) dateToInput.value = '';
+
+            activeReports = loadStorageData();
+            applyFilters();
+        }
+
+        function setupEventListeners() {
+            const searchInput = document.getElementById('search-input');
+            const filterCat = document.getElementById('filter-category');
+            const filterLoc = document.getElementById('filter-location');
+            const dateFromInput = document.getElementById('filter-date-from');
+            const dateToInput = document.getElementById('filter-date-to');
+            const btnResetDates = document.getElementById('btn-reset-dates');
+            const btnShowAll = document.getElementById('btn-show-all-data');
+
+            if (searchInput) searchInput.addEventListener('input', applyFilters);
+            if (filterCat) filterCat.addEventListener('change', applyFilters);
+            if (filterLoc) filterLoc.addEventListener('change', applyFilters);
+
+            if (dateFromInput) {
+                dateFromInput.addEventListener('input', () => {
+                    sanitizeDateInput(dateFromInput);
+                    applyFilters();
+                });
+                dateFromInput.addEventListener('change', () => {
+                    sanitizeDateInput(dateFromInput);
+                    applyFilters();
+                });
+                dateFromInput.addEventListener('blur', () => {
+                    sanitizeDateInput(dateFromInput);
+                    applyFilters();
+                });
+            }
+            if (dateToInput) {
+                dateToInput.addEventListener('input', () => {
+                    sanitizeDateInput(dateToInput);
+                    applyFilters();
+                });
+                dateToInput.addEventListener('change', () => {
+                    sanitizeDateInput(dateToInput);
+                    applyFilters();
+                });
+                dateToInput.addEventListener('blur', () => {
+                    sanitizeDateInput(dateToInput);
+                    applyFilters();
+                });
+            }
+
+            if (btnResetDates) {
+                btnResetDates.addEventListener('click', () => {
+                    if (dateFromInput) dateFromInput.value = '';
+                    if (dateToInput) dateToInput.value = '';
+                    applyFilters();
+                });
+            }
+
+            if (btnShowAll) {
+                btnShowAll.addEventListener('click', () => {
+                    resetAllFilters();
+                });
+            }
+
+            const modalImport = document.getElementById('modal-import');
+            const modalManual = document.getElementById('modal-manual');
+
+            const btnOpenImport = document.getElementById('btn-open-import');
+            const btnOpenManual = document.getElementById('btn-open-manual');
+
+            if (btnOpenImport) btnOpenImport.addEventListener('click', () => modalImport.classList.remove('hidden'));
+            if (btnOpenManual) btnOpenManual.addEventListener('click', () => modalManual.classList.remove('hidden'));
+
+            document.querySelectorAll('.btn-close-modal').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    if (modalImport) modalImport.classList.add('hidden');
+                    if (modalManual) modalManual.classList.add('hidden');
+                });
+            });
+
+            // Import Form
+            const formImport = document.getElementById('form-import');
+            if (formImport) {
+                formImport.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const fileInput = document.getElementById('import-file-input');
+                    const subjectInput = document.getElementById('import-subject');
+                    const textInput = document.getElementById('import-text');
+
+                    let importedText = textInput.value || '';
+                    let fileName = 'Imported Report';
+                    const file = fileInput.files[0];
+
+                    if (file) {
+                        fileName = file.name;
+                        if (fileName.toLowerCase().endsWith('.pdf')) {
+                            importedText += " " + await readPdfText(file);
+                        } else {
+                            importedText += " " + await file.text();
+                        }
+                    }
+
+                    const rawSubject = subjectInput.value || (fileName !== 'Imported Report' ? `Flash Report: ${fileName}` : 'Imported Flash Report');
+                    let cleanText = importedText.replace(/Content-Transfer-Encoding:\s*base64[\s\S]*?(?=[\r\n]{2,}|$)/gi, '');
+                    const combined = (rawSubject + " " + cleanText);
+                    const combinedLower = combined.toLowerCase();
+                    const isTamil = /[\u0B80-\u0BFF]/.test(combined);
+
+                    // Category detection (English + Tamil Unicode + eOffice font glyphs)
+                    const humanDeathTamil = /(உயிரிழந்துள்ளார்|உயிரிழந்தார்|உயிரிழப்பு|இறந்துள்ளார்|இறந்தார்|மரணமடைந்தார்|மரணம்|கொல்லப்பட்டார்|உயிர்\s*இழந்தார்|சிகிச்சை\s*பலனின்றி|உ\)\*ழ)/i;
+                    const humanInjuryTamil = /(காயமடைந்தார்|காயமடைந்து|காயம்|பலத்த\s*காயம்|அடிபட்டார்|தாக்கப்பட்டார்|சிகிச்சை\s*பெற்று|தாக்கியதில்|காயமைட|காய#)/i;
+                    const animalDeathTamil = /(யானை\s*(?:உயிரிழப்பு|இறப்பு)|புலி\s*(?:உயிரிழப்பு|இறப்பு)|சிறுத்தை\s*(?:உயிரிழப்பு|இறப்பு)|மான்\s*(?:உயிரிழப்பு|இறப்பு)|விலங்கு\s*உயிரிழப்பு|உடற்கூறாய்வு|அழுகிய\s*சடலம்|சடலமாக|இறந்த\s*நிலையில்|(?:யானை|புலி|சிறுத்தை|மான்|விலங்கு)[^\n\r]{0,30}உ\)\*ழ)/i;
+                    const animalInjuryTamil = /(யானை\s*காயம்|புலி\s*காயம்|சிறுத்தை\s*காயம்|மான்\s*காயம்|விலங்கு\s*காயம்|காயமடைந்த\s*வனவிலங்கு)/i;
+
+                    const hasHumanDeath = /(human death|one human|person died|killed by elephant|killed by tiger|killed by leopard|killed by wildlife|man died|woman death|fatal attack|succumbed)/i.test(combinedLower) || humanDeathTamil.test(combined);
+                    const hasHumanInjury = /(human injury|injured by elephant|injured by tiger|injured by leopard|injured by wildlife|person injured|man injured|woman injured)/i.test(combinedLower) || (humanInjuryTamil.test(combined) && !hasHumanDeath);
+                    const hasAnimalDeath = /(animal death|elephant death|male elephant death|female elephant death|tiger death|leopard death|gaur death|wildlife death|carcass|post-mortem)/i.test(combinedLower) || animalDeathTamil.test(combined);
+                    const hasAnimalInjury = /(animal injury|elephant injury|tiger injury|leopard injury|gaur injury|wildlife injury)/i.test(combinedLower) || animalInjuryTamil.test(combined);
+
+                    let category = null;
+                    if (hasHumanDeath) category = 'Human Death';
+                    else if (hasHumanInjury) category = 'Human Injury';
+                    else if (hasAnimalDeath) category = 'Animal Death';
+                    else if (hasAnimalInjury) category = 'Animal Injury';
+
+                    if (!category) {
+                        if (/(vc meeting|meeting for discussion|demo completion|proposal submitted|preparation of management)/i.test(combinedLower)) {
+                            alert("⚠️ IMPORT REJECTED:\n\nAdministrative or meeting emails are not permitted.\nOnly Human Death, Human Injury, Animal Death, and Animal Injury reports are allowed.");
+                            return;
+                        }
+                        if (file && (!cleanText || cleanText.trim().length === 0)) {
+                            alert("⚠️ PDF TEXT NOT READABLE:\n\nCould not extract readable text from the uploaded PDF.\nPlease paste the report text into the box below and click Detect & Import.");
+                            return;
+                        }
+                        alert("⚠️ IMPORT REJECTED:\n\nCould not detect an incident type.\nImported content must contain details of: Human Death, Human Injury, Animal Death, or Animal Injury.");
+                        return;
+                    }
+
+                    // Animal detection
+                    let detectedAnimal = 'Wildlife';
+                    for (const item of ANIMAL_PATTERNS) {
+                        if (item.regex.test(combined)) {
+                            detectedAnimal = item.name;
+                            break;
+                        }
+                    }
+
+                    // Location detection (Tamil mapping first, fallback to English CENTRAL_COORDS)
+                    let detectedLocKey = null;
+                    let detectedLocDisplay = null;
+
+                    if (isTamil || /ERDDIV|GEMCH|ஈேரா/i.test(combined)) {
+                        let locParts = [];
+                        for (const [tamName, info] of Object.entries(TAMIL_GEO_MAP)) {
+                            if (combined.includes(tamName)) {
+                                if (info.location && !locParts.includes(info.location)) locParts.push(info.location);
+                                if (info.range && !locParts.includes(info.range)) locParts.push(info.range);
+                                if (info.division && !locParts.includes(info.division)) locParts.push(info.division);
+                                if (!detectedLocKey && info.key) detectedLocKey = info.key;
+                            }
+                        }
+                        if (locParts.length > 0) {
+                            detectedLocDisplay = locParts.join(', ');
+                        }
+                    }
+
+                    if (!detectedLocDisplay) {
+                        for (const [key, info] of Object.entries(CENTRAL_COORDS)) {
+                            if (new RegExp('\\b' + key + '\\b', 'i').test(combinedLower)) {
+                                detectedLocKey = key;
+                                detectedLocDisplay = info.name;
+                                break;
+                            }
+                        }
+                    }
+                    if (!detectedLocKey) detectedLocKey = 'hasanur';
+                    if (!detectedLocDisplay) detectedLocDisplay = CENTRAL_COORDS[detectedLocKey] ? CENTRAL_COORDS[detectedLocKey].name : 'Tamil Nadu Forest Area';
+
+                    // GPS Coordinates Extraction: Support N11.284743, E77.562224, 11.284743, 77.562224, Lat 11.284743 Long 77.562224
+                    let lat = null, lng = null, hasExact = false, coordSource = '';
+                    const coordRegex = /(?:[Nn]|lat(?:itude)?)?\s*([89]\.\d{3,8}|1[0-4]\.\d{3,8})[^\dNSEnse]{1,25}(?:[Ee]|long(?:itude)?)?\s*(7[5-9]\.\d{3,8}|8[01]\.\d{3,8})/i;
+                    const pairMatch = combined.match(coordRegex);
+                    if (pairMatch) {
+                        lat = parseFloat(pairMatch[1]);
+                        lng = parseFloat(pairMatch[2]);
+                        hasExact = true;
+                        coordSource = `Exact GPS Coordinates (N${lat.toFixed(6)}, E${lng.toFixed(6)})`;
+
+                        // Coordinate-based location refinement
+                        if (lat >= 11.2 && lat <= 11.45 && lng >= 77.45 && lng <= 77.85) {
+                            detectedLocKey = 'erode';
+                            if (!detectedLocDisplay.includes('Perundurai')) {
+                                detectedLocDisplay = 'Perundurai, Erode Range, Erode Division';
+                            }
+                        }
+                    } else {
+                        const base = CENTRAL_COORDS[detectedLocKey] || CENTRAL_COORDS['hasanur'];
+                        lat = base.lat + (activeReports.length % 10 - 5) * 0.003;
+                        lng = base.lng + (activeReports.length % 8 - 4) * 0.003;
+                        coordSource = `Central Location Fallback (${base.name})`;
+                    }
+
+                    // Incident Date Extraction
+                    const dateMatch = combined.match(/(\d{1,2}[\.\/\-]\d{1,2}[\.\/\-]\d{4})/);
+                    const incDate = dateMatch ? formatToDDMMYYYY(dateMatch[1]) : '10/07/2026';
+
+                    // Translate / Synthesize details into English if report is in Tamil
+                    let subject = rawSubject;
+                    let bodySnippet = cleanText.slice(0, 500) || rawSubject;
+
+                    if (isTamil || /பV\s*ரா|பவித்ரா|GEMCH|ERDDIV|உ\)\*ழ/i.test(combined)) {
+                        let victimStr = '';
+                        const victimMatch = combined.match(/(?:திருமதி|திரு|செல்வி)\.?\s*([\u0B80-\u0BFA]+)/);
+                        if (victimMatch) {
+                            const rawTitle = victimMatch[0].includes('திருமதி') ? 'Mrs.' : (victimMatch[0].includes('செல்வி') ? 'Ms.' : 'Mr.');
+                            const transliteratedName = transliterateTamil(victimMatch[1].trim());
+                            victimStr = `${rawTitle} ${transliteratedName}`;
+                        } else if (/பV\s*ரா|பவித்ரா/i.test(combined)) {
+                            victimStr = 'Mrs. Pavithra';
+                        }
+                        const ageMatch = combined.match(/வய[^\d]*(?:7\s*மா|சுமார்|[^\d])*\s*(\d{1,2})\b/i) || combined.match(/வய[^\)]*?\b(\d{1,2})\s*\)/i);
+                        if (ageMatch) {
+                            victimStr += (victimStr ? ` (${ageMatch[1]} yrs)` : `Victim (${ageMatch[1]} yrs)`);
+                        }
+
+                        if (category === 'Human Death') {
+                            subject = `Human Death: ${victimStr ? victimStr + ' ' : ''}due to ${detectedAnimal} collision/encounter at ${detectedLocDisplay}`;
+                            bodySnippet = `Official Flash Report (${detectedLocDisplay}): Incident occurred on ${incDate}. ${victimStr || 'A person'} succumbed to fatal injuries following an incident involving ${detectedAnimal}. ${hasExact ? `Exact GPS: N${lat.toFixed(6)}, E${lng.toFixed(6)}.` : ''}`;
+                        } else if (category === 'Human Injury') {
+                            subject = `Human Injury: ${victimStr ? victimStr + ' ' : ''}injured by ${detectedAnimal} at ${detectedLocDisplay}`;
+                            bodySnippet = `Official Flash Report (${detectedLocDisplay}): Incident on ${incDate}. ${victimStr || 'A person'} sustained injuries caused by ${detectedAnimal}. Under medical care. ${hasExact ? `Exact GPS: N${lat.toFixed(6)}, E${lng.toFixed(6)}.` : ''}`;
+                        } else if (category === 'Animal Death') {
+                            subject = `Animal Death: ${detectedAnimal} carcass reported at ${detectedLocDisplay}`;
+                            bodySnippet = `Official Flash Report (${detectedLocDisplay}): Carcass of ${detectedAnimal} reported on ${incDate}. Post-mortem and forest team dispatched. ${hasExact ? `Exact GPS: N${lat.toFixed(6)}, E${lng.toFixed(6)}.` : ''}`;
+                        } else {
+                            subject = `Animal Injury: ${detectedAnimal} injured at ${detectedLocDisplay}`;
+                            bodySnippet = `Official Flash Report (${detectedLocDisplay}): ${detectedAnimal} reported injured on ${incDate}. Veterinary treatment underway. ${hasExact ? `Exact GPS: N${lat.toFixed(6)}, E${lng.toFixed(6)}.` : ''}`;
+                        }
+                    }
+
+                    const existingIndex = activeReports.findIndex(r => r.subject.toLowerCase().trim() === subject.toLowerCase().trim());
+                    
+                    let isOverwrite = false;
+                    let reportId = `REP-${String(activeReports.length + 1).padStart(3, '0')}`;
+                    
+                    if (existingIndex !== -1) {
+                        isOverwrite = true;
+                        reportId = activeReports[existingIndex].id;
+                    }
+
+                    const hasPdfFile = file && file.name && file.name.toLowerCase().endsWith('.pdf');
+                    const newReport = {
+                        id: reportId,
+                        subject: subject,
+                        category: category,
+                        icon_type: category.toLowerCase().replace(' ', '_'),
+                        incident_date: incDate,
+                        reported_date: 'Just now',
+                        location_name: detectedLocDisplay,
+                        location_key: detectedLocKey || 'hasanur',
+                        has_exact_coords: hasExact,
+                        coord_source: coordSource,
+                        latitude: Number(lat.toFixed(6)),
+                        longitude: Number(lng.toFixed(6)),
+                        pdf_attached: hasPdfFile,
+                        pdf_path: hasPdfFile ? URL.createObjectURL(file) : null,
+                        pdf_filename: hasPdfFile ? file.name : null,
+                        body_snippet: bodySnippet,
+                        pdf_snippet: ""
+                    };
+
+                    if (isOverwrite) {
+                        activeReports[existingIndex] = newReport;
+                    } else {
+                        activeReports.unshift(newReport);
+                    }
+
+                    activeReports = sortReportsDesc(activeReports);
+                    saveStorageData(activeReports);
+                    applyFilters();
+
+                    if (modalImport) modalImport.classList.add('hidden');
+                    formImport.reset();
+                    if (map) map.setView([newReport.latitude, newReport.longitude], 12);
+                    
+                    if (isOverwrite) {
+                        alert("🔄 Existing Report Overwritten! Updated: " + subject);
+                    } else {
+                        alert("✅ Successfully Imported! Classified as: " + category + (isTamil ? "\n🌐 Translated & Located in English." : ""));
+                    }
+                });
+            }
+
+            // Manual Form
+            const formManual = document.getElementById('form-manual');
+            if (formManual) {
+                formManual.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const category = document.getElementById('manual-category').value;
+                    const subject = document.getElementById('manual-subject').value;
+                    
+                    const existingIndex = activeReports.findIndex(r => r.subject.toLowerCase().trim() === subject.toLowerCase().trim());
+                    let reportId = existingIndex !== -1 ? activeReports[existingIndex].id : `REP-${String(activeReports.length + 1).padStart(3, '0')}`;
+
+                    const rawIncDate = document.getElementById('manual-inc-date').value;
+                    const incDate = rawIncDate ? formatToDDMMYYYY(rawIncDate) : '10/07/2026';
+
+                    const newReport = {
+                        id: reportId,
+                        subject: subject,
+                        category: category,
+                        location_name: document.getElementById('manual-location').value,
+                        latitude: parseFloat(document.getElementById('manual-lat').value),
+                        longitude: parseFloat(document.getElementById('manual-lng').value),
+                        incident_date: incDate,
+                        reported_date: document.getElementById('manual-rep-date').value || 'Today',
+                        body_snippet: document.getElementById('manual-details').value || 'Manually added flash report.',
+                        has_exact_coords: true,
+                        coord_source: "Manual Lat/Lng Entry",
+                        pdf_attached: false,
+                        pdf_path: null,
+                        pdf_filename: null
+                    };
+
+                    if (existingIndex !== -1) {
+                        activeReports[existingIndex] = newReport;
+                    } else {
+                        activeReports.unshift(newReport);
+                    }
+
+                    activeReports = sortReportsDesc(activeReports);
+                    saveStorageData(activeReports);
+                    applyFilters();
+
+                    if (modalManual) modalManual.classList.add('hidden');
+                    formManual.reset();
+                    if (map) map.setView([newReport.latitude, newReport.longitude], 12);
+                });
+            }
+
+            // Mobile Tab Switchers
+            const tabBtnList = document.getElementById('tab-btn-list');
+            const tabBtnMap = document.getElementById('tab-btn-map');
+            const btnBackToList = document.getElementById('btn-mobile-back-to-list');
+
+            if (tabBtnList) tabBtnList.addEventListener('click', () => setMobileTab('list'));
+            if (tabBtnMap) tabBtnMap.addEventListener('click', () => setMobileTab('map'));
+            if (btnBackToList) btnBackToList.addEventListener('click', () => setMobileTab('list'));
+        }
+
+        function setMobileTab(tab) {
+            const sidebar = document.getElementById('sidebar');
+            const tabBtnList = document.getElementById('tab-btn-list');
+            const tabBtnMap = document.getElementById('tab-btn-map');
+            if (!sidebar) return;
+            
+            if (tab === 'map') {
+                sidebar.classList.add('mobile-map-active');
+                if (tabBtnList) tabBtnList.className = 'flex-1 py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 bg-slate-900 text-slate-300 hover:text-white border border-slate-800';
+                if (tabBtnMap) tabBtnMap.className = 'flex-1 py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 bg-emerald-600 text-white shadow';
+                if (map) {
+                    setTimeout(() => { map.invalidateSize(); }, 250);
+                }
+            } else {
+                sidebar.classList.remove('mobile-map-active');
+                if (tabBtnList) tabBtnList.className = 'flex-1 py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 bg-emerald-600 text-white shadow';
+                if (tabBtnMap) tabBtnMap.className = 'flex-1 py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 bg-slate-900 text-slate-300 hover:text-white border border-slate-800';
+            }
+        }
+
+        function startApp() {
+            activeReports = loadStorageData();
+            initMap();
+            setupEventListeners();
+            
+            const searchInput = document.getElementById('search-input');
+            const filterCat = document.getElementById('filter-category');
+            const filterLoc = document.getElementById('filter-location');
+            const dateFromInput = document.getElementById('filter-date-from');
+            const dateToInput = document.getElementById('filter-date-to');
+            
+            if (searchInput) searchInput.value = '';
+            if (filterCat) filterCat.value = 'ALL';
+            if (filterLoc) filterLoc.value = 'ALL';
+            if (dateFromInput) dateFromInput.value = '';
+            if (dateToInput) dateToInput.value = '';
+
+            applyFilters();
+        }
+
+        document.addEventListener('DOMContentLoaded', startApp);
+        window.addEventListener('pageshow', startApp);
+
+        async function readPdfText(file) {
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                if (typeof pdfjsLib !== 'undefined') {
+                    if (pdfjsLib.GlobalWorkerOptions) {
+                        pdfjsLib.GlobalWorkerOptions.workerSrc = './pdf.worker.min.js';
+                    }
+                    const loadingTask = pdfjsLib.getDocument({
+                        data: new Uint8Array(arrayBuffer),
+                        disableFontFace: true,
+                        useSystemFonts: true
+                    });
+                    const pdf = await loadingTask.promise;
+                    let fullText = '';
+                    for (let i = 1; i <= Math.min(5, pdf.numPages); i++) {
+                        const page = await pdf.getPage(i);
+                        const textContent = await page.getTextContent();
+                        fullText += textContent.items.map(item => item.str).join(' ') + ' ';
+                    }
+                    if (fullText.trim()) return fullText;
+                }
+            } catch(e) {
+                console.warn("pdf.js extraction error:", e);
+            }
+            return '';
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>

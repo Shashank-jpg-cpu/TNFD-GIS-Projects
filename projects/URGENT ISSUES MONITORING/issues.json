@@ -1,0 +1,150 @@
+[
+    {
+        "ticketId":  "TNFD-IT-2026-009",
+        "issueDate":  "2026-09-23",
+        "issuingWing":  "IT",
+        "targetMode":  "selected",
+        "targetStaff":  [
+                            "Ms.Bhuvaneshwari-Forester"
+                        ],
+        "targetCircles":  [
+                              "Ms.Bhuvaneshwari-Forester"
+                          ],
+        "subject":  "TNeGA",
+        "description":  "Draft letter to TNeGA",
+        "createdAt":  "2026-09-23T11:13:06.023Z",
+        "staffResponses":  {
+                               "Ms.Bhuvaneshwari-Forester":  {
+                                                                 "status":  "Submitted",
+                                                                 "viewedAt":  "23/09/2026, 17:37:56",
+                                                                 "solvedDate":  "2026-09-23",
+                                                                 "submittedAt":  "9/23/2026, 6:26:34 PM",
+                                                                 "mode":  "-",
+                                                                 "referenceNo":  "-",
+                                                                 "remarks":  "Draft submitted sir"
+                                                             }
+                           },
+        "circleResponses":  {
+                                "Ms.Bhuvaneshwari-Forester":  {
+                                                                  "status":  "Submitted",
+                                                                  "viewedAt":  "23/09/2026, 17:37:56",
+                                                                  "solvedDate":  "2026-09-23",
+                                                                  "submittedAt":  "9/23/2026, 6:26:34 PM",
+                                                                  "mode":  "-",
+                                                                  "referenceNo":  "-",
+                                                                  "remarks":  "Draft submitted sir"
+                                                              }
+                            }
+    },
+    {
+        "ticketId":  "TNFD-IT-2026-007",
+        "issueDate":  "2026-09-23",
+        "issuingWing":  "IT",
+        "targetMode":  "selected",
+        "targetStaff":  [
+                            "Ms.Bhuvaneshwari-Forester"
+                        ],
+        "targetCircles":  [
+                              "Ms.Bhuvaneshwari-Forester"
+                          ],
+        "subject":  "Email from Writ Section",
+        "description":  "Forests - Revision of Forest Codes - Appendixes - Remarks Called For",
+        "createdAt":  "2026-09-23T09:45:32.122Z",
+        "staffResponses":  {
+                               "Ms.Bhuvaneshwari-Forester":  {
+                                                                 "solvedDate":  "",
+                                                                 "remarks":  "",
+                                                                 "referenceNo":  "",
+                                                                 "viewedAt":  "23/09/2026, 16:13:03",
+                                                                 "submittedAt":  "",
+                                                                 "mode":  "",
+                                                                 "status":  "Viewed"
+                                                             }
+                           },
+        "circleResponses":  {
+                                "Ms.Bhuvaneshwari-Forester":  {
+                                                                  "solvedDate":  "",
+                                                                  "remarks":  "",
+                                                                  "referenceNo":  "",
+                                                                  "viewedAt":  "23/09/2026, 16:13:03",
+                                                                  "submittedAt":  "",
+                                                                  "mode":  "",
+                                                                  "status":  "Viewed"
+                                                              }
+                            }
+    },
+    {
+        "ticketId":  "TNFD-IT-2026-006",
+        "issueDate":  "2026-09-23",
+        "issuingWing":  "IT",
+        "targetMode":  "selected",
+        "targetStaff":  [
+                            "Ms. Sharmila, Forester"
+                        ],
+        "targetCircles":  [
+                              "Ms. Sharmila, Forester"
+                          ],
+        "subject":  "FSI",
+        "description":  "Google Drive Access to FSI ???",
+        "createdAt":  "2026-09-23T08:26:25.941Z",
+        "staffResponses":  {
+                               "Ms. Sharmila, Forester":  {
+                                                              "solvedDate":  "",
+                                                              "remarks":  "",
+                                                              "referenceNo":  "",
+                                                              "viewedAt":  "9/23/2026, 4:12:51 PM",
+                                                              "submittedAt":  "",
+                                                              "mode":  "",
+                                                              "status":  "Viewed"
+                                                          }
+                           },
+        "circleResponses":  {
+                                "Ms. Sharmila, Forester":  {
+                                                               "solvedDate":  "",
+                                                               "remarks":  "",
+                                                               "referenceNo":  "",
+                                                               "viewedAt":  "9/23/2026, 4:12:51 PM",
+                                                               "submittedAt":  "",
+                                                               "mode":  "",
+                                                               "status":  "Viewed"
+                                                           }
+                            }
+    },
+    {
+        "ticketId":  "TNFD-IT-2026-001",
+        "issueDate":  "2026-09-18",
+        "issuingWing":  "IT",
+        "targetMode":  "selected",
+        "targetStaff":  [
+                            "Mr. Chelladurai, FRO"
+                        ],
+        "targetCircles":  [
+                              "Mr. Chelladurai, FRO"
+                          ],
+        "subject":  "Internet",
+        "description":  "ACT and Hathway",
+        "createdAt":  "2026-09-18T13:00:19.225Z",
+        "staffResponses":  {
+                               "Mr. Chelladurai, FRO":  {
+                                                            "status":  "Viewed",
+                                                            "viewedAt":  "19/09/2026, 14:00:32",
+                                                            "solvedDate":  "",
+                                                            "submittedAt":  "",
+                                                            "mode":  "",
+                                                            "referenceNo":  "",
+                                                            "remarks":  ""
+                                                        }
+                           },
+        "circleResponses":  {
+                                "Mr. Chelladurai, FRO":  {
+                                                             "status":  "Viewed",
+                                                             "viewedAt":  "19/09/2026, 14:00:32",
+                                                             "solvedDate":  "",
+                                                             "submittedAt":  "",
+                                                             "mode":  "",
+                                                             "referenceNo":  "",
+                                                             "remarks":  ""
+                                                         }
+                            }
+    }
+]

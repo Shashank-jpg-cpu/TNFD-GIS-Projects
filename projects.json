@@ -1,0 +1,194 @@
+﻿[
+    {
+        "id":  "admin_boundary_studio",
+        "name":  "admin_boundary_studio",
+        "title":  "Administrative Boundary Studio - Tamil Nadu Forest Department",
+        "entry":  "projects/admin_boundary_studio/index.html",
+        "hasIndex":  true,
+        "logo":  "projects/admin_boundary_studio/LOGO.jpeg",
+        "size":  "42.6 MB",
+        "fileCount":  10,
+        "tags":  [
+                     "Web App"
+                 ]
+    },
+    {
+        "id":  "Boundary_Alignment_Studio",
+        "name":  "Boundary_Alignment_Studio",
+        "title":  "Boundary Alignment Studio | Shared Edge Conformance Engine",
+        "entry":  "projects/Boundary_Alignment_Studio/index.html",
+        "hasIndex":  true,
+        "logo":  null,
+        "size":  "2.7 MB",
+        "fileCount":  11,
+        "tags":  [
+                     "Web App"
+                 ]
+    },
+    {
+        "id":  "division clip",
+        "name":  "division clip",
+        "title":  "Division Extractor \u0026 Disc Image File / Raster Clip Studio",
+        "entry":  "projects/division clip/index.html",
+        "hasIndex":  true,
+        "logo":  "projects/division clip/LOGO.jpeg",
+        "size":  "904.4 MB",
+        "fileCount":  30,
+        "tags":  [
+                     "Web App",
+                     "GIS \u0026 Maps"
+                 ]
+    },
+    {
+        "id":  "Forest_Assets_Mapping",
+        "name":  "Forest_Assets_Mapping",
+        "title":  "Forest Assets Mapping — Tamil Nadu Forest Department",
+        "entry":  "projects/Forest_Assets_Mapping/index.html",
+        "hasIndex":  true,
+        "logo":  "projects/Forest_Assets_Mapping/LOGO.jpeg",
+        "size":  "45.9 MB",
+        "fileCount":  13,
+        "tags":  [
+                     "Web App"
+                 ]
+    },
+    {
+        "id":  "GIS_CLASS",
+        "name":  "GIS_CLASS",
+        "title":  "Live Session - Host Dashboard",
+        "entry":  "projects/GIS_CLASS/index.html",
+        "hasIndex":  true,
+        "logo":  null,
+        "size":  "328 KB",
+        "fileCount":  11,
+        "tags":  [
+                     "Web App"
+                 ]
+    },
+    {
+        "id":  "IT WING- IMPORTANT ISSUE MONITORING SYSTEM",
+        "name":  "IT WING- IMPORTANT ISSUE MONITORING SYSTEM",
+        "title":  "IT WING- IMPORTANT ISSUES MONITORING SYSTEM",
+        "entry":  "projects/IT WING- IMPORTANT ISSUE MONITORING SYSTEM/index.html",
+        "hasIndex":  true,
+        "logo":  null,
+        "size":  "67 KB",
+        "fileCount":  4,
+        "tags":  [
+                     "Web App"
+                 ]
+    },
+    {
+        "id":  "IT_Equipments_Dashboard",
+        "name":  "IT_Equipments_Dashboard",
+        "title":  "IT Equipments",
+        "entry":  "projects/IT_Equipments_Dashboard/index.html",
+        "hasIndex":  true,
+        "logo":  null,
+        "size":  "174 KB",
+        "fileCount":  2,
+        "tags":  [
+                     "Web App"
+                 ]
+    },
+    {
+        "id":  "KML_Overlap_Analyzer",
+        "name":  "KML_Overlap_Analyzer",
+        "title":  "KML_Overlap_Analyzer",
+        "entry":  "projects/KML_Overlap_Analyzer/index.html",
+        "hasIndex":  true,
+        "logo":  null,
+        "size":  "326 KB",
+        "fileCount":  11,
+        "tags":  [
+                     "Web App"
+                 ]
+    },
+    {
+        "id":  "mbox",
+        "name":  "mbox",
+        "title":  "Flash Reports Monitoring (from 01.01.2026) - Tamil Nadu Forest Department",
+        "entry":  "projects/mbox/index.html",
+        "hasIndex":  true,
+        "logo":  null,
+        "size":  "24.1 MB",
+        "fileCount":  75,
+        "tags":  [
+                     "Web App"
+                 ]
+    },
+    {
+        "id":  "Meeting_Dashboard",
+        "name":  "Meeting_Dashboard",
+        "title":  "Meeting Schedule Dashboard | One-View Slot Management",
+        "entry":  "projects/Meeting_Dashboard/index.html",
+        "hasIndex":  true,
+        "logo":  null,
+        "size":  "577 KB",
+        "fileCount":  6,
+        "tags":  [
+                     "Web App",
+                     "Excel / Data"
+                 ]
+    },
+    {
+        "id":  "Requirment Dashboard",
+        "name":  "Requirment Dashboard",
+        "title":  "IT Requirment",
+        "entry":  "projects/Requirment Dashboard/index.html",
+        "hasIndex":  true,
+        "logo":  null,
+        "size":  "7.6 MB",
+        "fileCount":  29,
+        "tags":  [
+                     "Web App",
+                     "Excel / Data",
+                     "Analytics",
+                     "Sync Tools"
+                 ]
+    },
+    {
+        "id":  "RFRL DASHBOARD",
+        "name":  "RFRL DASHBOARD",
+        "title":  "Reserved Forest (RF) \u0026 Reserved Land (RL) Dashboard - Tamil Nadu Forest Department",
+        "entry":  "projects/RFRL DASHBOARD/index.html",
+        "hasIndex":  true,
+        "logo":  null,
+        "size":  "5.8 MB",
+        "fileCount":  19,
+        "tags":  [
+                     "Web App",
+                     "GIS \u0026 Maps",
+                     "Excel / Data",
+                     "Analytics",
+                     "Sync Tools"
+                 ]
+    },
+    {
+        "id":  "RFRL spread Sheet  dashboard",
+        "name":  "RFRL spread Sheet  dashboard",
+        "title":  "RF \u0026 RL KML Verification Dashboard",
+        "entry":  "projects/RFRL spread Sheet  dashboard/index.html",
+        "hasIndex":  true,
+        "logo":  null,
+        "size":  "243 KB",
+        "fileCount":  8,
+        "tags":  [
+                     "Web App",
+                     "Excel / Data"
+                 ]
+    },
+    {
+        "id":  "URGENT ISSUES MONITORING",
+        "name":  "URGENT ISSUES MONITORING",
+        "title":  "Urgent Issues Monitoring Portal - Head Office",
+        "entry":  "projects/URGENT ISSUES MONITORING/index.html",
+        "hasIndex":  true,
+        "logo":  "projects/URGENT ISSUES MONITORING/logo.jpg",
+        "size":  "150 KB",
+        "fileCount":  6,
+        "tags":  [
+                     "Web App"
+                 ]
+    }
+]
