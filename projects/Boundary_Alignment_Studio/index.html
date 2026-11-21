@@ -166,28 +166,34 @@
 <body class="flex flex-col h-screen w-screen overflow-hidden select-none">
 
     <!-- TOP BAR -->
-    <header class="h-14 bg-slate-950 border-b border-slate-800 flex items-center justify-between px-4 z-20 shrink-0 shadow-lg">
-        <div class="flex items-center gap-3">
-            <a href="../../index.html" class="w-9 h-9 rounded-lg bg-slate-900 border border-slate-700 hover:border-emerald-500 flex items-center justify-center text-slate-300 hover:text-white transition" title="Back to Central Portal">
-                <i class="fa-solid fa-arrow-left text-sm"></i>
+    <header class="h-14 bg-slate-950 border-b border-slate-800 flex items-center justify-between px-2 sm:px-4 z-20 shrink-0 shadow-lg gap-2">
+        <div class="flex items-center gap-2 sm:gap-3 min-w-0">
+            <a href="../../index.html" class="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-slate-900 border border-slate-700 hover:border-emerald-500 flex items-center justify-center text-slate-300 hover:text-white shrink-0 transition" title="Back to Central Portal">
+                <i class="fa-solid fa-arrow-left text-xs sm:text-sm"></i>
             </a>
-            <div class="flex items-center gap-2.5">
-                <div class="w-9 h-9 rounded-lg bg-emerald-600 flex items-center justify-center text-white shadow-md">
-                    <i class="fa-solid fa-code-merge text-base"></i>
+            <div class="flex items-center gap-2 min-w-0">
+                <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-emerald-600 flex items-center justify-center text-white shadow-md shrink-0">
+                    <i class="fa-solid fa-code-merge text-sm sm:text-base"></i>
                 </div>
-                <div>
-                    <h1 class="text-sm font-bold text-slate-100 flex items-center gap-2">
-                        <span>Boundary Alignment Studio</span>
-                        <span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Auto-Saved</span>
+                <div class="min-w-0">
+                    <h1 class="text-xs sm:text-sm font-bold text-slate-100 flex items-center gap-1.5 truncate">
+                        <span>Alignment Studio</span>
+                        <span class="hidden sm:inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Auto-Saved</span>
                     </h1>
-                    <p class="text-[11px] text-slate-400">Cut-&-Stitch Boundary Snapping (100% Mathematical Overlap)</p>
+                    <p class="hidden md:block text-[11px] text-slate-400 truncate">Cut-&-Stitch Boundary Snapping (100% Mathematical Overlap)</p>
                 </div>
             </div>
         </div>
 
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <!-- Sidebar Toggle Button (Mobile & Desktop) -->
+            <button type="button" id="btn-toggle-sidebar" onclick="App.toggleSidebar()" class="px-2.5 py-1.5 rounded-lg bg-emerald-950 hover:bg-emerald-900 border border-emerald-600/60 text-emerald-300 hover:text-white font-bold text-xs flex items-center gap-1.5 shadow active:scale-95 transition" title="Toggle Workflow Panel (Go In & Out)">
+                <i class="fa-solid fa-sliders text-emerald-400"></i>
+                <span class="hidden xs:inline">Workflow</span>
+            </button>
+
             <!-- Basemap Selector -->
-            <select id="select-basemap" class="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-lg px-2.5 py-1.5 font-semibold focus:outline-none focus:border-emerald-500 cursor-pointer">
+            <select id="select-basemap" class="bg-slate-900 border border-slate-700 text-slate-200 text-[11px] sm:text-xs rounded-lg px-2 sm:px-2.5 py-1.5 font-semibold focus:outline-none focus:border-emerald-500 cursor-pointer max-w-[120px] xs:max-w-[150px] sm:max-w-[210px] truncate">
                 <option value="googleHybrid">Google Satellite Hybrid (Default)</option>
                 <option value="googleSatellite">Google Satellite (Pure)</option>
                 <option value="googleRoadmap">Google Street / Roadmap</option>
@@ -198,21 +204,22 @@
                 <option value="osmStandard">OpenStreetMap Standard</option>
             </select>
 
-            <!-- Prominent Top Interchange Button -->
-            <button type="button" onclick="App.swapRoles()" class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-950 via-slate-900 to-rose-950 hover:from-emerald-900 hover:to-rose-900 border border-amber-500/50 hover:border-amber-400 text-slate-100 font-bold text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition" title="Swap Reference and Target layers">
+            <!-- Prominent Top Interchange Button (Desktop only, already present in sidebar for mobile) -->
+            <button type="button" onclick="App.swapRoles()" class="hidden lg:flex px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-950 via-slate-900 to-rose-950 hover:from-emerald-900 hover:to-rose-900 border border-amber-500/50 hover:border-amber-400 text-slate-100 font-bold text-xs items-center gap-1.5 shadow-md active:scale-95 transition" title="Swap Reference and Target layers">
                 <i class="fa-solid fa-arrows-rotate text-amber-400"></i>
-                <span>⇄ Interchange Roles</span>
+                <span>⇄ Interchange</span>
             </button>
 
             <!-- Start Fresh / Clear Session -->
-            <button type="button" onclick="App.clearAllData()" class="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-rose-950/80 border border-slate-700 hover:border-rose-600 text-slate-300 hover:text-rose-300 font-semibold text-xs transition" title="Clear all and start fresh">
-                <i class="fa-solid fa-trash-can mr-1"></i> Start Fresh
+            <button type="button" onclick="App.clearAllData()" class="px-2 sm:px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-rose-950/80 border border-slate-700 hover:border-rose-600 text-slate-300 hover:text-rose-300 font-semibold text-xs transition" title="Clear all and start fresh">
+                <i class="fa-solid fa-trash-can"></i>
+                <span class="hidden sm:inline ml-1">Start Fresh</span>
             </button>
 
             <!-- Export Button -->
-            <button type="button" onclick="App.openExportModal()" class="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition">
+            <button type="button" onclick="App.openExportModal()" class="px-2.5 sm:px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition">
                 <i class="fa-solid fa-download"></i>
-                <span>Export Aligned</span>
+                <span class="hidden sm:inline">Export</span>
             </button>
         </div>
     </header>
@@ -220,17 +227,28 @@
     <!-- WORKSPACE -->
     <div class="relative flex-1 flex overflow-hidden">
 
-        <!-- SIDEBAR -->
-        <aside class="absolute top-3 left-3 bottom-3 w-[290px] max-w-[calc(100vw-24px)] z-10 glass-panel rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+        <!-- MOBILE BACKDROP -->
+        <div id="sidebar-backdrop" onclick="App.toggleSidebar(false)" class="hidden fixed inset-0 bg-black/60 z-20 md:hidden backdrop-blur-xs transition-opacity"></div>
+
+        <!-- SIDEBAR (GO IN AND OUT / COLLAPSIBLE DRAWER) -->
+        <aside id="workflow-sidebar" class="absolute top-2 sm:top-3 left-2 sm:left-3 bottom-2 sm:bottom-3 w-[310px] max-w-[calc(100vw-16px)] z-30 glass-panel rounded-2xl shadow-2xl flex flex-col overflow-hidden transition-all duration-300 ease-in-out transform translate-x-0">
             
-            <!-- Sidebar Header -->
-            <div class="px-3 py-2 border-b border-slate-800 flex items-center justify-between shrink-0 bg-slate-950/80">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-200 flex items-center gap-1.5">
-                    <i class="fa-solid fa-sliders text-emerald-400"></i> Snapping Workflow
-                </span>
-                <button type="button" onclick="App.setReferenceData(window.SAMPLE_REFERENCE_DATA, 'Desktop Reference (Green)'); App.setTargetData(window.SAMPLE_TARGET_DATA, 'Desktop Target (Red)');" class="px-2 py-0.5 rounded bg-emerald-950 hover:bg-emerald-900 text-emerald-300 border border-emerald-700 text-[10px] font-bold transition flex items-center gap-1" title="Load sample from Desktop">
-                    <i class="fa-solid fa-desktop"></i> Desktop Sample
-                </button>
+            <!-- Sidebar Header with IN/OUT Collapse Button -->
+            <div class="px-3 py-2 border-b border-slate-800 flex items-center justify-between shrink-0 bg-slate-950/90">
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-bold uppercase tracking-wider text-slate-200 flex items-center gap-1.5">
+                        <i class="fa-solid fa-sliders text-emerald-400"></i> Snapping Workflow
+                    </span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <button type="button" onclick="App.setReferenceData(window.SAMPLE_REFERENCE_DATA, 'Desktop Reference (Green)'); App.setTargetData(window.SAMPLE_TARGET_DATA, 'Desktop Target (Red)');" class="px-2 py-0.5 rounded bg-emerald-950 hover:bg-emerald-900 text-emerald-300 border border-emerald-700 text-[10px] font-bold transition flex items-center gap-1" title="Load sample from Desktop">
+                        <i class="fa-solid fa-desktop"></i> <span class="hidden xs:inline">Sample</span>
+                    </button>
+                    <!-- Close / Collapse Button (Slides Out) -->
+                    <button type="button" onclick="App.toggleSidebar(false)" class="w-6 h-6 rounded-md bg-slate-900 hover:bg-rose-950 border border-slate-700 hover:border-rose-600 text-slate-400 hover:text-rose-300 flex items-center justify-center transition" title="Close Panel (View Map)">
+                        <i class="fa-solid fa-chevron-left text-xs"></i>
+                    </button>
+                </div>
             </div>
 
             <div class="flex-1 overflow-y-auto p-2.5 space-y-2.5 text-xs">
@@ -356,13 +374,20 @@
             </div>
         </aside>
 
+        <!-- FLOATING ACTION BUTTON (SLIDES WORKFLOW IN WHEN COLLAPSED) -->
+        <button id="btn-floating-open-sidebar" type="button" onclick="App.toggleSidebar(true)" class="hidden absolute bottom-5 left-3 sm:left-4 z-20 px-3.5 py-2.5 rounded-2xl bg-slate-950/95 border-2 border-emerald-500/70 hover:border-emerald-400 text-emerald-300 hover:text-white font-bold text-xs flex items-center gap-2 shadow-2xl backdrop-blur-md active:scale-95 transition-all">
+            <i class="fa-solid fa-sliders text-emerald-400 text-sm"></i>
+            <span>Snapping Workflow</span>
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        </button>
+
         <!-- MAP -->
         <main class="flex-1 h-full w-full relative">
             <div id="map"></div>
 
             <!-- TOP-RIGHT PRECISION ZOOM & 50m CIRCLE LOUPE HUD -->
-            <div id="precision-loupe-hud" class="absolute top-3 right-14 z-20 opacity-0 translate-y-[-10px] pointer-events-none">
-                <div class="glass-panel rounded-2xl shadow-2xl border border-emerald-500/40 p-3 w-[290px] flex flex-col gap-2.5 backdrop-blur-md bg-slate-950/95 pointer-events-auto">
+            <div id="precision-loupe-hud" class="absolute top-2 sm:top-3 right-2 sm:right-14 z-20 opacity-0 translate-y-[-10px] pointer-events-none transition-all duration-200">
+                <div class="glass-panel rounded-2xl shadow-2xl border border-emerald-500/40 p-2.5 sm:p-3 w-[245px] sm:w-[290px] max-w-[calc(100vw-20px)] flex flex-col gap-2 backdrop-blur-md bg-slate-950/95 pointer-events-auto">
                     <div class="flex items-center justify-between border-b border-slate-800 pb-1.5">
                         <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
                             <i class="fa-solid fa-crosshairs text-emerald-400"></i> Target Snap Zoom
@@ -373,7 +398,7 @@
                     </div>
 
                     <!-- Mini Loupe Viewport (Bigger box for high precision) -->
-                    <div class="relative w-full h-48 rounded-xl overflow-hidden border border-slate-700 bg-slate-900 shadow-inner">
+                    <div class="relative w-full h-36 sm:h-48 rounded-xl overflow-hidden border border-slate-700 bg-slate-900 shadow-inner">
                         <div id="loupe-map" class="w-full h-full"></div>
 
                         <!-- Live Center Hairline Reticle & Cursor Overlay (Guaranteed above map tiles with z-index: 1000) -->

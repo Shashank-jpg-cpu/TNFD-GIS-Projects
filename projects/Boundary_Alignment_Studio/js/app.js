@@ -745,7 +745,12 @@ const App = {
             this.initLoupeMap();
             this.syncLoupeLayers();
             const targetLetter = tool === 'pickA' ? 'A' : 'B';
-            this.showToast(`Click on an Intersection (✕), Target line (Red), or Reference line (Green) to place Point ${targetLetter}.`, "info");
+            this.showToast(`Click on the Target line (Red) or an Intersection (✕) to place Point ${targetLetter}.`, "info");
+
+            // On mobile, auto-collapse sidebar so full map is visible for picking
+            if (window.innerWidth < 768) {
+                this.toggleSidebar(false);
+            }
         } else {
             mapEl.style.cursor = '';
             hud?.classList.remove('active');
@@ -878,12 +883,16 @@ const App = {
 
         if (this.activeTool === 'pickA') {
             this.setPointA(pickedPoint);
-            this.showToast("✓ Point A set! Now click Point B on the line or intersection.", "info");
+            this.showToast("✓ Point A set! Now click Point B on the target line or intersection.", "info");
             this.setTool('pickB'); // Auto switch to B
         } else if (this.activeTool === 'pickB') {
             this.setPointB(pickedPoint);
             this.showToast("✓ Point B set! Ready to align.", "success");
             this.setTool('none');
+            // If on mobile, expand the sidebar drawer back so user can tap 'Make Red Follow Green'
+            if (window.innerWidth < 768) {
+                this.toggleSidebar(true);
+            }
         }
     },
 
@@ -1305,6 +1314,35 @@ const App = {
         this.updateStep3UI();
         this.saveToStorage();
         this.showToast("Adjusted layer deleted.", "info");
+    },
+
+    // =========================================================================
+    // MOBILE / DESKTOP SIDEBAR TOGGLE (GO IN & OUT)
+    // =========================================================================
+    toggleSidebar: function(forceState) {
+        const sidebar = document.getElementById('workflow-sidebar');
+        const floatingBtn = document.getElementById('btn-floating-open-sidebar');
+        const backdrop = document.getElementById('sidebar-backdrop');
+        if (!sidebar) return;
+
+        const isCurrentlyOpen = !sidebar.classList.contains('-translate-x-[120%]') && !sidebar.classList.contains('hidden');
+        const shouldOpen = (forceState !== undefined) ? forceState : !isCurrentlyOpen;
+
+        if (shouldOpen) {
+            sidebar.classList.remove('-translate-x-[120%]', 'opacity-0', 'pointer-events-none');
+            sidebar.classList.add('translate-x-0', 'opacity-100', 'pointer-events-auto');
+            if (floatingBtn) floatingBtn.classList.add('hidden');
+            if (backdrop && window.innerWidth < 768) backdrop.classList.remove('hidden');
+        } else {
+            sidebar.classList.add('-translate-x-[120%]', 'opacity-0', 'pointer-events-none');
+            sidebar.classList.remove('translate-x-0', 'opacity-100', 'pointer-events-auto');
+            if (floatingBtn) floatingBtn.classList.remove('hidden');
+            if (backdrop) backdrop.classList.add('hidden');
+        }
+
+        setTimeout(() => {
+            if (this.map) this.map.invalidateSize();
+        }, 320);
     },
 
     // =========================================================================
