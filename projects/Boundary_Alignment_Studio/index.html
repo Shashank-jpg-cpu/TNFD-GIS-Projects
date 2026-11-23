@@ -321,12 +321,6 @@
                         <span class="text-[9.5px] text-cyan-300/90 font-semibold">Snap: Intersection / Lines</span>
                     </div>
 
-                    <!-- Add Point (Between 2 Layers) Button -->
-                    <button type="button" id="btn-add-point" onclick="App.setTool('addPoint')" class="w-full py-1.5 px-2 rounded-xl bg-slate-900 hover:bg-emerald-950/90 border border-emerald-500/60 hover:border-emerald-400 text-emerald-300 hover:text-white font-bold text-[11px] flex items-center justify-center gap-1.5 shadow transition active:scale-95" title="Click anywhere on or between the two layers to add a snap point">
-                        <i class="fa-solid fa-plus-circle text-emerald-400"></i>
-                        <span>+ Add Point (Between 2 Layers)</span>
-                    </button>
-
                     <div class="grid grid-cols-2 gap-1.5">
                         <!-- Point A Card -->
                         <div id="card-point-a" class="glass-card p-1.5 rounded-lg border border-slate-700 text-center transition">
@@ -334,8 +328,8 @@
                                 <button type="button" id="btn-pick-a" onclick="App.setTool('pickA')" class="flex-1 py-1 rounded bg-emerald-950 hover:bg-emerald-900 text-emerald-300 font-bold text-[10px] border border-emerald-700 transition">
                                     <i class="fa-solid fa-location-dot mr-1"></i> Pick A
                                 </button>
-                                <button type="button" onclick="App.clearPointA()" class="px-1.5 py-1 rounded bg-slate-900 hover:bg-rose-950 text-slate-400 hover:text-rose-400 border border-slate-700 text-[10px] transition font-bold" title="Click to delete Point A (or hit Delete key)">
-                                    <i class="fa-solid fa-trash-can mr-0.5"></i> Del
+                                <button type="button" onclick="App.clearPointA()" class="px-1.5 py-1 rounded bg-slate-900 hover:bg-rose-950 text-slate-400 hover:text-rose-400 border border-slate-700 text-[10px] transition" title="Clear Point A">
+                                    <i class="fa-solid fa-xmark"></i>
                                 </button>
                             </div>
                             <span id="text-point-a" class="text-[9px] font-mono text-slate-300 block truncate mt-1">Point A: Not Set</span>
@@ -347,23 +341,12 @@
                                 <button type="button" id="btn-pick-b" onclick="App.setTool('pickB')" class="flex-1 py-1 rounded bg-rose-950 hover:bg-rose-900 text-rose-300 font-bold text-[10px] border border-rose-700 transition">
                                     <i class="fa-solid fa-location-dot mr-1"></i> Pick B
                                 </button>
-                                <button type="button" onclick="App.clearPointB()" class="px-1.5 py-1 rounded bg-slate-900 hover:bg-rose-950 text-slate-400 hover:text-rose-400 border border-slate-700 text-[10px] transition font-bold" title="Click to delete Point B (or hit Delete key)">
-                                    <i class="fa-solid fa-trash-can mr-0.5"></i> Del
+                                <button type="button" onclick="App.clearPointB()" class="px-1.5 py-1 rounded bg-slate-900 hover:bg-rose-950 text-slate-400 hover:text-rose-400 border border-slate-700 text-[10px] transition" title="Clear Point B">
+                                    <i class="fa-solid fa-xmark"></i>
                                 </button>
                             </div>
                             <span id="text-point-b" class="text-[9px] font-mono text-slate-300 block truncate mt-1">Point B: Not Set</span>
                         </div>
-                    </div>
-
-                    <!-- Keyboard & Delete Helper Tip -->
-                    <div class="flex items-center justify-between text-[9.5px] text-slate-400 px-0.5">
-                        <span class="flex items-center gap-1">
-                            <i class="fa-solid fa-keyboard text-amber-400"></i>
-                            <span>Click point &amp; hit <kbd class="px-1 py-0.5 bg-slate-800 border border-slate-700 rounded text-amber-300 font-mono text-[9px]">Del</kbd> to delete</span>
-                        </span>
-                        <button type="button" onclick="App.deleteSelectedPoint()" class="text-rose-400 hover:text-rose-300 font-bold underline flex items-center gap-1">
-                            <i class="fa-solid fa-trash-can text-[9px]"></i> Delete Point
-                        </button>
                     </div>
 
                     <!-- 1-Click Align Button & Remove Both Points Button -->
@@ -378,26 +361,56 @@
                     </div>
 
                     <!-- Manual Snapping (Select Any 2 Layers) Button -->
-                    <button type="button" onclick="App.openManualSnapModal()" class="w-full py-1.5 px-2 rounded-xl bg-slate-900 hover:bg-cyan-950/80 border border-cyan-500/50 hover:border-cyan-400 text-cyan-300 hover:text-white font-bold text-[11px] flex items-center justify-center gap-1.5 shadow transition active:scale-95" title="Manually choose which 2 layers to snap without removing existing edits">
+                    <button type="button" onclick="App.openManualSnapModal()" class="w-full py-1.5 px-2 rounded-xl bg-slate-900 hover:bg-cyan-950/80 border border-cyan-500/50 hover:border-cyan-400 text-cyan-300 hover:text-white font-bold text-[11px] flex items-center justify-center gap-1.5 shadow transition active:scale-95" title="Manually choose which 2 layers to snap with points everywhere, close gaps and overlaps">
                         <i class="fa-solid fa-bullseye text-cyan-400"></i>
                         <span>Manual Snapping (Choose 2 Layers)</span>
                     </button>
 
-                    <!-- Active Manual Snapping Indicator Card (Hidden by default) -->
-                    <div id="card-manual-snap-active" class="hidden p-2 rounded-xl bg-cyan-950/70 border border-cyan-500/80 text-[10px] space-y-1 shadow-md">
-                        <div class="flex items-center justify-between">
-                            <span class="font-bold text-cyan-300 flex items-center gap-1.5 text-[10.5px]">
-                                <i class="fa-solid fa-bullseye text-cyan-400 animate-pulse"></i> Manual Snap Active
+                    <!-- Active Manual Snapping Toolbar (Shows Points Everywhere, Add/Del Vertex, Close Gaps, Save/Discard) -->
+                    <div id="card-manual-snap-active" class="hidden p-2.5 rounded-xl bg-cyan-950/85 border border-cyan-500 text-[10px] space-y-2 shadow-xl">
+                        <div class="flex items-center justify-between border-b border-cyan-800/80 pb-1">
+                            <span class="font-bold text-cyan-300 flex items-center gap-1.5 text-[11px]">
+                                <i class="fa-solid fa-bullseye text-cyan-400 animate-pulse"></i> Boundary Snapping Active
                             </span>
-                            <button type="button" onclick="App.cancelManualSnapSession()" class="px-1.5 py-0.5 rounded bg-slate-900 hover:bg-rose-950 text-slate-400 hover:text-rose-400 border border-slate-700 text-[9px] transition" title="Exit manual snap mode">
-                                Exit
+                            <span class="text-[9px] px-1.5 py-0.5 rounded bg-cyan-900/80 border border-cyan-700 text-cyan-200 font-semibold">Points Everywhere</span>
+                        </div>
+
+                        <!-- Active Layer Info -->
+                        <div class="space-y-0.5 text-[10px]">
+                            <div class="text-slate-300 truncate">
+                                <span class="text-emerald-400 font-bold">Guide (Master):</span> <span id="label-manual-guide">--</span>
+                            </div>
+                            <div class="text-slate-300 truncate">
+                                <span class="text-rose-400 font-bold">To Adjust:</span> <span id="label-manual-target">--</span>
+                            </div>
+                        </div>
+
+                        <!-- Vertex Editing Actions: Add Point / Delete Point -->
+                        <div class="grid grid-cols-2 gap-1.5 pt-0.5">
+                            <button type="button" id="btn-snap-add-vertex" onclick="App.toggleAddVertexMode()" class="py-1.5 px-2 rounded-lg bg-slate-900 hover:bg-emerald-950/80 border border-emerald-500/60 hover:border-emerald-400 text-emerald-300 hover:text-white font-bold text-[10px] flex items-center justify-center gap-1 transition">
+                                <i class="fa-solid fa-plus-circle text-emerald-400"></i>
+                                <span id="label-snap-add-vertex">Add Point</span>
+                            </button>
+                            <button type="button" onclick="App.deleteSelectedVertex()" class="py-1.5 px-2 rounded-lg bg-slate-900 hover:bg-rose-950/80 border border-rose-500/60 hover:border-rose-400 text-rose-300 hover:text-white font-bold text-[10px] flex items-center justify-center gap-1 transition" title="Click a vertex on the boundary and click here or press Delete key">
+                                <i class="fa-solid fa-trash-can text-rose-400"></i>
+                                <span>Delete Point (Del)</span>
                             </button>
                         </div>
-                        <div class="text-[9.5px] text-slate-300 truncate">
-                            <span class="text-emerald-400 font-semibold">Guide (Follow):</span> <span id="label-manual-guide">--</span>
-                        </div>
-                        <div class="text-[9.5px] text-slate-300 truncate">
-                            <span class="text-rose-400 font-semibold">To Adjust:</span> <span id="label-manual-target">--</span>
+
+                        <!-- 1-Click Auto-Snap Gaps & Overlaps -->
+                        <button type="button" onclick="App.autoSnapSliverGaps(25)" class="w-full py-1.5 px-2 rounded-lg bg-gradient-to-r from-cyan-900 to-sky-900 hover:from-cyan-800 hover:to-sky-800 border border-cyan-400 text-cyan-100 hover:text-white font-bold text-[10.5px] flex items-center justify-center gap-1.5 shadow transition active:scale-95" title="Close sliver gaps and eliminate overlaps by snapping nearby vertices to guide line">
+                            <i class="fa-solid fa-magnet text-amber-300"></i>
+                            <span>Auto-Snap Gaps &amp; Overlaps (&lt; 25m)</span>
+                        </button>
+
+                        <!-- Save or Discard Footer -->
+                        <div class="flex gap-1.5 pt-1.5 border-t border-cyan-800/80">
+                            <button type="button" onclick="App.saveManualSnapSession()" class="flex-1 py-1.5 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-[11px] flex items-center justify-center gap-1 shadow active:scale-95 transition">
+                                <i class="fa-solid fa-floppy-disk mr-1"></i> Save Edit
+                            </button>
+                            <button type="button" onclick="App.discardManualSnapSession()" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-rose-950 text-slate-300 hover:text-rose-300 font-bold text-[10.5px] border border-slate-700 transition" title="Discard snapping edits and return">
+                                <i class="fa-solid fa-xmark mr-0.5"></i> Discard
+                            </button>
                         </div>
                     </div>
 

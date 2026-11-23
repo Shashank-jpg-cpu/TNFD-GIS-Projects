@@ -669,6 +669,94 @@ const GeometryAligner = {
             }
         }
         return out;
+    },
+
+    insertVertexAtSegment: function(ring, clickPt) {
+        if (!ring || ring.length < 2 || !clickPt) return null;
+        const snap = this.findSegmentIndexAndParam(ring, clickPt);
+        if (!snap || snap.index === -1) return null;
+
+        const newRing = ring.slice();
+        const insertIdx = snap.index + 1;
+        newRing.splice(insertIdx, 0, snap.proj);
+        return {
+            ring: newRing,
+            index: insertIdx,
+            point: snap.proj
+        };
+    },
+
+    deleteVertexAtIndex: function(ring, index) {
+        if (!ring || ring.length <= 3) return ring;
+        const isClosed = (ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1]);
+        if (isClosed && ring.length <= 4) return ring;
+
+        const newRing = ring.slice();
+        if (isClosed && (index === 0 || index === ring.length - 1)) {
+            newRing.shift();
+            newRing.pop();
+            newRing.push(newRing[0]);
+        } else {
+            newRing.splice(index, 1);
+        }
+        return newRing;
+    },
+
+    autoSnapGaps: function(targetRing, guideRing, toleranceMeters = 25) {
+        if (!targetRing || !guideRing || targetRing.length < 2 || guideRing.length < 2) {
+            return { ring: targetRing, snappedCount: 0 };
+        }
+
+        const isClosed = (targetRing[0][0] === targetRing[targetRing.length - 1][0] && targetRing[0][1] === targetRing[targetRing.length - 1][1]);
+        const newRing = [];
+        let snappedCount = 0;
+
+        for (let i = 0; i < targetRing.length; i++) {
+            if (isClosed && i === targetRing.length - 1) {
+                newRing.push(newRing[0]);
+                break;
+            }
+
+            const pt = targetRing[i];
+            const snap = this.snapToRing(guideRing, pt, toleranceMeters * 2);
+
+            if (snap && snap.distMeters <= toleranceMeters) {
+                newRing.push(snap.point);
+                snappedCount++;
+            } else {
+                newRing.push(pt);
+            }
+        }
+
+        const cleaned = this.cleanDuplicates(newRing);
+        if (isClosed && cleaned.length >= 3) {
+            if (cleaned[0][0] !== cleaned[cleaned.length - 1][0] || cleaned[0][1] !== cleaned[cleaned.length - 1][1]) {
+                cleaned.push(cleaned[0]);
+            }
+        }
+
+        return {
+            ring: cleaned,
+            snappedCount: snappedCount
+        };
+    },
+
+    updateFeatureExteriorRing: function(feature, newRing, partIndex = 0) {
+        if (!feature || !feature.geometry) return feature;
+        const featCopy = JSON.parse(JSON.stringify(feature));
+        const geom = featCopy.geometry;
+
+        if (geom.type === 'Polygon') {
+            geom.coordinates[0] = newRing;
+        } else if (geom.type === 'MultiPolygon') {
+            geom.coordinates[partIndex][0] = newRing;
+        } else if (geom.type === 'LineString') {
+            geom.coordinates = newRing;
+        } else if (geom.type === 'MultiLineString') {
+            geom.coordinates[partIndex] = newRing;
+        }
+
+        return featCopy;
     }
 };
 

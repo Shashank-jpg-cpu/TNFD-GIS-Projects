@@ -59,8 +59,9 @@ const App = {
     hoverValidTargetPoint: null,
     hoverNearestRefPoint: null,
 
-    // Manual Snapping Session: { refLayer, targetLayer, cachedIntersections }
+    // Manual Snapping Session & Vertex Editor: { refLayer, targetLayer, workingRing, ... }
     manualSnapSession: null,
+    snappingEditor: null,
 
     init: async function() {
         this.initMap();
@@ -132,6 +133,7 @@ const App = {
         this.layerGroups.preview = L.layerGroup().addTo(this.map);
         this.layerGroups.snap = L.layerGroup().addTo(this.map);
         this.layerGroups.intersections = L.layerGroup().addTo(this.map);
+        this.layerGroups.vertexEditor = L.layerGroup().addTo(this.map);
     },
 
     setBasemap: function(key) {
@@ -976,6 +978,11 @@ const App = {
     },
 
     onMapClick: function(e) {
+        if (this.snappingEditor && this.snappingEditor.addVertexMode) {
+            this.insertVertexAtClick(e.latlng);
+            return;
+        }
+
         const cursorPt = [e.latlng.lng, e.latlng.lat];
         const targetFC = this.getActiveTargetFC();
         const refFC = this.getActiveRefFC();
@@ -1667,11 +1674,6 @@ const App = {
             return;
         }
 
-        this.manualSnapSession = {
-            refLayer: refLayer,
-            targetLayer: targetLayer
-        };
-
         // Ensure both selected layers are ON and visible on the map
         if (refLayer.type === 'adjusted') {
             const adj = this.adjustedLayers.find(a => a.id === refLayer.id);
@@ -1702,42 +1704,306 @@ const App = {
         }
         this.updateStep3UI();
 
-        // Clear existing points
+        // Extract coordinates for snapping
+        const targetFeat = targetLayer.data.features ? targetLayer.data.features[0] : null;
+        const refFeat = refLayer.data.features ? refLayer.data.features[0] : null;
+
+        const targetRingInfo = GeometryAligner.getExteriorRing(targetFeat);
+        const guideRingInfo = GeometryAligner.getExteriorRing(refFeat);
+
+        if (!targetRingInfo || !targetRingInfo.ring) {
+            this.showToast("Could not extract boundary coordinates for snapping.", "error");
+            return;
+        }
+
+        const workingRing = targetRingInfo.ring.map(p => [p[0], p[1]]);
+        const guideRing = (guideRingInfo && guideRingInfo.ring) ? guideRingInfo.ring.map(p => [p[0], p[1]]) : [];
+
+        this.snappingEditor = {
+            refLayer: refLayer,
+            targetLayer: targetLayer,
+            targetFeatIndex: 0,
+            partIndex: targetRingInfo.partIndex || 0,
+            workingRing: workingRing,
+            originalRing: workingRing.map(p => [p[0], p[1]]),
+            guideRing: guideRing,
+            selectedVertexIdx: null,
+            addVertexMode: false
+        };
+
+        // Clear Point A & Point B to focus on vertex snapping
         this.clearPoints();
 
-        // Compute intersections between these two selected layers
-        this.computeIntersections();
-        this.renderIntersections();
-
-        // Update active manual snap indicator card in Step 2
+        // Update active manual snap card in Step 2
         const cardActive = document.getElementById('card-manual-snap-active');
         const lblGuide = document.getElementById('label-manual-guide');
         const lblTarget = document.getElementById('label-manual-target');
-        const lblApplyBtn = document.getElementById('label-apply-align-text');
 
         if (cardActive) cardActive.classList.remove('hidden');
         if (lblGuide) lblGuide.textContent = refLayer.name;
         if (lblTarget) lblTarget.textContent = targetLayer.name;
-        if (lblApplyBtn) lblApplyBtn.textContent = `Snap "${targetLayer.name}" to Guide`;
 
         this.closeManualSnapModal();
-        this.showToast(`Manual Snap Active: Pick Points A & B on "${targetLayer.name}" (or ✕ Intersections) to snap to Guide.`, "info");
+        this.renderSnappingEditor();
+
+        this.showToast(`✓ Snapping active! Points shown everywhere along boundaries. Drag vertices to snap, or click 'Auto-Snap Gaps' to close sliver gaps.`, "success");
     },
 
-    cancelManualSnapSession: function() {
-        this.manualSnapSession = null;
+    renderSnappingEditor: function() {
+        if (!this.layerGroups.vertexEditor) return;
+        this.layerGroups.vertexEditor.clearLayers();
+        if (!this.snappingEditor || !this.snappingEditor.workingRing) return;
 
-        const cardActive = document.getElementById('card-manual-snap-active');
-        const lblApplyBtn = document.getElementById('label-apply-align-text');
+        const workingRing = this.snappingEditor.workingRing;
+        const guideRing = this.snappingEditor.guideRing;
 
-        if (cardActive) cardActive.classList.add('hidden');
-        if (lblApplyBtn) lblApplyBtn.textContent = 'Make Red Follow Green 100%';
+        // 1. Render Guide Layer anchor points (emerald) along the guide boundary
+        if (guideRing && guideRing.length > 0) {
+            const stepG = Math.max(1, Math.floor(guideRing.length / 80));
+            for (let g = 0; g < guideRing.length; g += stepG) {
+                const gp = guideRing[g];
+                const guideDot = L.circleMarker([gp[1], gp[0]], {
+                    renderer: this.canvasRenderer,
+                    radius: 3.5,
+                    color: '#059669',
+                    weight: 1.5,
+                    fillColor: '#10b981',
+                    fillOpacity: 0.9,
+                    interactive: false
+                });
+                this.layerGroups.vertexEditor.addLayer(guideDot);
+            }
+        }
 
-        this.clearPoints();
+        // 2. Render the live working polyline for the layer being adjusted
+        const lineCoords = workingRing.map(p => [p[1], p[0]]);
+        const workingPolyline = L.polyline(lineCoords, {
+            renderer: this.canvasRenderer,
+            color: '#06b6d4',
+            weight: 3.5,
+            opacity: 0.95
+        });
+        workingPolyline.on('click', (e) => {
+            if (this.snappingEditor && this.snappingEditor.addVertexMode) {
+                L.DomEvent.stopPropagation(e);
+                this.insertVertexAtClick(e.latlng);
+            }
+        });
+        this.layerGroups.vertexEditor.addLayer(workingPolyline);
+
+        // 3. Render EVERY vertex on the working boundary as an interactive, draggable handle
+        const isClosed = (workingRing.length > 1 &&
+            workingRing[0][0] === workingRing[workingRing.length - 1][0] &&
+            workingRing[0][1] === workingRing[workingRing.length - 1][1]);
+        const vertexLimit = isClosed ? workingRing.length - 1 : workingRing.length;
+
+        for (let i = 0; i < vertexLimit; i++) {
+            const p = workingRing[i];
+            const isSel = (i === this.snappingEditor.selectedVertexIdx);
+
+            const handleIcon = L.divIcon({
+                className: 'vertex-snap-handle',
+                html: `<div style="background:${isSel ? '#facc15' : '#0284c7'};border:2px solid ${isSel ? '#ffffff' : '#e0f2fe'};border-radius:50%;width:13px;height:13px;box-shadow:${isSel ? '0 0 0 3px #facc15, 0 2px 8px rgba(0,0,0,0.85)' : '0 1px 5px rgba(0,0,0,0.6)'};cursor:pointer;transition:transform 0.15s;" title="Vertex #${i}: Drag to snap, or click & hit Del to delete"></div>`,
+                iconSize: [13, 13],
+                iconAnchor: [6.5, 6.5]
+            });
+
+            const marker = L.marker([p[1], p[0]], { icon: handleIcon, draggable: true, zIndexOffset: isSel ? 2000 : 1000 });
+
+            // Handle Drag & Snap to Guide
+            marker.on('dragstart', () => {
+                this.snappingEditor.selectedVertexIdx = i;
+            });
+
+            marker.on('drag', (e) => {
+                const draggedCoord = [e.latlng.lng, e.latlng.lat];
+                if (guideRing && guideRing.length > 1) {
+                    const snap = GeometryAligner.snapToRing(guideRing, draggedCoord, 35);
+                    if (snap && snap.distMeters <= 35) {
+                        marker.setLatLng([snap.point[1], snap.point[0]]);
+                    }
+                }
+            });
+
+            marker.on('dragend', (e) => {
+                const finalLatLng = marker.getLatLng();
+                const finalCoord = [finalLatLng.lng, finalLatLng.lat];
+                this.snappingEditor.workingRing[i] = finalCoord;
+
+                if (isClosed && i === 0) {
+                    this.snappingEditor.workingRing[this.snappingEditor.workingRing.length - 1] = finalCoord;
+                }
+
+                this.renderSnappingEditor();
+                this.showToast(`✓ Vertex #${i} snapped to position.`, "info");
+            });
+
+            // Handle Click to Select (and delete via Del key)
+            marker.on('click', (e) => {
+                L.DomEvent.stopPropagation(e);
+                this.selectVertex(i);
+            });
+
+            this.layerGroups.vertexEditor.addLayer(marker);
+        }
+    },
+
+    selectVertex: function(idx) {
+        if (!this.snappingEditor) return;
+        this.snappingEditor.selectedVertexIdx = idx;
+        this.renderSnappingEditor();
+        this.showToast(`Vertex #${idx} selected. Hit "Delete" on keyboard or click "Delete Point" to remove.`, "info");
+    },
+
+    deleteSelectedVertex: function() {
+        if (!this.snappingEditor) {
+            this.showToast("No active snapping session.", "warning");
+            return;
+        }
+
+        const idx = this.snappingEditor.selectedVertexIdx;
+        if (idx === null || idx === undefined) {
+            this.showToast("Click a vertex on the boundary to select it before deleting.", "info");
+            return;
+        }
+
+        const ring = this.snappingEditor.workingRing;
+        if (ring.length <= 4) {
+            this.showToast("Cannot delete: boundary must have at least 3 points.", "warning");
+            return;
+        }
+
+        const updatedRing = GeometryAligner.deleteVertexAtIndex(ring, idx);
+        this.snappingEditor.workingRing = updatedRing;
+        this.snappingEditor.selectedVertexIdx = null;
+
+        this.renderSnappingEditor();
+        this.showToast(`✓ Vertex #${idx} deleted from boundary.`, "success");
+    },
+
+    toggleAddVertexMode: function() {
+        if (!this.snappingEditor) return;
+        this.snappingEditor.addVertexMode = !this.snappingEditor.addVertexMode;
+        const btn = document.getElementById('btn-snap-add-vertex');
+        const lbl = document.getElementById('label-snap-add-vertex');
+
+        if (this.snappingEditor.addVertexMode) {
+            btn?.classList.add('ring-2', 'ring-emerald-400', 'bg-emerald-950');
+            if (lbl) lbl.textContent = "Click Line to Add";
+            this.map.getContainer().style.cursor = 'crosshair';
+            this.showToast("Add Point Active: Click anywhere on the boundary line to insert a new point.", "info");
+        } else {
+            btn?.classList.remove('ring-2', 'ring-emerald-400', 'bg-emerald-950');
+            if (lbl) lbl.textContent = "Add Point";
+            this.map.getContainer().style.cursor = '';
+        }
+    },
+
+    insertVertexAtClick: function(latlng) {
+        if (!this.snappingEditor || !this.snappingEditor.workingRing) return;
+        const clickPt = [latlng.lng, latlng.lat];
+
+        const res = GeometryAligner.insertVertexAtSegment(this.snappingEditor.workingRing, clickPt);
+        if (res) {
+            this.snappingEditor.workingRing = res.ring;
+            this.snappingEditor.selectedVertexIdx = res.index;
+            this.renderSnappingEditor();
+            this.showToast(`✓ Point inserted on boundary! Drag to snap to guide.`, "success");
+        } else {
+            this.showToast("Could not find line segment near click.", "warning");
+        }
+    },
+
+    autoSnapSliverGaps: function(toleranceMeters = 25) {
+        if (!this.snappingEditor) return;
+        const targetRing = this.snappingEditor.workingRing;
+        const guideRing = this.snappingEditor.guideRing;
+
+        if (!targetRing || !guideRing) return;
+
+        const res = GeometryAligner.autoSnapGaps(targetRing, guideRing, toleranceMeters);
+
+        if (res.snappedCount > 0) {
+            this.snappingEditor.workingRing = res.ring;
+            this.renderSnappingEditor();
+            this.showToast(`✓ Auto-snapped ${res.snappedCount} vertices to Guide line! Sliver gaps & overlaps closed.`, "success");
+        } else {
+            this.showToast("No vertices within 25m found. Drag vertices or click near the line to add points.", "info");
+        }
+    },
+
+    saveManualSnapSession: function() {
+        if (!this.snappingEditor) return;
+
+        const targetLayer = this.snappingEditor.targetLayer;
+        const workingRing = this.snappingEditor.workingRing;
+        const partIndex = this.snappingEditor.partIndex || 0;
+
+        // Construct updated feature and feature collection
+        const updatedFeatures = (targetLayer.data.features || []).map((feat, idx) => {
+            if (idx === (this.snappingEditor.targetFeatIndex || 0)) {
+                return GeometryAligner.updateFeatureExteriorRing(feat, workingRing, partIndex);
+            }
+            return JSON.parse(JSON.stringify(feat));
+        });
+
+        const updatedFC = {
+            type: "FeatureCollection",
+            name: `Snapped_${targetLayer.name}`,
+            features: updatedFeatures
+        };
+
+        const defaultPalette = ['#0284c7', '#06b6d4', '#a855f7', '#f59e0b', '#ec4899', '#3b82f6'];
+        const layerIndex = this.adjustedLayers.length + 1;
+        const chosenColor = defaultPalette[(layerIndex - 1) % defaultPalette.length];
+
+        const newLayer = {
+            id: 'adj_' + Date.now(),
+            name: `Snapped Layer #${layerIndex} (${targetLayer.name})`,
+            color: chosenColor,
+            visible: true,
+            sourceTargetName: targetLayer.name,
+            data: updatedFC
+        };
+
+        this.adjustedLayers.push(newLayer);
+
+        // Clear vertex editor layers
+        this.layerGroups.vertexEditor.clearLayers();
+        this.snappingEditor = null;
+        this.map.getContainer().style.cursor = '';
+
+        document.getElementById('card-manual-snap-active')?.classList.add('hidden');
+
+        // Render the new adjusted layer
+        this.renderAdjustedLayer(newLayer);
+        this.updateStep3UI();
+        this.updateUndoButtonsState();
+        this.computeIntersections();
+        this.renderIntersections();
+        this.saveToStorage();
+
+        this.showToast(`✓ Snapping saved as "${newLayer.name}"! You can now continue with Point A & B edits.`, "success");
+    },
+
+    discardManualSnapSession: function() {
+        if (!this.snappingEditor) return;
+
+        this.layerGroups.vertexEditor.clearLayers();
+        this.snappingEditor = null;
+        this.map.getContainer().style.cursor = '';
+
+        document.getElementById('card-manual-snap-active')?.classList.add('hidden');
+
+        this.updateStep3UI();
         this.computeIntersections();
         this.renderIntersections();
 
-        this.showToast("Manual snapping session closed. Returned to standard workflow.", "info");
+        this.showToast("Snapping edits discarded. Returned to standard workflow.", "info");
+    },
+
+    cancelManualSnapSession: function() {
+        this.discardManualSnapSession();
     },
 
     undoLastMove: function() {
@@ -1937,10 +2203,15 @@ const App = {
     initEventListeners: function() {
         document.getElementById('select-basemap')?.addEventListener('change', (e) => this.setBasemap(e.target.value));
 
-        // Global Keyboard Shortcut: Delete or Backspace key to delete selected point
+        // Global Keyboard Shortcut: Delete or Backspace key to delete selected vertex or point
         window.addEventListener('keydown', (e) => {
             if (e.key === 'Delete' || e.key === 'Backspace') {
                 if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+                // If in Snapping / Vertex Editor mode, delete selected vertex
+                if (this.snappingEditor && this.snappingEditor.selectedVertexIdx !== null) {
+                    this.deleteSelectedVertex();
+                    return;
+                }
                 this.deleteSelectedPoint();
             }
         });
