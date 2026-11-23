@@ -321,6 +321,12 @@
                         <span class="text-[9.5px] text-cyan-300/90 font-semibold">Snap: Intersection / Lines</span>
                     </div>
 
+                    <!-- Add Point (Between 2 Layers) Button -->
+                    <button type="button" id="btn-add-point" onclick="App.setTool('addPoint')" class="w-full py-1.5 px-2 rounded-xl bg-slate-900 hover:bg-emerald-950/90 border border-emerald-500/60 hover:border-emerald-400 text-emerald-300 hover:text-white font-bold text-[11px] flex items-center justify-center gap-1.5 shadow transition active:scale-95" title="Click anywhere on or between the two layers to add a snap point">
+                        <i class="fa-solid fa-plus-circle text-emerald-400"></i>
+                        <span>+ Add Point (Between 2 Layers)</span>
+                    </button>
+
                     <div class="grid grid-cols-2 gap-1.5">
                         <!-- Point A Card -->
                         <div id="card-point-a" class="glass-card p-1.5 rounded-lg border border-slate-700 text-center transition">
@@ -328,8 +334,8 @@
                                 <button type="button" id="btn-pick-a" onclick="App.setTool('pickA')" class="flex-1 py-1 rounded bg-emerald-950 hover:bg-emerald-900 text-emerald-300 font-bold text-[10px] border border-emerald-700 transition">
                                     <i class="fa-solid fa-location-dot mr-1"></i> Pick A
                                 </button>
-                                <button type="button" onclick="App.clearPointA()" class="px-1.5 py-1 rounded bg-slate-900 hover:bg-rose-950 text-slate-400 hover:text-rose-400 border border-slate-700 text-[10px] transition" title="Clear Point A">
-                                    <i class="fa-solid fa-xmark"></i>
+                                <button type="button" onclick="App.clearPointA()" class="px-1.5 py-1 rounded bg-slate-900 hover:bg-rose-950 text-slate-400 hover:text-rose-400 border border-slate-700 text-[10px] transition font-bold" title="Click to delete Point A (or hit Delete key)">
+                                    <i class="fa-solid fa-trash-can mr-0.5"></i> Del
                                 </button>
                             </div>
                             <span id="text-point-a" class="text-[9px] font-mono text-slate-300 block truncate mt-1">Point A: Not Set</span>
@@ -341,12 +347,23 @@
                                 <button type="button" id="btn-pick-b" onclick="App.setTool('pickB')" class="flex-1 py-1 rounded bg-rose-950 hover:bg-rose-900 text-rose-300 font-bold text-[10px] border border-rose-700 transition">
                                     <i class="fa-solid fa-location-dot mr-1"></i> Pick B
                                 </button>
-                                <button type="button" onclick="App.clearPointB()" class="px-1.5 py-1 rounded bg-slate-900 hover:bg-rose-950 text-slate-400 hover:text-rose-400 border border-slate-700 text-[10px] transition" title="Clear Point B">
-                                    <i class="fa-solid fa-xmark"></i>
+                                <button type="button" onclick="App.clearPointB()" class="px-1.5 py-1 rounded bg-slate-900 hover:bg-rose-950 text-slate-400 hover:text-rose-400 border border-slate-700 text-[10px] transition font-bold" title="Click to delete Point B (or hit Delete key)">
+                                    <i class="fa-solid fa-trash-can mr-0.5"></i> Del
                                 </button>
                             </div>
                             <span id="text-point-b" class="text-[9px] font-mono text-slate-300 block truncate mt-1">Point B: Not Set</span>
                         </div>
+                    </div>
+
+                    <!-- Keyboard & Delete Helper Tip -->
+                    <div class="flex items-center justify-between text-[9.5px] text-slate-400 px-0.5">
+                        <span class="flex items-center gap-1">
+                            <i class="fa-solid fa-keyboard text-amber-400"></i>
+                            <span>Click point &amp; hit <kbd class="px-1 py-0.5 bg-slate-800 border border-slate-700 rounded text-amber-300 font-mono text-[9px]">Del</kbd> to delete</span>
+                        </span>
+                        <button type="button" onclick="App.deleteSelectedPoint()" class="text-rose-400 hover:text-rose-300 font-bold underline flex items-center gap-1">
+                            <i class="fa-solid fa-trash-can text-[9px]"></i> Delete Point
+                        </button>
                     </div>
 
                     <!-- 1-Click Align Button & Remove Both Points Button -->

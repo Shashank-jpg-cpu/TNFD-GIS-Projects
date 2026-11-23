@@ -301,6 +301,45 @@ const GeometryAligner = {
                 isMulti: true,
                 partIndex: bestIdx
             };
+        } else if (geom.type === 'LineString') {
+            return {
+                ring: geom.coordinates,
+                isMulti: false,
+                partIndex: 0
+            };
+        } else if (geom.type === 'MultiLineString') {
+            if (!nearPoint) {
+                let maxLen = 0;
+                let bestIdx = 0;
+                geom.coordinates.forEach((line, idx) => {
+                    if (line && line.length > maxLen) {
+                        maxLen = line.length;
+                        bestIdx = idx;
+                    }
+                });
+                return {
+                    ring: geom.coordinates[bestIdx],
+                    isMulti: true,
+                    partIndex: bestIdx
+                };
+            }
+
+            let bestIdx = 0;
+            let minD = Infinity;
+            geom.coordinates.forEach((line, idx) => {
+                if (line && line.length > 1) {
+                    const snap = this.snapToRing(line, nearPoint);
+                    if (snap && snap.distMeters < minD) {
+                        minD = snap.distMeters;
+                        bestIdx = idx;
+                    }
+                }
+            });
+            return {
+                ring: geom.coordinates[bestIdx],
+                isMulti: true,
+                partIndex: bestIdx
+            };
         }
         return null;
     },

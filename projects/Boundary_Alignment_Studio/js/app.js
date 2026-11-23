@@ -55,6 +55,7 @@ const App = {
     activeTool: 'none',
     pointA: null,
     pointB: null,
+    selectedPointId: null,
     hoverValidTargetPoint: null,
     hoverNearestRefPoint: null,
 
@@ -506,6 +507,19 @@ const App = {
         return this.refData;
     },
 
+    isLayerVisible: function(id) {
+        if (id === 'ref') return this.refVisible;
+        if (id === 'target') return this.targetVisible;
+        const adj = this.adjustedLayers.find(a => a.id === id);
+        return adj ? adj.visible : false;
+    },
+
+    getClickToleranceMeters: function(lat) {
+        const zoom = (this.map && this.map.getZoom()) || 12;
+        const metersPerPixel = (40075016.686 * Math.cos((lat || 10) * Math.PI / 180)) / Math.pow(2, zoom + 8);
+        return Math.max(50, metersPerPixel * 30);
+    },
+
     computeIntersectionsBetween: function(fc1, fc2) {
         if (!fc1 || !fc2) return [];
         try {
@@ -549,7 +563,29 @@ const App = {
     renderIntersections: function() {
         if (!this.layerGroups.intersections) return;
         this.layerGroups.intersections.clearLayers();
-        if (!this.refData || !this.targetData || !this.refVisible || !this.targetVisible) return;
+
+        const targetFC = this.getActiveTargetFC();
+        const refFC = this.getActiveRefFC();
+        if (!targetFC || !refFC) return;
+
+        // Check if both active layers are visible
+        let isRefVis = true;
+        let isTargetVis = true;
+
+        if (this.manualSnapSession) {
+            isRefVis = this.isLayerVisible(this.manualSnapSession.refLayer.id);
+            isTargetVis = this.isLayerVisible(this.manualSnapSession.targetLayer.id);
+        } else {
+            isRefVis = this.refVisible;
+            if (this.adjustedLayers.length > 0 && !this.hasInterchangedSinceLastEdit) {
+                const latest = this.adjustedLayers[this.adjustedLayers.length - 1];
+                isTargetVis = latest ? latest.visible : true;
+            } else {
+                isTargetVis = this.targetVisible;
+            }
+        }
+
+        if (!isRefVis || !isTargetVis) return;
 
         if (!this.cachedIntersections) {
             this.computeIntersections();
@@ -591,32 +627,56 @@ const App = {
                 this.layerGroups.intersections.addLayer(marker);
             }
         });
+
+        // If 0 geometric crossings were found (e.g. parallel coastlines),
+        // render candidate snap nodes along the boundary so points are always available!
+        if (inters.length === 0) {
+            this.renderCandidateSnapNodes(targetFC, refFC);
+        }
+    },
+
+    renderCandidateSnapNodes: function(targetFC, refFC) {
+        if (!targetFC || !refFC) return;
+        try {
+            const cursorSample = this.pointA || [0, 0];
+            const tRing = this.getClosestRing(targetFC, cursorSample);
+            const rRing = this.getClosestRing(refFC, cursorSample);
+            if (!tRing || !rRing) return;
+
+            // Sample vertices along target boundary
+            const step = Math.max(1, Math.floor(tRing.length / 25));
+            const nodes = [];
+
+            for (let i = 0; i < tRing.length - 1; i += step) {
+                const ptT = tRing[i];
+                const snapR = GeometryAligner.snapToRing(rRing, ptT, 50000);
+                if (snapR) {
+                    nodes.push({ targetPt: ptT, refPt: snapR.point, distMeters: snapR.distMeters });
+                }
+            }
+
+            nodes.forEach((n, idx) => {
+                const icon = L.divIcon({
+                    className: 'guide-snap-node',
+                    html: `<div style="background:#0ea5e9;color:#ffffff;font-weight:900;font-size:10px;border:2px solid #38bdf8;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 8px rgba(56,189,248,0.8);cursor:pointer;" title="Boundary Snap Point (${n.distMeters.toFixed(1)}m from guide)">●</div>`,
+                    iconSize: [18, 18],
+                    iconAnchor: [9, 9]
+                });
+                const marker = L.marker([n.targetPt[1], n.targetPt[0]], { icon: icon, zIndexOffset: 900 });
+                marker.bindTooltip(`<strong>Boundary Snap Node</strong><br><span style="color:#38bdf8;font-size:11px;">Click to set Point ${this.activeTool === 'pickB' ? 'B' : 'A'}</span>`);
+                marker.on('click', (e) => {
+                    L.DomEvent.stopPropagation(e);
+                    this.handlePointPlacement(n.targetPt);
+                });
+                this.layerGroups.intersections.addLayer(marker);
+            });
+        } catch (e) {
+            console.warn("Could not render candidate snap nodes:", e);
+        }
     },
 
     handleIntersectionClick: function(ipt) {
-        if (this.activeTool === 'pickA') {
-            this.setPointA(ipt);
-            this.setTool('pickB');
-            this.showToast("✓ Point A locked to exact Intersection (0.0 m)! Now pick Point B.", "info");
-        } else if (this.activeTool === 'pickB') {
-            this.setPointB(ipt);
-            this.setTool('none');
-            this.showToast("✓ Point B locked to exact Intersection (0.0 m)! Ready to align.", "success");
-        } else {
-            if (!this.pointA) {
-                this.setPointA(ipt);
-                this.setTool('pickB');
-                this.showToast("✓ Point A locked to Intersection! Now click next intersection or line for Point B.", "info");
-            } else if (!this.pointB) {
-                this.setPointB(ipt);
-                this.setTool('none');
-                this.showToast("✓ Point B locked to Intersection! Ready to align.", "success");
-            } else {
-                this.setPointA(ipt);
-                this.setTool('pickB');
-                this.showToast("✓ Point A reset to Intersection! Now pick Point B.", "info");
-            }
-        }
+        this.handlePointPlacement(ipt);
     },
 
     // =========================================================================
@@ -765,18 +825,24 @@ const App = {
         document.getElementById('btn-pick-a')?.classList.toggle('ring-amber-400', tool === 'pickA');
         document.getElementById('btn-pick-b')?.classList.toggle('ring-2', tool === 'pickB');
         document.getElementById('btn-pick-b')?.classList.toggle('ring-amber-400', tool === 'pickB');
+        document.getElementById('btn-add-point')?.classList.toggle('ring-2', tool === 'addPoint');
+        document.getElementById('btn-add-point')?.classList.toggle('ring-emerald-400', tool === 'addPoint');
 
         const mapEl = document.getElementById('map');
         const hud = document.getElementById('precision-loupe-hud');
 
-        if (tool === 'pickA' || tool === 'pickB') {
+        if (tool === 'pickA' || tool === 'pickB' || tool === 'addPoint') {
             mapEl.style.cursor = 'crosshair';
             hud?.classList.add('active');
             this.initLoupeMap();
             this.syncLoupeLayers();
-            const targetLetter = tool === 'pickA' ? 'A' : 'B';
-            const targetName = this.manualSnapSession ? this.manualSnapSession.targetLayer.name : "Target line (Red)";
-            this.showToast(`Click on ${targetName} or an Intersection (✕) to place Point ${targetLetter}.`, "info");
+            const targetName = this.manualSnapSession ? this.manualSnapSession.targetLayer.name : "Target line";
+            if (tool === 'addPoint') {
+                this.showToast(`Click anywhere on or between the two layers to add a snap point.`, "info");
+            } else {
+                const targetLetter = tool === 'pickA' ? 'A' : 'B';
+                this.showToast(`Click on ${targetName} or between the 2 layers to place Point ${targetLetter}.`, "info");
+            }
 
             // On mobile, auto-collapse sidebar so full map is visible for picking
             if (window.innerWidth < 768) {
@@ -798,7 +864,7 @@ const App = {
         for (let i = 0; i < fc.features.length; i++) {
             const rInfo = GeometryAligner.getExteriorRing(fc.features[i], pt);
             if (rInfo && rInfo.ring) {
-                const snap = GeometryAligner.snapToRing(rInfo.ring, pt, 2000);
+                const snap = GeometryAligner.snapToRing(rInfo.ring, pt, 50000);
                 if (snap && snap.distMeters < minD) {
                     minD = snap.distMeters;
                     bestRing = rInfo.ring;
@@ -809,7 +875,7 @@ const App = {
     },
 
     onMapMouseMove: function(e) {
-        if (this.activeTool !== 'pickA' && this.activeTool !== 'pickB') {
+        if (this.activeTool !== 'pickA' && this.activeTool !== 'pickB' && this.activeTool !== 'addPoint') {
             if (this.layerGroups.snap) this.layerGroups.snap.clearLayers();
             return;
         }
@@ -835,9 +901,24 @@ const App = {
         // Exterior rings for target and reference across all features
         const tRing = this.getClosestRing(targetFC, cursorPt);
         const rRing = this.getClosestRing(refFC, cursorPt);
+        const tol = this.getClickToleranceMeters(lat);
 
-        // Snap strictly to Intersection (✕) or Target line. Reference line alone is restricted!
-        const snap = GeometryAligner.snapToAnyBoundary(tRing, rRing, cursorPt, 50, this.cachedIntersections);
+        // Snap to exact intersection or either boundary line
+        let snap = GeometryAligner.snapToAnyBoundary(tRing, rRing, cursorPt, tol, this.cachedIntersections);
+
+        if (!snap && (this.activeTool === 'addPoint' || this.activeTool === 'pickA' || this.activeTool === 'pickB')) {
+            const snapT = tRing ? GeometryAligner.snapToRing(tRing, cursorPt, tol * 4) : null;
+            const snapR = rRing ? GeometryAligner.snapToRing(rRing, cursorPt, tol * 4) : null;
+            if (snapT || snapR) {
+                const bestSnap = (snapT && snapR) ? (snapT.distMeters <= snapR.distMeters ? snapT : snapR) : (snapT || snapR);
+                snap = {
+                    point: bestSnap.point,
+                    distMeters: bestSnap.distMeters,
+                    label: snapT ? "Target Boundary Point" : "Guide Boundary Point",
+                    color: snapT ? '#38bdf8' : '#34d399'
+                };
+            }
+        }
 
         const mapEl = document.getElementById('map');
 
@@ -845,11 +926,11 @@ const App = {
             this.hoverValidTargetPoint = snap.point;
             mapEl.style.cursor = 'crosshair';
 
-            this.renderSnapIndicator(snap.point, snap.color, snap.label, this.activeTool === 'pickA' ? 'A' : 'B');
+            this.renderSnapIndicator(snap.point, snap.color, snap.label, this.activeTool === 'pickB' ? 'B' : 'A');
             this.updateLoupeHUD(snap.point, true, snap.distMeters, snap.label, snap.color);
         } else {
             this.hoverValidTargetPoint = null;
-            mapEl.style.cursor = (this.activeTool === 'pickA' || this.activeTool === 'pickB') ? 'not-allowed' : 'default';
+            mapEl.style.cursor = 'crosshair';
             if (this.layerGroups.snap) this.layerGroups.snap.clearLayers();
             this.updateLoupeHUD(cursorPt, false, 99.9, null, null);
         }
@@ -859,14 +940,14 @@ const App = {
         if (!this.layerGroups.snap) return;
         this.layerGroups.snap.clearLayers();
 
-        // 1. Draw 50-meter precision circle ring on the map
+        // 1. Draw precision circle ring on the map
         const snapCircle = L.circle([pt[1], pt[0]], {
-            radius: 50,
+            radius: 40,
             color: color || '#38bdf8',
             weight: 1.5,
             dashArray: '3, 4',
             fillColor: color || '#38bdf8',
-            fillOpacity: 0.08,
+            fillOpacity: 0.12,
             interactive: false
         });
         this.layerGroups.snap.addLayer(snapCircle);
@@ -895,41 +976,117 @@ const App = {
     },
 
     onMapClick: function(e) {
-        if (this.activeTool !== 'pickA' && this.activeTool !== 'pickB') return;
+        const cursorPt = [e.latlng.lng, e.latlng.lat];
+        const targetFC = this.getActiveTargetFC();
+        const refFC = this.getActiveRefFC();
+
+        if (!targetFC || !refFC) return;
+
+        const tRing = this.getClosestRing(targetFC, cursorPt);
+        const rRing = this.getClosestRing(refFC, cursorPt);
+        const tol = this.getClickToleranceMeters(e.latlng.lat);
 
         let pickedPoint = this.hoverValidTargetPoint;
 
         // If not pre-cached on hover, calculate directly from click coordinate
         if (!pickedPoint) {
-            const cursorPt = [e.latlng.lng, e.latlng.lat];
-            const targetFC = this.getActiveTargetFC();
-            const refFC = this.getActiveRefFC();
-            const tRing = this.getClosestRing(targetFC, cursorPt);
-            const rRing = this.getClosestRing(refFC, cursorPt);
-            const snap = GeometryAligner.snapToAnyBoundary(tRing, rRing, cursorPt, 50, this.cachedIntersections);
+            const snap = GeometryAligner.snapToAnyBoundary(tRing, rRing, cursorPt, tol, this.cachedIntersections);
             if (snap) {
                 pickedPoint = snap.point;
+            } else {
+                // Check snap to either target boundary or reference boundary
+                const snapT = tRing ? GeometryAligner.snapToRing(tRing, cursorPt, tol * 5) : null;
+                const snapR = rRing ? GeometryAligner.snapToRing(rRing, cursorPt, tol * 5) : null;
+                if (snapT && snapR) {
+                    pickedPoint = snapT.distMeters <= snapR.distMeters ? snapT.point : snapR.point;
+                } else if (snapT) {
+                    pickedPoint = snapT.point;
+                } else if (snapR) {
+                    pickedPoint = snapR.point;
+                }
             }
         }
 
         if (!pickedPoint) {
-            const targetName = this.manualSnapSession ? this.manualSnapSession.targetLayer.name : "Target line (Red)";
-            this.showToast(`Please click on ${targetName} or at an Intersection (✕). Guide line alone is restricted.`, "warning");
+            if (this.activeTool === 'pickA' || this.activeTool === 'pickB' || this.activeTool === 'addPoint') {
+                this.showToast("Click on either boundary line or in the corridor between them to add a snap point.", "warning");
+            }
             return;
         }
 
+        this.handlePointPlacement(pickedPoint);
+    },
+
+    handlePointPlacement: function(pickedPoint) {
         if (this.activeTool === 'pickA') {
             this.setPointA(pickedPoint);
-            this.showToast("✓ Point A set! Now click Point B on the target line or intersection.", "info");
+            this.showToast("✓ Point A set! Now click Point B on the target line or between layers.", "info");
             this.setTool('pickB'); // Auto switch to B
         } else if (this.activeTool === 'pickB') {
             this.setPointB(pickedPoint);
             this.showToast("✓ Point B set! Ready to align.", "success");
             this.setTool('none');
-            // If on mobile, expand the sidebar drawer back so user can tap 'Make Red Follow Green'
             if (window.innerWidth < 768) {
                 this.toggleSidebar(true);
             }
+        } else if (this.activeTool === 'addPoint') {
+            if (!this.pointA) {
+                this.setPointA(pickedPoint);
+                this.showToast("✓ Point added as Point A! Click again between layers to add Point B.", "info");
+            } else if (!this.pointB) {
+                this.setPointB(pickedPoint);
+                this.showToast("✓ Point added as Point B! Ready to align.", "success");
+                this.setTool('none');
+                if (window.innerWidth < 768) {
+                    this.toggleSidebar(true);
+                }
+            } else {
+                const dA = GeometryAligner.distanceMeters(pickedPoint, this.pointA);
+                const dB = GeometryAligner.distanceMeters(pickedPoint, this.pointB);
+                if (dA <= dB) {
+                    this.setPointA(pickedPoint);
+                    this.showToast("✓ Updated Point A with new position.", "info");
+                } else {
+                    this.setPointB(pickedPoint);
+                    this.showToast("✓ Updated Point B with new position.", "info");
+                }
+            }
+        } else {
+            // No tool active: fill whichever is not set
+            if (!this.pointA) {
+                this.setPointA(pickedPoint);
+                this.showToast("✓ Point A set! Click again to set Point B.", "info");
+                this.setTool('pickB');
+            } else if (!this.pointB) {
+                this.setPointB(pickedPoint);
+                this.showToast("✓ Point B set! Ready to align.", "success");
+            } else {
+                this.setPointA(pickedPoint);
+                this.showToast("✓ Point A moved. Click to set Point B.", "info");
+                this.setTool('pickB');
+            }
+        }
+    },
+
+    selectPoint: function(pointId) {
+        this.selectedPointId = pointId;
+        this.updatePreviewMarkers();
+        this.showToast(`Point ${pointId} selected. Press "Delete" on keyboard or click Del to remove.`, "info");
+    },
+
+    deleteSelectedPoint: function() {
+        if (this.selectedPointId === 'A') {
+            this.clearPointA();
+            this.selectedPointId = null;
+        } else if (this.selectedPointId === 'B') {
+            this.clearPointB();
+            this.selectedPointId = null;
+        } else if (this.pointB) {
+            this.clearPointB();
+        } else if (this.pointA) {
+            this.clearPointA();
+        } else {
+            this.showToast("No point placed to delete.", "info");
         }
     },
 
@@ -940,6 +1097,7 @@ const App = {
         }
 
         this.pointA = pointOnTarget;
+        this.selectedPointId = 'A';
 
         document.getElementById('text-point-a').textContent = `Point A: ${this.pointA[1].toFixed(4)}, ${this.pointA[0].toFixed(4)}`;
         document.getElementById('card-point-a')?.classList.add('border-emerald-500');
@@ -952,6 +1110,7 @@ const App = {
         if (!this.targetData || !this.refData) return;
 
         this.pointB = pointOnTarget;
+        this.selectedPointId = 'B';
 
         document.getElementById('text-point-b').textContent = `Point B: ${this.pointB[1].toFixed(4)}, ${this.pointB[0].toFixed(4)}`;
         document.getElementById('card-point-b')?.classList.add('border-rose-500');
@@ -962,25 +1121,28 @@ const App = {
 
     clearPointA: function() {
         this.pointA = null;
+        if (this.selectedPointId === 'A') this.selectedPointId = null;
         document.getElementById('text-point-a').textContent = "Point A: Not Set";
         document.getElementById('card-point-a')?.classList.remove('border-emerald-500');
         this.updatePreviewMarkers();
         this.checkCanAlign();
-        this.showToast("Point A removed. Click 'Pick Point A' to set again.", "info");
+        this.showToast("Point A removed. Click 'Pick A' or '+ Add Point' to set again.", "info");
     },
 
     clearPointB: function() {
         this.pointB = null;
+        if (this.selectedPointId === 'B') this.selectedPointId = null;
         document.getElementById('text-point-b').textContent = "Point B: Not Set";
         document.getElementById('card-point-b')?.classList.remove('border-rose-500');
         this.updatePreviewMarkers();
         this.checkCanAlign();
-        this.showToast("Point B removed. Click 'Pick Point B' to set again.", "info");
+        this.showToast("Point B removed. Click 'Pick B' or '+ Add Point' to set again.", "info");
     },
 
     clearPoints: function() {
         this.pointA = null;
         this.pointB = null;
+        this.selectedPointId = null;
         this.setTool('none');
 
         document.getElementById('text-point-a').textContent = "Point A: Not Set";
@@ -1009,34 +1171,51 @@ const App = {
     updatePreviewMarkers: function() {
         this.layerGroups.preview.clearLayers();
 
-        // Marker for Point A directly on Target (Red line)
+        // Marker for Point A
         if (this.pointA) {
+            const isSel = this.selectedPointId === 'A';
             const iconA = L.divIcon({
                 className: 'custom-pin',
-                html: '<div style="background:#10b981;color:#fff;font-weight:900;font-size:12px;border:2.5px solid #fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 12px rgba(0,0,0,0.7);">A</div>',
+                html: `<div style="background:#10b981;color:#fff;font-weight:900;font-size:12px;border:2.5px solid ${isSel ? '#facc15' : '#fff'};border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;box-shadow:${isSel ? '0 0 0 4px #facc15, 0 4px 14px rgba(0,0,0,0.85)' : '0 3px 12px rgba(0,0,0,0.7)'};cursor:pointer;transition:all 0.2s;">A</div>`,
                 iconSize: [28, 28],
                 iconAnchor: [14, 14]
             });
-            L.marker([this.pointA[1], this.pointA[0]], { icon: iconA }).addTo(this.layerGroups.preview);
+            const markerA = L.marker([this.pointA[1], this.pointA[0]], { icon: iconA, interactive: true });
+            markerA.bindTooltip(`<strong>Point A</strong><br><span style="color:#10b981;font-size:11px;">Click to select &amp; hit Del to delete</span>`);
+            markerA.on('click', (e) => {
+                L.DomEvent.stopPropagation(e);
+                this.selectPoint('A');
+            });
+            markerA.addTo(this.layerGroups.preview);
         }
 
-        // Marker for Point B directly on Target (Red line)
+        // Marker for Point B
         if (this.pointB) {
+            const isSel = this.selectedPointId === 'B';
             const iconB = L.divIcon({
                 className: 'custom-pin',
-                html: '<div style="background:#ef4444;color:#fff;font-weight:900;font-size:12px;border:2.5px solid #fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 12px rgba(0,0,0,0.7);">B</div>',
+                html: `<div style="background:#ef4444;color:#fff;font-weight:900;font-size:12px;border:2.5px solid ${isSel ? '#facc15' : '#fff'};border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;box-shadow:${isSel ? '0 0 0 4px #facc15, 0 4px 14px rgba(0,0,0,0.85)' : '0 3px 12px rgba(0,0,0,0.7)'};cursor:pointer;transition:all 0.2s;">B</div>`,
                 iconSize: [28, 28],
                 iconAnchor: [14, 14]
             });
-            L.marker([this.pointB[1], this.pointB[0]], { icon: iconB }).addTo(this.layerGroups.preview);
+            const markerB = L.marker([this.pointB[1], this.pointB[0]], { icon: iconB, interactive: true });
+            markerB.bindTooltip(`<strong>Point B</strong><br><span style="color:#ef4444;font-size:11px;">Click to select &amp; hit Del to delete</span>`);
+            markerB.on('click', (e) => {
+                L.DomEvent.stopPropagation(e);
+                this.selectPoint('B');
+            });
+            markerB.addTo(this.layerGroups.preview);
         }
 
         // LIVE CUT PREVIEW: If both A and B are set, highlight the exact segments!
-        if (this.pointA && this.pointB && this.targetData && this.refData) {
+        const targetFC = this.getActiveTargetFC();
+        const refFC = this.getActiveRefFC();
+
+        if (this.pointA && this.pointB && targetFC && refFC) {
             try {
-                let targetFeat = this.targetData.features[0];
+                let targetFeat = targetFC.features[0];
                 let minT = Infinity;
-                (this.targetData.features || []).forEach(f => {
+                (targetFC.features || []).forEach(f => {
                     const r = GeometryAligner.getExteriorRing(f, this.pointA);
                     if (r && r.ring) {
                         const s = GeometryAligner.snapToRing(r.ring, this.pointA);
@@ -1044,9 +1223,9 @@ const App = {
                     }
                 });
 
-                let refFeat = this.refData.features[0];
+                let refFeat = refFC.features[0];
                 let minR = Infinity;
-                (this.refData.features || []).forEach(f => {
+                (refFC.features || []).forEach(f => {
                     const r = GeometryAligner.getExteriorRing(f, this.pointA);
                     if (r && r.ring) {
                         const s = GeometryAligner.snapToRing(r.ring, this.pointA);
@@ -1493,11 +1672,41 @@ const App = {
             targetLayer: targetLayer
         };
 
+        // Ensure both selected layers are ON and visible on the map
+        if (refLayer.type === 'adjusted') {
+            const adj = this.adjustedLayers.find(a => a.id === refLayer.id);
+            if (adj && !adj.visible) {
+                adj.visible = true;
+                this.renderAdjustedLayer(adj);
+            }
+        } else if (refLayer.type === 'ref' && !this.refVisible) {
+            this.refVisible = true;
+            this.renderRefLayer();
+        } else if (refLayer.type === 'target' && !this.targetVisible) {
+            this.targetVisible = true;
+            this.renderTargetLayer();
+        }
+
+        if (targetLayer.type === 'adjusted') {
+            const adj = this.adjustedLayers.find(a => a.id === targetLayer.id);
+            if (adj && !adj.visible) {
+                adj.visible = true;
+                this.renderAdjustedLayer(adj);
+            }
+        } else if (targetLayer.type === 'ref' && !this.refVisible) {
+            this.refVisible = true;
+            this.renderRefLayer();
+        } else if (targetLayer.type === 'target' && !this.targetVisible) {
+            this.targetVisible = true;
+            this.renderTargetLayer();
+        }
+        this.updateStep3UI();
+
         // Clear existing points
         this.clearPoints();
 
         // Compute intersections between these two selected layers
-        this.intersections = this.computeIntersectionsBetween(refLayer.data, targetLayer.data);
+        this.computeIntersections();
         this.renderIntersections();
 
         // Update active manual snap indicator card in Step 2
@@ -1525,7 +1734,7 @@ const App = {
         if (lblApplyBtn) lblApplyBtn.textContent = 'Make Red Follow Green 100%';
 
         this.clearPoints();
-        this.intersections = this.computeIntersections();
+        this.computeIntersections();
         this.renderIntersections();
 
         this.showToast("Manual snapping session closed. Returned to standard workflow.", "info");
@@ -1550,13 +1759,7 @@ const App = {
         }
 
         this.clearPoints();
-
-        // Recompute intersections
-        if (this.manualSnapSession) {
-            this.intersections = this.computeIntersectionsBetween(this.manualSnapSession.refLayer.data, this.manualSnapSession.targetLayer.data);
-        } else {
-            this.intersections = this.computeIntersections();
-        }
+        this.computeIntersections();
         this.renderIntersections();
 
         this.updateStep3UI();
@@ -1599,7 +1802,7 @@ const App = {
         this.renderTargetLayer();
 
         this.clearPoints();
-        this.intersections = this.computeIntersections();
+        this.computeIntersections();
         this.renderIntersections();
 
         this.updateStep3UI();
@@ -1733,6 +1936,14 @@ const App = {
 
     initEventListeners: function() {
         document.getElementById('select-basemap')?.addEventListener('change', (e) => this.setBasemap(e.target.value));
+
+        // Global Keyboard Shortcut: Delete or Backspace key to delete selected point
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Delete' || e.key === 'Backspace') {
+                if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+                this.deleteSelectedPoint();
+            }
+        });
 
         // File Uploads
         document.getElementById('input-file-ref')?.addEventListener('change', async (e) => {
