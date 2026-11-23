@@ -58,6 +58,9 @@ const App = {
     hoverValidTargetPoint: null,
     hoverNearestRefPoint: null,
 
+    // Manual Snapping Session: { refLayer, targetLayer, cachedIntersections }
+    manualSnapSession: null,
+
     init: async function() {
         this.initMap();
         this.initLayerGroups();
@@ -75,6 +78,7 @@ const App = {
         } else {
             this.updateStep3UI();
         }
+        this.updateUndoButtonsState();
     },
 
     initMap: function() {
@@ -484,21 +488,35 @@ const App = {
         this.renderIntersections();
     },
 
-    computeIntersections: function() {
-        if (!this.refData || !this.targetData) {
-            this.cachedIntersections = [];
-            return;
+    getActiveTargetFC: function() {
+        if (this.manualSnapSession) {
+            return this.manualSnapSession.targetLayer.data;
         }
+        if (!this.hasInterchangedSinceLastEdit && this.adjustedLayers.length > 0) {
+            const existing = this.adjustedLayers.find(l => l.sourceTargetName === this.targetName);
+            if (existing) return existing.data;
+        }
+        return this.targetData;
+    },
 
+    getActiveRefFC: function() {
+        if (this.manualSnapSession) {
+            return this.manualSnapSession.refLayer.data;
+        }
+        return this.refData;
+    },
+
+    computeIntersectionsBetween: function(fc1, fc2) {
+        if (!fc1 || !fc2) return [];
         try {
             const inters = [];
-            const tFeatures = this.targetData.features || [];
-            const rFeatures = this.refData.features || [];
+            const f1 = fc1.features || [];
+            const f2 = fc2.features || [];
 
-            tFeatures.forEach(tf => {
+            f1.forEach(tf => {
                 const tRingInfo = GeometryAligner.getExteriorRing(tf);
                 if (!tRingInfo || !tRingInfo.ring) return;
-                rFeatures.forEach(rf => {
+                f2.forEach(rf => {
                     const rRingInfo = GeometryAligner.getExteriorRing(rf);
                     if (!rRingInfo || !rRingInfo.ring) return;
                     const found = GeometryAligner.getIntersections(tRingInfo.ring, rRingInfo.ring);
@@ -509,11 +527,23 @@ const App = {
                     });
                 });
             });
-            this.cachedIntersections = inters;
+            return inters;
         } catch (e) {
             console.warn("Intersection compute error:", e);
-            this.cachedIntersections = [];
+            return [];
         }
+    },
+
+    computeIntersections: function() {
+        const targetFC = this.getActiveTargetFC();
+        const refFC = this.getActiveRefFC();
+
+        if (!targetFC || !refFC) {
+            this.cachedIntersections = [];
+            return;
+        }
+
+        this.cachedIntersections = this.computeIntersectionsBetween(targetFC, refFC);
     },
 
     renderIntersections: function() {
@@ -745,7 +775,8 @@ const App = {
             this.initLoupeMap();
             this.syncLoupeLayers();
             const targetLetter = tool === 'pickA' ? 'A' : 'B';
-            this.showToast(`Click on the Target line (Red) or an Intersection (✕) to place Point ${targetLetter}.`, "info");
+            const targetName = this.manualSnapSession ? this.manualSnapSession.targetLayer.name : "Target line (Red)";
+            this.showToast(`Click on ${targetName} or an Intersection (✕) to place Point ${targetLetter}.`, "info");
 
             // On mobile, auto-collapse sidebar so full map is visible for picking
             if (window.innerWidth < 768) {
@@ -798,11 +829,14 @@ const App = {
     handleMouseMoveThrottled: function(lng, lat) {
         const cursorPt = [lng, lat];
 
-        // Exterior rings for target and reference across all features
-        const tRing = this.getClosestRing(this.targetData, cursorPt);
-        const rRing = this.getClosestRing(this.refData, cursorPt);
+        const targetFC = this.getActiveTargetFC();
+        const refFC = this.getActiveRefFC();
 
-        // Snap strictly to Intersection (✕) or Target line (Red). Reference line alone is restricted!
+        // Exterior rings for target and reference across all features
+        const tRing = this.getClosestRing(targetFC, cursorPt);
+        const rRing = this.getClosestRing(refFC, cursorPt);
+
+        // Snap strictly to Intersection (✕) or Target line. Reference line alone is restricted!
         const snap = GeometryAligner.snapToAnyBoundary(tRing, rRing, cursorPt, 50, this.cachedIntersections);
 
         const mapEl = document.getElementById('map');
@@ -868,8 +902,10 @@ const App = {
         // If not pre-cached on hover, calculate directly from click coordinate
         if (!pickedPoint) {
             const cursorPt = [e.latlng.lng, e.latlng.lat];
-            const tRing = this.getClosestRing(this.targetData, cursorPt);
-            const rRing = this.getClosestRing(this.refData, cursorPt);
+            const targetFC = this.getActiveTargetFC();
+            const refFC = this.getActiveRefFC();
+            const tRing = this.getClosestRing(targetFC, cursorPt);
+            const rRing = this.getClosestRing(refFC, cursorPt);
             const snap = GeometryAligner.snapToAnyBoundary(tRing, rRing, cursorPt, 50, this.cachedIntersections);
             if (snap) {
                 pickedPoint = snap.point;
@@ -877,7 +913,8 @@ const App = {
         }
 
         if (!pickedPoint) {
-            this.showToast("Please click on the Target line (Red) or at an Intersection (✕). Reference line alone is restricted.", "warning");
+            const targetName = this.manualSnapSession ? this.manualSnapSession.targetLayer.name : "Target line (Red)";
+            this.showToast(`Please click on ${targetName} or at an Intersection (✕). Guide line alone is restricted.`, "warning");
             return;
         }
 
@@ -1058,24 +1095,36 @@ const App = {
             return;
         }
 
-        if (!this.targetData || !this.refData) return;
+        let sourceFC, refFC, sourceName, refName, isManualMode = false;
 
-        // Choose source feature: if there's already an active adjusted layer for this target, use its geometry, else targetData
-        let sourceFC = this.targetData;
-        const existingForThisTarget = this.adjustedLayers.find(l => l.sourceTargetName === this.targetName);
+        if (this.manualSnapSession) {
+            isManualMode = true;
+            sourceFC = this.manualSnapSession.targetLayer.data;
+            refFC = this.manualSnapSession.refLayer.data;
+            sourceName = this.manualSnapSession.targetLayer.name;
+            refName = this.manualSnapSession.refLayer.name;
+        } else {
+            if (!this.targetData || !this.refData) return;
+            sourceFC = this.targetData;
+            refFC = this.refData;
+            sourceName = this.targetName;
+            refName = this.refName;
 
-        // If user edited before without swapping roles, continue editing that layer
-        // BUT if user interchanged roles (hasInterchangedSinceLastEdit = true), start a BRAND NEW layer!
-        let targetLayerObj = null;
-
-        if (!this.hasInterchangedSinceLastEdit && existingForThisTarget) {
-            targetLayerObj = existingForThisTarget;
-            sourceFC = targetLayerObj.data;
+            // In normal mode: if user edited before without swapping roles, continue editing that layer
+            const existingForThisTarget = this.adjustedLayers.find(l => l.sourceTargetName === this.targetName);
+            if (!this.hasInterchangedSinceLastEdit && existingForThisTarget) {
+                sourceFC = existingForThisTarget.data;
+            }
         }
 
-        // Clean and deduplicate sourceFC & refData
-        sourceFC = FileHandler.standardizeGeoJSON(sourceFC, this.targetName);
-        this.refData = FileHandler.standardizeGeoJSON(this.refData, this.refName);
+        if (!sourceFC || !refFC) {
+            this.showToast("Both layers must be loaded and available.", "warning");
+            return;
+        }
+
+        // Clean and deduplicate sourceFC & refFC
+        sourceFC = FileHandler.standardizeGeoJSON(sourceFC, sourceName);
+        refFC = FileHandler.standardizeGeoJSON(refFC, refName);
 
         // Find the feature in sourceFC closest to pointA
         let targetIdx = 0;
@@ -1091,10 +1140,10 @@ const App = {
             }
         });
 
-        // Find the feature in refData closest to pointA
+        // Find the feature in refFC closest to pointA
         let refIdx = 0;
         let minRefDist = Infinity;
-        this.refData.features.forEach((feat, idx) => {
+        refFC.features.forEach((feat, idx) => {
             const ringInfo = GeometryAligner.getExteriorRing(feat, this.pointA);
             if (ringInfo && ringInfo.ring) {
                 const snap = GeometryAligner.snapToRing(ringInfo.ring, this.pointA);
@@ -1106,7 +1155,7 @@ const App = {
         });
 
         const targetFeat = sourceFC.features[targetIdx];
-        const refFeat = this.refData.features[refIdx];
+        const refFeat = refFC.features[refIdx];
 
         try {
             const result = GeometryAligner.replaceBoundarySegment(targetFeat, refFeat, this.pointA, this.pointB);
@@ -1121,31 +1170,46 @@ const App = {
 
             const updatedFC = {
                 type: "FeatureCollection",
-                name: `Adjusted_${this.targetName}`,
+                name: `Adjusted_${sourceName}`,
                 features: updatedFeatures
             };
 
             const defaultPalette = ['#0284c7', '#06b6d4', '#a855f7', '#f59e0b', '#ec4899', '#3b82f6'];
+            const layerIndex = this.adjustedLayers.length + 1;
+            const chosenColor = defaultPalette[(layerIndex - 1) % defaultPalette.length];
 
-            if (!targetLayerObj) {
-                // CREATE A NEW ADJUSTED LAYER (Keeps old ones intact!)
-                const layerIndex = this.adjustedLayers.length + 1;
-                const chosenColor = defaultPalette[(layerIndex - 1) % defaultPalette.length];
+            let targetLayerObj = null;
 
+            if (isManualMode) {
+                // MANUAL MODE: ALWAYS creates an independent new adjusted layer!
+                // Guarantees: "without changing or removing existing layer edits"
                 targetLayerObj = {
                     id: 'adj_' + Date.now(),
-                    name: `Adjusted Layer #${layerIndex} (${this.targetName})`,
+                    name: `Manual Snap #${layerIndex} (${sourceName} → ${refName})`,
                     color: chosenColor,
-                    // USER CONSTRAINT: "keep blue off when updated then user can on and see"
                     visible: false,
-                    sourceTargetName: this.targetName,
+                    sourceTargetName: sourceName,
                     data: updatedFC
                 };
                 this.adjustedLayers.push(targetLayerObj);
             } else {
-                targetLayerObj.data = updatedFC;
-                // If user re-edited, also keep it off or let user turn it on
-                targetLayerObj.visible = false;
+                // NORMAL MODE:
+                const existingForThisTarget = this.adjustedLayers.find(l => l.sourceTargetName === this.targetName);
+                if (!this.hasInterchangedSinceLastEdit && existingForThisTarget) {
+                    targetLayerObj = existingForThisTarget;
+                    targetLayerObj.data = updatedFC;
+                    targetLayerObj.visible = false;
+                } else {
+                    targetLayerObj = {
+                        id: 'adj_' + Date.now(),
+                        name: `Adjusted Layer #${layerIndex} (${this.targetName})`,
+                        color: chosenColor,
+                        visible: false,
+                        sourceTargetName: this.targetName,
+                        data: updatedFC
+                    };
+                    this.adjustedLayers.push(targetLayerObj);
+                }
             }
 
             // Reset interchange flag until next interchange
@@ -1153,10 +1217,15 @@ const App = {
 
             this.renderAdjustedLayer(targetLayerObj);
             this.updateStep3UI();
+            this.updateUndoButtonsState();
             this.clearPoints();
             this.saveToStorage();
 
-            this.showToast(`✓ Snapped! "${targetLayerObj.name}" created (Kept OFF by default). Turn it ON in Step 3 to inspect!`, "success");
+            if (isManualMode) {
+                this.showToast(`✓ Manual Snap complete! "${targetLayerObj.name}" created without changing prior edits. Turn it ON in Step 3!`, "success");
+            } else {
+                this.showToast(`✓ Snapped! "${targetLayerObj.name}" created (Kept OFF by default). Turn it ON in Step 3 to inspect!`, "success");
+            }
 
         } catch (err) {
             console.error("Alignment error:", err);
@@ -1254,6 +1323,7 @@ const App = {
         }
 
         container.innerHTML = html;
+        this.updateUndoButtonsState();
     },
 
     toggleRefVisibility: function() {
@@ -1314,6 +1384,242 @@ const App = {
         this.updateStep3UI();
         this.saveToStorage();
         this.showToast("Adjusted layer deleted.", "info");
+    },
+
+    // =========================================================================
+    // MANUAL SNAPPING (SELECT 2 LAYERS) & UNDO CONTROLS
+    // =========================================================================
+    getAvailableLayers: function() {
+        const layers = [];
+        if (this.refData) {
+            layers.push({
+                id: 'ref',
+                name: `Reference (Master Line): ${this.refName}`,
+                data: this.refData,
+                color: this.refColor,
+                type: 'ref'
+            });
+        }
+        if (this.targetData) {
+            layers.push({
+                id: 'target',
+                name: `Original Target (Old): ${this.targetName}`,
+                data: this.targetData,
+                color: this.targetColor,
+                type: 'target'
+            });
+        }
+        this.adjustedLayers.forEach((adj) => {
+            layers.push({
+                id: adj.id,
+                name: adj.name,
+                data: adj.data,
+                color: adj.color,
+                type: 'adjusted'
+            });
+        });
+        return layers;
+    },
+
+    openManualSnapModal: function() {
+        const layers = this.getAvailableLayers();
+        if (layers.length < 2) {
+            this.showToast("Please load both Reference and Target layers before manual snapping.", "warning");
+            return;
+        }
+
+        const selectRef = document.getElementById('select-manual-ref');
+        const selectTarget = document.getElementById('select-manual-target');
+
+        if (selectRef && selectTarget) {
+            selectRef.innerHTML = '';
+            selectTarget.innerHTML = '';
+
+            layers.forEach((l) => {
+                const opt1 = document.createElement('option');
+                opt1.value = l.id;
+                opt1.textContent = l.name;
+                selectRef.appendChild(opt1);
+
+                const opt2 = document.createElement('option');
+                opt2.value = l.id;
+                opt2.textContent = l.name;
+                selectTarget.appendChild(opt2);
+            });
+
+            // Set sensible defaults: Guide = 'ref' (first), Target = last adjusted or second
+            selectRef.value = layers[0].id;
+            selectTarget.value = layers.length > 1 ? layers[layers.length - 1].id : layers[0].id;
+            if (selectRef.value === selectTarget.value && layers.length > 1) {
+                selectTarget.value = layers[1].id;
+            }
+        }
+
+        document.getElementById('modal-manual-snap')?.classList.remove('hidden');
+    },
+
+    closeManualSnapModal: function() {
+        document.getElementById('modal-manual-snap')?.classList.add('hidden');
+    },
+
+    confirmManualSnapSession: function() {
+        const selectRef = document.getElementById('select-manual-ref');
+        const selectTarget = document.getElementById('select-manual-target');
+
+        const refId = selectRef ? selectRef.value : null;
+        const targetId = selectTarget ? selectTarget.value : null;
+
+        if (!refId || !targetId) {
+            this.showToast("Please select both a Master Guide layer and a Target layer.", "warning");
+            return;
+        }
+
+        if (refId === targetId) {
+            this.showToast("Guide Layer and Layer to Adjust must be two different layers!", "warning");
+            return;
+        }
+
+        const layers = this.getAvailableLayers();
+        const refLayer = layers.find(l => l.id === refId);
+        const targetLayer = layers.find(l => l.id === targetId);
+
+        if (!refLayer || !targetLayer) {
+            this.showToast("Selected layers could not be found.", "error");
+            return;
+        }
+
+        this.manualSnapSession = {
+            refLayer: refLayer,
+            targetLayer: targetLayer
+        };
+
+        // Clear existing points
+        this.clearPoints();
+
+        // Compute intersections between these two selected layers
+        this.intersections = this.computeIntersectionsBetween(refLayer.data, targetLayer.data);
+        this.renderIntersections();
+
+        // Update active manual snap indicator card in Step 2
+        const cardActive = document.getElementById('card-manual-snap-active');
+        const lblGuide = document.getElementById('label-manual-guide');
+        const lblTarget = document.getElementById('label-manual-target');
+        const lblApplyBtn = document.getElementById('label-apply-align-text');
+
+        if (cardActive) cardActive.classList.remove('hidden');
+        if (lblGuide) lblGuide.textContent = refLayer.name;
+        if (lblTarget) lblTarget.textContent = targetLayer.name;
+        if (lblApplyBtn) lblApplyBtn.textContent = `Snap "${targetLayer.name}" to Guide`;
+
+        this.closeManualSnapModal();
+        this.showToast(`Manual Snap Active: Pick Points A & B on "${targetLayer.name}" (or ✕ Intersections) to snap to Guide.`, "info");
+    },
+
+    cancelManualSnapSession: function() {
+        this.manualSnapSession = null;
+
+        const cardActive = document.getElementById('card-manual-snap-active');
+        const lblApplyBtn = document.getElementById('label-apply-align-text');
+
+        if (cardActive) cardActive.classList.add('hidden');
+        if (lblApplyBtn) lblApplyBtn.textContent = 'Make Red Follow Green 100%';
+
+        this.clearPoints();
+        this.intersections = this.computeIntersections();
+        this.renderIntersections();
+
+        this.showToast("Manual snapping session closed. Returned to standard workflow.", "info");
+    },
+
+    undoLastMove: function() {
+        if (!this.adjustedLayers || this.adjustedLayers.length === 0) {
+            this.showToast("No adjusted moves to undo.", "info");
+            return;
+        }
+
+        const lastLayer = this.adjustedLayers.pop();
+        if (lastLayer && this.layerGroups.adjustedMap[lastLayer.id]) {
+            this.map.removeLayer(this.layerGroups.adjustedMap[lastLayer.id]);
+            delete this.layerGroups.adjustedMap[lastLayer.id];
+        }
+
+        // If no adjusted layers remain, turn original Target layer back ON
+        if (this.adjustedLayers.length === 0) {
+            this.targetVisible = true;
+            this.renderTargetLayer();
+        }
+
+        this.clearPoints();
+
+        // Recompute intersections
+        if (this.manualSnapSession) {
+            this.intersections = this.computeIntersectionsBetween(this.manualSnapSession.refLayer.data, this.manualSnapSession.targetLayer.data);
+        } else {
+            this.intersections = this.computeIntersections();
+        }
+        this.renderIntersections();
+
+        this.updateStep3UI();
+        this.updateUndoButtonsState();
+        this.saveToStorage();
+        this.showToast(`Undid "${lastLayer ? lastLayer.name : 'last move'}".`, "info");
+    },
+
+    undoAllMoves: function() {
+        if (!this.adjustedLayers || this.adjustedLayers.length === 0) {
+            this.showToast("No moves to undo. Layers are already in original state.", "info");
+            return;
+        }
+
+        if (!confirm("Undo all moves? This will remove all created adjusted layers and revert back to your original loaded files.")) {
+            return;
+        }
+
+        // Remove all adjusted layer groups from Leaflet map
+        if (this.layerGroups && this.layerGroups.adjustedMap) {
+            Object.keys(this.layerGroups.adjustedMap).forEach(id => {
+                try {
+                    this.map.removeLayer(this.layerGroups.adjustedMap[id]);
+                } catch (e) {}
+            });
+            this.layerGroups.adjustedMap = {};
+        }
+
+        this.adjustedLayers = [];
+
+        // Exit manual snap mode if active
+        if (this.manualSnapSession) {
+            this.cancelManualSnapSession();
+        }
+
+        // Restore original Reference and Target layers to visible
+        this.refVisible = true;
+        this.targetVisible = true;
+        this.renderRefLayer();
+        this.renderTargetLayer();
+
+        this.clearPoints();
+        this.intersections = this.computeIntersections();
+        this.renderIntersections();
+
+        this.updateStep3UI();
+        this.updateUndoButtonsState();
+        this.saveToStorage();
+
+        this.showToast("✓ All alignment moves undone! Restored to original loaded layers.", "success");
+    },
+
+    updateUndoButtonsState: function() {
+        const count = (this.adjustedLayers && this.adjustedLayers.length) || 0;
+        const isDisabled = count === 0;
+
+        const btnHeaderUndo = document.getElementById('btn-header-undo-all');
+        const btnUndoAll = document.getElementById('btn-undo-all');
+        const btnUndoLast = document.getElementById('btn-undo-last');
+
+        if (btnHeaderUndo) btnHeaderUndo.disabled = isDisabled;
+        if (btnUndoAll) btnUndoAll.disabled = isDisabled;
+        if (btnUndoLast) btnUndoLast.disabled = isDisabled;
     },
 
     // =========================================================================

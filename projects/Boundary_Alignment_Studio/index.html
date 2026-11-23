@@ -210,6 +210,12 @@
                 <span>⇄ Interchange</span>
             </button>
 
+            <!-- Undo All Moves Button (Reverts to pristine original layers) -->
+            <button type="button" id="btn-header-undo-all" onclick="App.undoAllMoves()" disabled class="px-2 sm:px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-amber-950/80 border border-slate-700 hover:border-amber-500 text-slate-300 hover:text-amber-300 font-semibold text-xs transition disabled:opacity-40 disabled:cursor-not-allowed" title="Undo all alignment moves and revert back to original loaded layers">
+                <i class="fa-solid fa-rotate-left"></i>
+                <span class="hidden md:inline ml-1">Undo All</span>
+            </button>
+
             <!-- Start Fresh / Clear Session -->
             <button type="button" onclick="App.clearAllData()" class="px-2 sm:px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-rose-950/80 border border-slate-700 hover:border-rose-600 text-slate-300 hover:text-rose-300 font-semibold text-xs transition" title="Clear all and start fresh">
                 <i class="fa-solid fa-trash-can"></i>
@@ -347,10 +353,46 @@
                     <div class="flex gap-1.5 pt-0.5">
                         <button type="button" id="btn-apply-align" onclick="App.applyPointToPointAlign()" disabled class="flex-1 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-sky-600 hover:from-emerald-500 hover:to-sky-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow opacity-50 cursor-not-allowed transition active:scale-95">
                             <i class="fa-solid fa-bolt text-amber-300"></i>
-                            <span>Make Red Follow Green 100%</span>
+                            <span id="label-apply-align-text">Make Red Follow Green 100%</span>
                         </button>
                         <button type="button" onclick="App.clearPoints()" class="px-2.5 py-2 rounded-xl bg-slate-800 hover:bg-rose-950 text-slate-300 hover:text-rose-300 font-semibold text-xs border border-slate-700 transition" title="Remove Both Points">
                             <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+
+                    <!-- Manual Snapping (Select Any 2 Layers) Button -->
+                    <button type="button" onclick="App.openManualSnapModal()" class="w-full py-1.5 px-2 rounded-xl bg-slate-900 hover:bg-cyan-950/80 border border-cyan-500/50 hover:border-cyan-400 text-cyan-300 hover:text-white font-bold text-[11px] flex items-center justify-center gap-1.5 shadow transition active:scale-95" title="Manually choose which 2 layers to snap without removing existing edits">
+                        <i class="fa-solid fa-bullseye text-cyan-400"></i>
+                        <span>Manual Snapping (Choose 2 Layers)</span>
+                    </button>
+
+                    <!-- Active Manual Snapping Indicator Card (Hidden by default) -->
+                    <div id="card-manual-snap-active" class="hidden p-2 rounded-xl bg-cyan-950/70 border border-cyan-500/80 text-[10px] space-y-1 shadow-md">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-cyan-300 flex items-center gap-1.5 text-[10.5px]">
+                                <i class="fa-solid fa-bullseye text-cyan-400 animate-pulse"></i> Manual Snap Active
+                            </span>
+                            <button type="button" onclick="App.cancelManualSnapSession()" class="px-1.5 py-0.5 rounded bg-slate-900 hover:bg-rose-950 text-slate-400 hover:text-rose-400 border border-slate-700 text-[9px] transition" title="Exit manual snap mode">
+                                Exit
+                            </button>
+                        </div>
+                        <div class="text-[9.5px] text-slate-300 truncate">
+                            <span class="text-emerald-400 font-semibold">Guide (Follow):</span> <span id="label-manual-guide">--</span>
+                        </div>
+                        <div class="text-[9.5px] text-slate-300 truncate">
+                            <span class="text-rose-400 font-semibold">To Adjust:</span> <span id="label-manual-target">--</span>
+                        </div>
+                    </div>
+
+                    <!-- Undo Actions: Undo Last Move / Undo All Moves -->
+                    <div class="flex gap-1.5 pt-1 border-t border-slate-800/80">
+                        <button type="button" id="btn-undo-last" onclick="App.undoLastMove()" disabled class="flex-1 py-1.5 rounded-xl bg-slate-900 hover:bg-amber-950/80 border border-slate-700 hover:border-amber-500 text-slate-300 hover:text-amber-300 font-bold text-[10px] flex items-center justify-center gap-1 shadow transition disabled:opacity-40 disabled:cursor-not-allowed" title="Undo the most recent boundary adjustment">
+                            <i class="fa-solid fa-rotate-left text-amber-400"></i>
+                            <span>Undo Last</span>
+                        </button>
+                        <button type="button" id="btn-undo-all" onclick="App.undoAllMoves()" disabled class="flex-1 py-1.5 rounded-xl bg-slate-900 hover:bg-rose-950/80 border border-slate-700 hover:border-rose-500 text-slate-300 hover:text-rose-300 font-bold text-[10px] flex items-center justify-center gap-1 shadow transition disabled:opacity-40 disabled:cursor-not-allowed" title="Undo all moves and revert back to pristine original layers">
+                            <i class="fa-solid fa-clock-rotate-left text-rose-400"></i>
+                            <span>Undo All</span>
                         </button>
                     </div>
                 </div>
@@ -428,6 +470,71 @@
                 </div>
             </div>
         </main>
+    </div>
+
+    <!-- MANUAL SNAPPING (CHOOSE 2 LAYERS) MODAL -->
+    <div id="modal-manual-snap" class="hidden fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm">
+        <div class="glass-panel w-full max-w-md rounded-2xl shadow-2xl border border-cyan-500/50 p-4 sm:p-5 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-cyan-600/20 border border-cyan-500/40 text-cyan-400 flex items-center justify-center">
+                        <i class="fa-solid fa-bullseye text-base"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-100 flex items-center gap-2">
+                            Manual Snapping Setup
+                        </h3>
+                        <p class="text-[10px] text-slate-400">Select which 2 layers to snap against each other without changing or removing existing edits</p>
+                    </div>
+                </div>
+                <button type="button" onclick="App.closeManualSnapModal()" class="w-7 h-7 rounded-lg bg-slate-900 border border-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            </div>
+
+            <div class="space-y-3.5 text-xs">
+                <!-- Layer 1: Guide / Reference Layer -->
+                <div class="space-y-1">
+                    <label class="text-[11px] font-bold text-emerald-400 flex items-center justify-between">
+                        <span>1. Master Guide Layer (To Follow):</span>
+                        <span class="text-[9.5px] text-slate-400 font-normal">Unchanged boundary corridor</span>
+                    </label>
+                    <select id="select-manual-ref" class="w-full bg-slate-900 border border-emerald-500/50 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-emerald-400 font-semibold cursor-pointer">
+                        <!-- Populated dynamically -->
+                    </select>
+                </div>
+
+                <!-- Layer 2: Target Layer To Adjust -->
+                <div class="space-y-1">
+                    <label class="text-[11px] font-bold text-rose-400 flex items-center justify-between">
+                        <span>2. Layer to Adjust / Snap (Moving Boundary):</span>
+                        <span class="text-[9.5px] text-slate-400 font-normal">Will conform to Master Layer</span>
+                    </label>
+                    <select id="select-manual-target" class="w-full bg-slate-900 border border-rose-500/50 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-rose-400 font-semibold cursor-pointer">
+                        <!-- Populated dynamically -->
+                    </select>
+                </div>
+
+                <!-- Non-destructive Guarantee Notice -->
+                <div class="p-2.5 rounded-xl bg-cyan-950/40 border border-cyan-800/60 text-[10.5px] text-cyan-200 flex items-start gap-2">
+                    <i class="fa-solid fa-shield-halved text-cyan-400 mt-0.5 text-sm shrink-0"></i>
+                    <div>
+                        <span class="font-bold text-cyan-300">Non-Destructive Snapping:</span>
+                        Your original layers and all previous adjusted layer edits will remain <strong>100% untouched</strong>. A brand new independent adjusted layer will be created in Step 3.
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex gap-2 pt-2 border-t border-slate-800">
+                <button type="button" onclick="App.closeManualSnapModal()" class="flex-1 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs border border-slate-700 transition">
+                    Cancel
+                </button>
+                <button type="button" onclick="App.confirmManualSnapSession()" class="flex-1 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-emerald-600 hover:from-cyan-500 hover:to-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg active:scale-95 transition">
+                    <i class="fa-solid fa-check"></i>
+                    <span>Start Snapping</span>
+                </button>
+            </div>
+        </div>
     </div>
 
     <!-- EXPORT MODAL -->
