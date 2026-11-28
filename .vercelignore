@@ -3,6 +3,9 @@ projects/division clip/lulc_sisdp.shp
 projects/division clip/TN_Thorn_Scrub_4Categories_FSI_2023.tif
 projects/division clip/admin.zip
 projects/division clip/Division_Shape_File.zip
+projects/division clip/FCM-2021/
+projects/division clip/FCM-2021/**
+TNFD_GIS_Portal.apk
 *.bat
 *.ps1
 node_modules
