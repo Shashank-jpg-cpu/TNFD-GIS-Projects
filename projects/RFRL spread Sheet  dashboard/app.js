@@ -1,3 +1,15 @@
+
+/**
+ * Safe numeric area parser: strips thousands-separator commas and non-numeric chars
+ * Prevents JavaScript parseFloat() from truncating numbers with commas (e.g. "1,234.50" -> 1234.50)
+ */
+function parseNumericArea(val) {
+    if (val === null || val === undefined) return 0;
+    const clean = String(val).replace(/,/g, '').trim();
+    const num = parseFloat(clean);
+    return isNaN(num) ? 0 : num;
+}
+
 /**
  * RF & RL GIS Index Live Dashboard
  * Real-time Google Sheet synchronization, interactive KPI cards, Chart.js analytics & data grid
@@ -346,8 +358,11 @@ function getFilteredDataset() {
                 return false;
             }
             if (state.activeFilter === 'HUGE_DIFF') {
-                const nArea = parseFloat(item.notifiedArea) || 0;
-                const pArea = parseFloat(item.polygonArea) || 0;
+                const isRL = item.sheetType === 'RL' || state.activeSheet === 'RL';
+                const nArea = isRL 
+                    ? ((parseNumericArea(item.notifiedArea) || parseNumericArea(item.controlArea) || parseNumericArea(item.revisedArea)) || 0)
+                    : parseNumericArea(item.notifiedArea);
+                const pArea = parseNumericArea(item.polygonArea);
                 if (nArea <= 0 || pArea <= 0) return false;
                 const pctDiff = Math.abs(pArea - nArea) / nArea;
                 if (pctDiff <= 0.20) return false; // Only > 20% difference
@@ -468,8 +483,9 @@ function renderKPICards() {
     const verifiers = {};
 
     dataset.forEach(item => {
-        const nArea = parseFloat(item.notifiedArea) || 0;
-        const pArea = parseFloat(item.polygonArea) || 0;
+        const nArea = parseNumericArea(item.notifiedArea); // Column E: Notified Area (Ha)
+        const cArea = parseNumericArea(item.controlArea);  // Column F: Area under control of Division (Ha) / Approved Area
+        const pArea = parseNumericArea(item.polygonArea);  // Column K: Polygon Area (Ha)
         totalNotifiedArea += nArea;
         totalPolygonArea += pArea;
 
@@ -487,10 +503,10 @@ function renderKPICards() {
         // Remarks classification
         if (remarksUpper.includes('ADDED TO DATABASE')) {
             addedCount++;
-            addedArea += nArea;
+            addedArea += cArea; // Column F: Approved Area as requested
         } else if (remarksUpper.includes('REJECTED')) {
             rejectedCount++;
-            rejectedArea += nArea;
+            rejectedArea += cArea;
         } else {
             pendingCount++;
         }
@@ -1143,15 +1159,18 @@ function fetchGvizJsonp(sheetId, sheetName) {
 function parseGvizTableToRecords(table, sheetType) {
     if (!table || !table.rows) return [];
     const records = [];
+    const seenSlNos = new Set();
 
     table.rows.forEach(row => {
         if (!row.c) return;
         const c = row.c;
         const slNoVal = c[0] ? (c[0].f || String(c[0].v || '')).trim() : '';
 
-        // Ignore header rows or non-numeric serial numbers
+        // Ignore header rows or non-numeric serial numbers and ensure each block is only counted once
         if (/^\d+(\.0)?$/.test(slNoVal) || /^\d+$/.test(slNoVal)) {
             const cleanSlNo = slNoVal.replace(/\.0$/, '');
+            if (seenSlNos.has(cleanSlNo)) return; // Avoid duplicate serial numbers or subtotals
+            seenSlNos.add(cleanSlNo);
             records.push({
                 slNo: cleanSlNo,
                 circle: getCellValue(c[1]),
@@ -1197,14 +1216,17 @@ function parseCsvToRecords(csvText, sheetType) {
 
     const rows = results.data || [];
     const records = [];
+    const seenSlNos = new Set();
 
     for (let i = 0; i < rows.length; i++) {
         const fields = rows[i];
         if (!fields || fields.length < 4) continue;
 
         const firstCol = String(fields[0]).trim();
-        // Identify data rows by serial number pattern
+        // Identify data rows by serial number pattern and count each block only once
         if (/^\d+$/.test(firstCol)) {
+            if (seenSlNos.has(firstCol)) continue; // Avoid duplicate serial numbers or subtotals
+            seenSlNos.add(firstCol);
             records.push({
                 slNo: firstCol,
                 circle: fields[1] ? String(fields[1]).trim() : '',

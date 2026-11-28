@@ -13,3 +13,4 @@ TNFD_GIS_Portal.apk
 node_modules
 *.vhdx
 *.tmp
+~$*
